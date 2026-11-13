@@ -2,6 +2,10 @@
 
 [English](README.md)
 
+[![ci](https://github.com/FrozenYty/dsh-search/actions/workflows/ci.yml/badge.svg)](https://github.com/FrozenYty/dsh-search/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![DSH](https://img.shields.io/badge/DSH-0.1.5--rc.1%20..%20%3C0.3.0-brightgreen)](https://github.com/deepseek-ai/deepseek-harness)
+
 > 真正的结果页，不是账户余额。
 
 一个 DeepSeek Harness 的 profile bundle：给 `web_search` 换上一个不需要 API key、不看账户余额、也不发
@@ -12,7 +16,7 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 
 ## 状态
 
-- 当前版本：v0.1.2。
+- 当前版本：v0.1.3。
 - **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
@@ -21,14 +25,33 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
   两者都需要启用这个 bundle，而启用是 owner 的决定；本仓库的检查从不加载 Harness。
 - 版本列表：[CHANGELOG.md](CHANGELOG.md)。只追加的历史：[PROGRESS.md](PROGRESS.md)。
 
-## 启用与验证
+## 安装与验证
+
+三条路线，都是把同一个 bundle 装进 profile 并应用它的 patch。都不需要构建步骤，也都不经过 npm registry。
+
+**从 Harness 内** —— 让这个目录被安装：
 
 ```
 plugin_manager  install_bundle  target: <本仓库的绝对路径>
 ```
 
-安装是把本目录 link 进 profile，而不是复制，所以跑的就是这棵工作树，没有构建步骤。它同时会应用本
-bundle 的 patch——让这个 provider 被选中的，正是 patch 那部分，见下文。
+**从命令行**，用本地路径——这是插件生态其他项目通行的路线，安装时也不需要访问 GitHub：
+
+```sh
+dsh plugin --profile <profile> add <本仓库的绝对路径>
+```
+
+**从 Release 下载** —— 同一个 bundle 的 tarball 及其校验和，由 `release` workflow 从标签构建：
+
+```sh
+dsh plugin --profile <profile> add <dsh-search-<version>.tgz 的路径>
+```
+
+这个包不在 npm 上是有意的：npm 上的 `dsh-search` 属于另一个无关的包，而本包是 `private`——它被 link
+或从文件安装，从不发布（`docs/adr/0003-provider-id-and-plugin-name.md`）。
+
+无论走哪条路线，patch 都会把能力缝的 `searchProvider` 挪到 `bing-html`，并重写该行的 fetch 那一半。这
+正是让 provider 被选中的部分，它对该 profile 里所有会话生效——见下文。
 
 之后的验证是真实调用，不是检查输出：
 
