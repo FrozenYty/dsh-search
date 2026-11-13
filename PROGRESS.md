@@ -4,6 +4,30 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — no more publishing: `main` is the distribution
+
+The owner's call, in their words: this is for them and a few friends, so nothing is published and no tag
+is needed. The repository stops treating a version bump and a release run as something every change owes.
+
+### What changed
+
+- `CONTRIBUTING.md` §5 is rewritten from "Releases" to "Versions, tags and tarballs": `CHANGELOG.md` is a
+  log rather than a release contract, `package.json`'s version moves **only when the bundle changes**
+  (tests, scripts, documents and workflows do not), and a tarball or a tag is a deliberate act — "hand me
+  that state as one file" — not a step in the loop.
+- Both READMEs lose the release-download route as a first-class install: the two local routes are the
+  install, `git pull` on the linked tree is the update, and the tarball is mentioned as the one-file
+  option for a friend.
+- `PLAN.md` gains "How this ships", so the policy is not only in a chat message.
+
+### What was not done, and why
+
+- No version bump and no tag for this change, deliberately: under the new rule a documentation change
+  does not move the version, and this is the first change that demonstrates it.
+- The four existing tags and their releases (v0.1.2–v0.1.5) were left alone. They are history, they cost
+  nothing, and one of them is a tarball somebody may still install. Deleting them is a separate decision
+  the owner can make in one sentence; nothing in the workflow or the documents requires them.
+
 ## 2026-11-13 — v0.1.5, acceptance item 4 in a real profile
 
 ### What was run

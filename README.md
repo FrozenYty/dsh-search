@@ -34,8 +34,9 @@ out — the failure that makes chat work and every search fail.
 
 ## Install and verify
 
-Three routes, and all of them put the same bundle into a profile and apply its patch. None needs a build
-step, and none touches the npm registry.
+Two routes, and both put the same bundle into a profile and apply its patch. Neither needs a build step and
+neither touches the npm registry: for a project this size the working tree **is** the distribution — clone
+it, install that path, and `git pull` is the update.
 
 **From the Harness** — ask for this directory to be installed:
 
@@ -43,19 +44,16 @@ step, and none touches the npm registry.
 plugin_manager  install_bundle  target: <absolute path to this repository>
 ```
 
-**From the CLI**, with a local path — the route the rest of the plugin ecosystem documents, and the one
-that needs no GitHub network access at install time either:
+**From the CLI**, with the same local path — the route the rest of the plugin ecosystem documents:
 
 ```sh
 dsh plugin --profile <profile> add <absolute path to this repository>
 ```
 
-**From a release download** — the same bundle as a tarball with its checksum, built by the `release`
-workflow from the tag:
-
-```sh
-dsh plugin --profile <profile> add <path to dsh-search-<version>.tgz>
-```
+Nothing is published per change, and no tag is needed for one: a linked working tree picks up a `git pull`
+on the next load. `node scripts/pack.mjs` can still build a one-file tarball for a friend who would rather
+be handed that than a repository, and the `release` workflow still publishes one when somebody tags — but
+both are deliberate acts, not part of the loop.
 
 That this package is not on npm is deliberate: the name `dsh-search` there belongs to an unrelated
 package, and this one is `private` — it is linked or installed from a file, never published
