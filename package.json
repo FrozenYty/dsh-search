@@ -1,0 +1,53 @@
+{
+  "name": "dsh-search",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Keyless Bing-backed web search provider for DeepSeek Harness: web_search runs one HTTPS GET against cn.bing.com through the ctx.web seam, with no API key, no account balance and no model call.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FrozenYty/dsh-search.git"
+  },
+  "bugs": {
+    "url": "https://github.com/FrozenYty/dsh-search/issues"
+  },
+  "scripts": {
+    "test": "node --test --test-isolation=none tests/*.test.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "bing.js",
+    "cordis.patch.yml",
+    "README.md",
+    "README-zh.md",
+    "locale/*.json",
+    "icon.svg"
+  ],
+  "peerDependencies": {
+    "@deepseek-ai/dsh-web": ">=0.1.5-rc.1 <0.3.0-0"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "web-search",
+    "search-provider",
+    "bing"
+  ]
+}

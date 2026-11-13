@@ -1,0 +1,24 @@
+# dsh-search bundle patch.
+#
+# 1. Point the web seam's search half at this provider.
+#
+#    The shipped base bundle pins `searchProvider: deepseek-official`, whose search is an auxiliary
+#    Messages call against api.deepseek.com. An account with no balance answers that call with HTTP 402,
+#    so `web_search` fails while chat keeps working. The pin is what decides, so registering a second
+#    provider alone changes nothing: this row override is the entry that makes the bundle take effect.
+#
+#    `config` is replaced wholesale, never deep-merged, so the base row's `fetchProvider: http` is
+#    restated here — dropping it would send `web_fetch` back to auto-selection. A profile that wants a
+#    different search provider, the shipped DeepSeek one included, overrides this same row again in its
+#    own cordis.patch.yml.
+- id: web
+  config:
+    searchProvider: bing-html
+    fetchProvider: http
+
+# 2. Insert this bundle's own provider row. The id is the target a profile addresses when it overrides
+#    this bundle's config, so it is frozen at `web-search-bing-html` (ADR 0003). The row takes no config:
+#    the provider has nothing to configure.
+- insert:
+    - id: web-search-bing-html
+      name: 'dsh-search'

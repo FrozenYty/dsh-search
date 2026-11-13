@@ -1,0 +1,20 @@
+# Installed tooling and local scratch. The bundle is linked, so node_modules only appears if a tool is
+# run from this directory.
+node_modules/
+.pnpm-store/
+
+# Editor and OS clutter.
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
+*.tmp
+
+# Logs and local captures.
+*.log
+
+# Git worktrees. The pattern is machine-local in effect, but it belongs in the tracked ignore file:
+# .git/info/exclude is not cloned, so a fresh clone reports every worktree's contents as untracked.
+.worktrees/
