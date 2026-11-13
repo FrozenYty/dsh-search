@@ -12,26 +12,32 @@
  * followed — are covered the moment the suite runs at all. Only breaking them shows whether anything
  * would have noticed.
  *
- * What it does not cover: `index.js`. The entry imports the seam, so plain `node` cannot load it; its
- * shape is checked structurally by `scripts/check.mjs`, and its translation of a provider failure into
- * the seam's error is exercised by a live call, not here.
+ * Both modules are mutated: `bing.js` for the request and the parse, `index.js` for the registration the
+ * Host performs and the translation of a provider failure into the seam's error type. The copies live
+ * under `.mutation/` inside this repository rather than in the system temp directory, so the entry tests
+ * resolve the seam through the same `node_modules` they do when the suite runs normally — a copy in the
+ * temp directory would import nothing and those tests would skip, which would make index.js mutations
+ * look killed for the wrong reason.
  *
  * Usage: node scripts/mutation-scan.mjs [name-substring]
  */
 
 import { spawnSync } from 'node:child_process'
 import { cpSync, mkdtempSync, mkdirSync, openSync, closeSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const source = readFileSync(join(root, 'bing.js'), 'utf8')
+const MUTATION_DIR = join(root, '.mutation')
+const SOURCES = new Map([
+  ['bing.js', readFileSync(join(root, 'bing.js'), 'utf8')],
+  ['index.js', readFileSync(join(root, 'index.js'), 'utf8')],
+])
 
 /**
- * The mutations, each with the line it breaks and the claim that line carries.
+ * The mutations, each with the file and line it breaks and the claim that line carries.
  *
- * `from` is matched literally against `bing.js`, so a refactor that changes the text fails this script
+ * `from` is matched literally against that file, so a refactor which changes the text fails this script
  * by name instead of quietly mutating nothing.
  */
 const MUTATIONS = [
@@ -113,7 +119,37 @@ const MUTATIONS = [
     from: '      if (signal?.aborted === true || isAbortError(error)) throw aborted(signal, error)',
     to: '      if (false) throw aborted(signal, error)',
   },
+  {
+    name: 'registration-reports-unavailable',
+    file: 'index.js',
+    claim: 'the registered provider reports itself available, so the seam can select it',
+    from: '    available: () => provider.available(),',
+    to: '    available: () => false,',
+  },
+  {
+    name: 'registration-id-renamed',
+    file: 'index.js',
+    claim: 'the provider registers under the id a profile pins (ADR 0003)',
+    from: '    id: provider.id,',
+    to: "    id: 'bing-search',",
+  },
+  {
+    name: 'provider-failure-untranslated',
+    file: 'index.js',
+    claim: 'a provider failure reaches the seam as the seam\'s own error type',
+    from: '        throw new WebError(error.message, error.code, { cause: error })',
+    to: '        throw error',
+  },
+  {
+    name: 'failure-code-flattened',
+    file: 'index.js',
+    claim: 'the provider\'s code survives the translation, WEB_ABORTED included',
+    from: '        throw new WebError(error.message, error.code, { cause: error })',
+    to: "        throw new WebError(error.message, 'WEB_PROVIDER_ERROR', { cause: error })",
+  },
 ]
+
+const TEST_FILES = ['parse.test.mjs', 'request.test.mjs', 'entry.test.mjs']
 
 const wanted = process.argv[2]
 const selected = wanted === undefined ? MUTATIONS : MUTATIONS.filter((mutation) => mutation.name.includes(wanted))
@@ -130,16 +166,23 @@ function firstFailure(output) {
 
 const results = []
 for (const mutation of selected) {
+  const file = mutation.file ?? 'bing.js'
+  const source = SOURCES.get(file)
   if (!source.includes(mutation.from)) {
-    results.push({ mutation, verdict: 'stale', detail: `bing.js no longer contains ${JSON.stringify(mutation.from)}` })
+    results.push({ mutation, verdict: 'stale', detail: `${file} no longer contains ${JSON.stringify(mutation.from)}` })
     continue
   }
-  const directory = mkdtempSync(join(tmpdir(), 'dsh-search-mutation-'))
+  // Inside the repository, not in the system temp directory: the entry tests resolve the seam by walking
+  // up to the repository's node_modules, and a copy outside it would skip instead of failing.
+  mkdirSync(MUTATION_DIR, { recursive: true })
+  const directory = mkdtempSync(join(MUTATION_DIR, 'run-'))
   try {
-    writeFileSync(join(directory, 'bing.js'), source.replace(mutation.from, mutation.to))
+    for (const [name, text] of SOURCES) {
+      writeFileSync(join(directory, name), name === file ? text.replace(mutation.from, mutation.to) : text)
+    }
     mkdirSync(join(directory, 'tests'))
     cpSync(join(root, 'tests', 'fixtures'), join(directory, 'tests', 'fixtures'), { recursive: true })
-    for (const name of ['parse.test.mjs', 'request.test.mjs']) {
+    for (const name of TEST_FILES) {
       cpSync(join(root, 'tests', name), join(directory, 'tests', name))
     }
     const out = join(directory, 'stdout.txt')
@@ -149,7 +192,7 @@ for (const mutation of selected) {
     const errFd = openSync(err, 'w')
     let status
     try {
-      status = spawnSync(process.execPath, ['--test', '--test-isolation=none', join(directory, 'tests', 'parse.test.mjs'), join(directory, 'tests', 'request.test.mjs')], {
+      status = spawnSync(process.execPath, ['--test', '--test-isolation=none', ...TEST_FILES.map((name) => join(directory, 'tests', name))], {
         cwd: directory,
         stdio: ['ignore', outFd, errFd],
       }).status

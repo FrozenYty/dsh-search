@@ -74,6 +74,13 @@ always a test; a mutation is removed only when the line it breaks is gone.
 It cannot prove that the plugin activates in a profile, or that the live endpoint answers. Those are
 manual steps: the first needs an install, the second the network.
 
+The entry tests are the one part of the suite that needs something installed: `tests/entry.test.mjs`
+loads the real `@deepseek-ai/dsh-web` and exercises what the Host does with this bundle — the
+registration, the provider it registers, and the translation of a provider failure into the seam's error
+type. CI installs the seam as a step of its own (`npm install --no-save`), because the bundle itself
+installs nothing at runtime. Without it those four tests skip rather than fail, so `scripts/check.mjs`
+fails when the install step disappears: a silently skipped entry is the one file nothing else executes.
+
 ## 5. Releases
 
 A version is published by a tag; the `release` workflow does the rest.

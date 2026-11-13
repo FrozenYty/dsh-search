@@ -53,6 +53,7 @@ README.md  ->  PLAN.md  ->  PROGRESS.md  ->  docs/architecture-en.md  ->  与你
 | 端点、请求头或重定向策略 | `bing.js`、`docs/architecture-en.md`、`README.md` + `README-zh.md`、`scripts/check.mjs`（请求层断言），端点若变动还要新写 ADR |
 | 解析器的块、标题或摘要规则 | `bing.js`、`tests/parse.test.mjs`、页面形状变了就更新 fixture、`docs/architecture-en.md` |
 | `bing.js` 的任何一条承重行——端点、重定向策略、块标记、摘要形状、去重、某个错误分支 | `scripts/mutation-scan.mjs` 里打断它的那条变异，以及杀掉该变异的测试 |
+| 入口的注册、provider id，或失败翻译 | `index.js`、`tests/entry.test.mjs`、`scripts/mutation-scan.mjs` 里的 `index.js` 变异、`docs/architecture-en.md` |
 | provider id 或 patch 行 id | `bing.js`、`index.js`、`cordis.patch.yml`、`docs/architecture-en.md`、`README.md` + `README-zh.md`、ADR 0003 |
 | peer 声明，或入口的 import | `package.json`、`scripts/check.mjs`、ADR 0002 |
 | 包名或显示标题 | `package.json`、`locale/en.json`、`locale/zh.json`、`scripts/check.mjs`、`README.md` + `README-zh.md`、ADR 0003 |

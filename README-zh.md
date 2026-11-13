@@ -16,7 +16,7 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 
 ## 状态
 
-- 当前版本：v0.1.3。
+- 当前版本：v0.1.4。
 - **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
@@ -108,11 +108,16 @@ dsh plugin --profile <profile> add <dsh-search-<version>.tgz 的路径>
 ## 开发
 
 ```sh
+npm install                       # 入口测试要加载的能力缝；bundle 本身不装任何东西
 node --check index.js bing.js
 node --test --test-isolation=none tests/*.test.mjs
 node scripts/mutation-scan.mjs
 node scripts/check.mjs
 ```
+
+`npm install` 只为入口测试而装：`index.js` import 能力缝，而 link 进 profile 的 bundle 是从运行时按 peer
+拿到它的；那几个测试加载真实类而不是替身。不装它们会 skip——skip 就意味着入口没被验证，所以一旦 CI 不再
+安装它，`scripts/check.mjs` 会失败。套件里其余测试完全不需要安装任何东西。
 
 `--test-isolation=none` 不是可选项：Node 22 把它拼作 `--experimental-test-isolation`，所以这个拼法本身
 就把大版本固定在 Node 24；而默认 runner 会为每个测试文件 spawn 一个进程，这台机器的沙箱拒绝这种

@@ -45,6 +45,15 @@ cancellation — and names the test that caught each. A survivor means no test s
 
 - [x] Delivered and recorded in `PROGRESS.md`.
 
+## A6 — the entry is covered by tests that load the real seam
+
+Done when: `node --test --test-isolation=none tests/*.test.mjs` runs `tests/entry.test.mjs` without
+skipping (the seam is resolvable, which CI arranges), and `node scripts/mutation-scan.mjs` kills every
+mutation that breaks a line of `index.js` — the registration, the id, the availability and the failure
+translation.
+
+- [x] Delivered and recorded in `PROGRESS.md`.
+
 ## Next, once A4 is answered
 
 Candidates, not commitments. Each one costs a request shape or a parsing rule, so each is a decision to

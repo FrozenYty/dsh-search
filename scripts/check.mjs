@@ -119,6 +119,16 @@ if (entrySource !== undefined) {
   if (!/export\s+const\s+name\s*=\s*'dsh-search'/.test(entrySource)) fail("index.js: must export name = 'dsh-search'")
   if (!/export\s+const\s+inject\s*=\s*\[\s*'web'\s*\]/.test(entrySource)) fail("index.js: must export inject = ['web']")
 }
+// The entry's tests load the real seam, and without it they skip instead of failing — so the skip is only
+// honest while CI installs what makes them run. This is the assertion that keeps a silent skip from
+// becoming the permanent state of the one file nothing else executes.
+if (!existsSync(join(root, 'tests', 'entry.test.mjs'))) {
+  fail('tests/entry.test.mjs: missing; the entry has no test that loads the real seam')
+}
+const ciWorkflow = read('.github/workflows/ci.yml') ?? ''
+if (!/npm install[^\n]*@deepseek-ai\/dsh-web/.test(ciWorkflow)) {
+  fail('.github/workflows/ci.yml: must install @deepseek-ai/dsh-web, or the entry tests skip and the entry stays unverified')
+}
 
 // 3. Locale parity and the titles this family fixes by convention.
 const keysOf = (value, prefix = '') => Object.entries(value ?? {})

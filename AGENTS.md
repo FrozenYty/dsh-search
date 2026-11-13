@@ -75,9 +75,13 @@ node scripts/mutation-scan.mjs
 node scripts/check.mjs
 ```
 
-The mutation scan is not decoration: it breaks each load-bearing line of `bing.js` in turn and requires
-the suite to fail. A survivor is a line no test stands behind; fix it with a test, never by deleting the
-mutation.
+The mutation scan is not decoration: it breaks each load-bearing line of `bing.js` and `index.js` in turn
+and requires the suite to fail. A survivor is a line no test stands behind; fix it with a test, never by
+deleting the mutation.
+
+`tests/entry.test.mjs` needs `@deepseek-ai/dsh-web` resolvable (`npm install` in the working tree, which
+is what CI does before the tests). Without it those tests skip — not fail — so never leave a working tree
+that skips them and call the entry verified.
 
 `--test-isolation=none` is required here: the default runner spawns one process per test file and this
 machine's sandbox refuses that spawn. It also requires Node 24 — Node 22 spells the flag
