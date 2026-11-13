@@ -18,7 +18,8 @@
     "check": "node scripts/check.mjs",
     "mutation": "node scripts/mutation-scan.mjs",
     "acceptance": "node scripts/acceptance.mjs",
-    "refresh": "node scripts/fixture-refresh.mjs"
+    "refresh": "node scripts/fixture-refresh.mjs",
+    "backends": "node scripts/probe-backends.mjs"
   },
   "exports": {
     ".": "./index.js",

@@ -4,6 +4,49 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — "can we stop using a single search source?" — asked of the network
+
+The question was whether to add Google "if the network allows", or another engine, so the bundle stops
+depending on one host. It was answered by sending one request per candidate, not by reasoning about
+engines. `scripts/probe-backends.mjs` is that measurement, kept as a tool:
+
+```
+$ node scripts/probe-backends.mjs
+query: deepseek harness
+
+bing        usable         102174 bytes  10 result blocks
+google      unreachable         0 bytes  fetch failed
+duckduckgo  unreachable         0 bytes  fetch failed
+brave       unreachable         0 bytes  fetch failed
+mojeek      blocked           337 bytes  HTTP 403
+baidu       challenge         517 bytes  HTTP 302 → wappass.baidu.com
+so360       wrapped        800430 bytes  13 result blocks
+sogou       challenge         357 bytes  HTTP 302 → www.sogou.com
+searxng     unreachable         0 bytes  fetch failed
+
+usable backends: bing
+```
+
+Two candidates looked real before they were tested properly, and both are recorded in
+`docs/adr/0004-one-backend-measured.md`:
+
+- **Baidu** returned 13–16 usable results — real URLs in `mu=`, clean `<h3>` titles, widget hosts
+  filterable — for the first several requests. Then it began answering `HTTP 302 →
+  wappass.baidu.com/static/captcha/…`: a captcha, for a sessionless client, after roughly eight requests in
+  a few minutes. Its pages are also 1.2 MB card templates with build-hashed class names, and a stable
+  description container was present on 4 of 30 result blocks, so a parser for it would return titles and
+  URLs without excerpts.
+- **360** returns 13 parseable blocks, but every URL is `so.com/link?m=…` — a cross-origin redirect, which
+  the shipped `web_fetch` provider refuses by design. Half-useful at best.
+
+The decision that follows is to keep one backend, and the ADR says why: a fallback that challenges the
+client is a second failure mode dressed as resilience, merging a weaker index into the seam's 8-source cap
+dilutes the source that works, and the failure a second backend was meant to cover — Bing's markup drifting
+— is already detected by `scripts/fixture-refresh.mjs`.
+
+The probe exits non-zero when Bing itself is unusable, so it doubles as a health check, and it is how this
+question gets re-asked after a proxy, a VPN or a region change instead of being re-argued from memory.
+
 ## 2026-11-13 — the drift tool, and what a page does and does not tell us
 
 Two additions, both aimed at the day this plugin breaks rather than at today.
