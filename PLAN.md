@@ -82,8 +82,10 @@ make with a measurement in hand rather than a gap to close.
   is independent of `--store-dir`, `--state-dir` and `PNPM_HOME`. Finishing it needs an unsandboxed
   shell, which is the owner's call; the local-path form through the plugin manager is what has been
   exercised.
-- **Unwrap Bing's own redirect links** (`cn.bing.com/ck/a?…`) if a result page ever carries them.
-  Today's pages carry direct links, so this is a parser rule that would never run.
+- **Settled by measurement, not implemented: unwrapping Bing's own redirect links** (`cn.bing.com/ck/a?…`).
+  Eight saved and live pages — 80 results — carried direct links and no `/ck/a` href at all, so a rule for
+  them would be code nothing runs. If a page ever does carry one, the source URL shows up as a `cn.bing.com`
+  link and this note is the place to start.
 - **A second backend as a fallback** if one starts answering with a parseable page from this machine.
   Supersedes ADR 0001 rather than editing it.
 - **More than ten results** if a `web_search` caller needs them: Bing's first page holds about ten, and

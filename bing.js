@@ -63,6 +63,18 @@ const SNIPPETS = [
   /<div[^>]*\bclass\s*=\s*["'][^"']*\bb_caption\b[^"']*["'][^>]*>\s*<p[^>]*>([\s\S]*?)<\/p>/i,
 ]
 
+/**
+ * The publication date Bing puts in front of some snippets, with the separator it uses.
+ *
+ * Both shapes appear on real pages: `2026年8月21日 · ` and `Aug 21, 2026 · `. An *age* rather than a date
+ * (`7 小时之前 · `) is deliberately not matched: it is a claim about the moment of the search, and turning
+ * it into a date would invent precision the page never stated. Those snippets keep their text as it is.
+ */
+const SNIPPET_DATE = /^(?:(\d{4})年(\d{1,2})月(\d{1,2})日|([A-Z][a-z]{2}) (\d{1,2}), (\d{4}))\s*·\s*/
+
+/** The three-letter English month names, in the order `Date` indexes them. */
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+
 /** The named entities Bing emits inside result text. Numeric forms are decoded separately. */
 const NAMED_ENTITIES = new Map([
   ['amp', '&'],
@@ -184,13 +196,53 @@ function snippetOf(block) {
 }
 
 /**
+ * Split an exact leading date off a snippet.
+ *
+ * @param {string} snippet - the snippet as the page renders it.
+ * @returns {{text: string, publishedAt?: string}} the snippet without its date, and the date as
+ *   `YYYY-MM-DD` when the page stated one that names a real day.
+ */
+function splitDate(snippet) {
+  const match = SNIPPET_DATE.exec(snippet)
+  if (match === null) return { text: snippet }
+  const [, year, month, day, monthName, monthNameDay, monthNameYear] = match
+  const publishedAt = year === undefined
+    ? isoDate(Number(monthNameYear), MONTHS.indexOf(monthName.toLowerCase()) + 1, Number(monthNameDay))
+    : isoDate(Number(year), Number(month), Number(day))
+  if (publishedAt === undefined) return { text: snippet }
+  return { text: snippet.slice(match[0].length), publishedAt }
+}
+
+/**
+ * Format a date as `YYYY-MM-DD`, or undefined when the parts do not name a real day.
+ *
+ * A page is markup, and `2026年2月31日` must not become `2026-03-03`: the rollover check is what keeps a
+ * page's mistake out of the seam's metadata.
+ *
+ * @param {number} year - four-digit year.
+ * @param {number} month - 1-based month.
+ * @param {number} day - day of month.
+ * @returns {string | undefined} the ISO date, or undefined when the parts roll over.
+ */
+function isoDate(year, month, day) {
+  if (!(month >= 1 && month <= 12) || !(day >= 1 && day <= 31)) return undefined
+  const stamp = new Date(Date.UTC(year, month - 1, day))
+  const real = stamp.getUTCFullYear() === year && stamp.getUTCMonth() === month - 1 && stamp.getUTCDate() === day
+  if (!real) return undefined
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+/**
  * Parse one result block into a source.
  *
  * A block without a title link, without a usable destination, or without heading text is not a result
- * and is skipped; a block without a snippet is still a result, reported without one.
+ * and is skipped; a block without a snippet is still a result, reported without one. A snippet that opens
+ * with an exact date loses that prefix and gains `publishedAt`, because the seam carries the date as its
+ * own field and the tool renders it as metadata rather than as the first words of the excerpt.
  *
  * @param {string} block - one `<li class="b_algo">` block.
- * @returns {{url: string, title: string, snippet?: string} | undefined} the source, or undefined.
+ * @returns {{url: string, title: string, snippet?: string, publishedAt?: string} | undefined} the source,
+ *   or undefined.
  */
 function sourceOf(block) {
   const title = TITLE_LINK.exec(block)
@@ -199,8 +251,11 @@ function sourceOf(block) {
   if (url === undefined) return undefined
   const heading = decodeHtml(title[2])
   if (heading.length === 0) return undefined
-  const snippet = snippetOf(block)
-  return snippet.length > 0 ? { url, title: heading, snippet } : { url, title: heading }
+  const { text, publishedAt } = splitDate(snippetOf(block))
+  const source = { url, title: heading }
+  if (text.length > 0) source.snippet = text
+  if (publishedAt !== undefined) source.publishedAt = publishedAt
+  return source
 }
 
 /**
@@ -211,7 +266,8 @@ function sourceOf(block) {
  * the next one.
  *
  * @param {string} html - the response body.
- * @returns {Array<{url: string, title: string, snippet?: string}>} the sources this page carries.
+ * @returns {Array<{url: string, title: string, snippet?: string, publishedAt?: string}>} the sources this
+ *   page carries.
  */
 export function parseBingHtml(html) {
   const starts = []
@@ -263,7 +319,7 @@ export class BingSearchProvider {
    *
    * @param {{query: string, maxResults?: number}} request - the seam's search request.
    * @param {AbortSignal} [signal] - the caller's cancellation signal.
-   * @returns {Promise<{sources: Array<{url: string, title: string, snippet?: string}>, truncated: boolean}>}
+   * @returns {Promise<{sources: Array<{url: string, title: string, snippet?: string, publishedAt?: string}>, truncated: boolean}>}
    *   the page's sources; `truncated` is false because the seam owns the result bound.
    * @throws {BingSearchError} `WEB_ABORTED` when cancelled, `WEB_PROVIDER_ERROR` otherwise.
    */

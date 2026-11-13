@@ -16,7 +16,7 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 
 ## 状态
 
-- 当前版本：v0.1.7。
+- 当前版本：v0.1.8。
 - **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
@@ -76,8 +76,9 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 ## 它是怎么工作的
 
 一次搜索就是一次到 `https://cn.bing.com/search?q=…` 的 HTTPS `GET`，然后解析响应体里的自然结果块。每个
-块贡献标题、绝对 URL 和摘要；能力缝按调用方的 `maxResults` 截断列表。没有任何东西发给账户，没有计费，
-也不涉及模型调用。
+块贡献标题、绝对 URL 和摘要；页面写明了发布日期时再带一个日期——它被从摘要里取出来并归一化，因为能力缝
+把它当作独立字段、工具把它当元数据展示。能力缝按调用方的 `maxResults` 截断列表。没有任何东西发给账户，
+没有计费，也不涉及模型调用。
 
 这次请求不会碰任何其他主机。`www.bing.com` 会重定向到 `cn.bing.com`，而本 provider 设置
 `redirect: "manual"`，因此永不跟随重定向——它变成一条点名目标地址的错误。`scripts/check.mjs` 在请求层

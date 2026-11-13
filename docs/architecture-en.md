@@ -43,9 +43,14 @@ The seam's registry keys a provider by its `id` and calls four things at most:
 | `search(request, signal)` | one GET, then parse | the whole operation; returns `{ sources, truncated }` |
 | `ready(llmProvider)` | absent | an absent `ready()` counts as ready, which keeps `web_search` offered on a route whose credential-backed provider cannot authenticate |
 
-`sources[]` entries carry `url` and `title`, plus `snippet` when the block has one. The seam's
-vocabulary makes the last two optional; this provider always fills `title` (a block without a heading is
-not a result) and omits `snippet` rather than sending an empty string.
+`sources[]` entries carry `url` and `title`, plus `snippet` when the block has one, plus `publishedAt`
+when the page stated a publication date in front of that snippet. The seam's vocabulary makes those two
+optional and the tool renders `publishedAt` as metadata after the excerpt rather than as its first words,
+so a stated date is lifted out of the text and normalised to `YYYY-MM-DD`; an *age* (`7 小时之前 · `) stays
+in the snippet, because it is a claim about the moment of the search rather than a date, and turning it
+into one would invent precision. A date whose parts name no real day (`2026年2月31日`) stays text too —
+the page's mistake does not become the seam's metadata. This provider always fills `title` (a block
+without a heading is not a result) and omits a field rather than sending an empty string.
 
 A failure is thrown, never returned: `bing.js` raises `BingSearchError` with a seam code —
 `WEB_PROVIDER_ERROR` for anything about the request or the page, `WEB_ABORTED` when the caller
@@ -110,6 +115,7 @@ a regular enough document for a handful of anchored patterns.
 | title and URL | the first `<h2>` anchor inside the block — the result's own link, not the site-icon anchor above it |
 | URL normalization | resolved against the endpoint with `new URL`; a non-web scheme is dropped; a relative or protocol-relative link becomes absolute |
 | snippet | `<p class="b_lineclamp…">` first, then the older `<div class="b_caption"><p>`; the longest match wins |
+| date | an exact date followed by Bing's `· ` separator becomes `publishedAt` (ISO, and only when the parts name a real day); an age stays in the snippet |
 | text | numeric entities, the named entities Bing emits, then tags stripped, then whitespace collapsed |
 | order and duplicates | page order, deduplicated by URL |
 

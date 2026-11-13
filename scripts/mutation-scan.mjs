@@ -78,6 +78,24 @@ const MUTATIONS = [
     to: '    if (source === undefined) continue',
   },
   {
+    name: 'date-stays-in-the-snippet',
+    claim: 'a stated date becomes metadata instead of the snippet\'s first words',
+    from: '  return { text: snippet.slice(match[0].length), publishedAt }',
+    to: '  return { text: snippet, publishedAt }',
+  },
+  {
+    name: 'impossible-date-rolls-over',
+    claim: 'a date that names no real day stays text instead of becoming a fake one',
+    from: '  if (!real) return undefined',
+    to: '  if (false) return undefined',
+  },
+  {
+    name: 'published-at-dropped',
+    claim: 'the seam receives the date the page stated',
+    from: '  if (publishedAt !== undefined) source.publishedAt = publishedAt',
+    to: '  if (false) source.publishedAt = publishedAt',
+  },
+  {
     name: 'non-web-scheme-is-kept',
     claim: 'a link that is not an http(s) destination is dropped',
     from: "  return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : undefined",
