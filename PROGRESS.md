@@ -4,6 +4,29 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — the cap that composes and does not apply
+
+`searchMaxResults: 24` was written into the desktop profile's own patch, the app was restarted, and
+`web_search` still returned eight sources with `(Showing the first 8 sources…)` — once for a single query
+and once for four. The note is the tool's own: `if (result.truncated) parts.push(…)`, and its number is the
+capped list, so eight means the live cap is still eight.
+
+The row was not wrong. Replaying the same layers through the loader's own composer —
+`composeEntries` from `@deepseek-ai/dsh-app-boot`, over `dsh-base`, `dsh-web-app`, this bundle, the three
+other linked bundles and the profile patch — resolves `tool-web` to
+`{"fetch":true,"searchTimeoutMs":60000,"searchMaxResults":24}`. The app's own patch text, read out of
+`app.asar`, contains a second `tool-web` row with `fetch` and `searchTimeoutMs` **only**. A patch replaces a
+row's `config` wholesale, so a later layer restating that row drops the field, and the schema default
+returns — no warning, no error, the composed value simply never reaches the plugin.
+
+What is now written down instead of assumed:
+
+- Both READMEs state this next to the override snippet, because the snippet alone reads like a promise.
+- The profile's own patch file was returned to how it was: a knob that composes to 24 and applies as 8 is
+  worse than no knob, since it teaches the wrong lesson about which layer owns a row.
+- What actually widens a call is the question: `web_search` merges up to four queries in one call, and a
+  second call is how to see more than eight sources.
+
 ## 2026-11-13 — "one page only? really?" — asked with cookies this time
 
 The paging ceiling was challenged, which is fair: it is the limitation a user feels first. It was re-tested
