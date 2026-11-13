@@ -8,17 +8,29 @@
 #    provider alone changes nothing: this row override is the entry that makes the bundle take effect.
 #
 #    `config` is replaced wholesale, never deep-merged, so the base row's `fetchProvider: http` is
-#    restated here — dropping it would send `web_fetch` back to auto-selection. A profile that wants a
-#    different search provider, the shipped DeepSeek one included, overrides this same row again in its
-#    own cordis.patch.yml.
+#    restated here — dropping it would send `web_fetch` back to auto-selection.
 - id: web
   config:
     searchProvider: bing-html
     fetchProvider: http
 
 # 2. Insert this bundle's own provider row. The id is the target a profile addresses when it overrides
-#    this bundle's config, so it is frozen at `web-search-bing-html` (ADR 0003). The row takes no config:
-#    the provider has nothing to configure.
+#    this bundle's config, so it is frozen at `web-search-bing-html` (ADR 0003).
+#
+#    `provider` is the owner's choice, and the three values are the whole of this bundle's configuration
+#    (docs/adr/0006-choosing-the-search-provider.md):
+#
+#      keyless   (default) Bing's result page, no account involved
+#      official            the shipped DeepSeek provider, on the account and its balance
+#      auto                the shipped provider when it can run, otherwise keyless
+#
+#    A profile changes it by overriding this row in its own cordis.patch.yml:
+#
+#      - id: web-search-bing-html
+#        config:
+#          provider: official
 - insert:
     - id: web-search-bing-html
       name: 'dsh-search'
+      config:
+        provider: keyless

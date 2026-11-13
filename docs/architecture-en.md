@@ -39,6 +39,7 @@ The seam's registry keys a provider by its `id` and calls four things at most:
 | Member | This provider | Why |
 |---|---|---|
 | `id` | `bing-html` | the stable key a profile pins; frozen (`docs/adr/0003-provider-id-and-plugin-name.md`) |
+| `config.provider` | `keyless` | who serves a search: `keyless`, `official` or `auto`, the owner's choice (`docs/adr/0006-choosing-the-search-provider.md`) |
 | `available()` | `true` | there is no key, endpoint choice or credential to check, so availability is a constant |
 | `search(request, signal)` | one GET, then parse | the whole operation; returns `{ sources, truncated }` |
 | `ready(llmProvider)` | absent | an absent `ready()` counts as ready, which keeps `web_search` offered on a route whose credential-backed provider cannot authenticate |

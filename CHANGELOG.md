@@ -7,6 +7,19 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.1.9] - 2026-11-13
+
+- **The owner chooses who searches.** This bundle's row now carries `provider`, with three values:
+  `keyless` (the default, unchanged behaviour), `official` (the shipped DeepSeek provider serves the
+  search, on its account), and `auto` (the shipped provider when it can run, keyless otherwise, with a
+  failed account remembered for the rest of the process so a zero balance is paid for once). Asking for
+  `official` when it cannot run fails with the seam's own code rather than silently searching somewhere
+  else. `docs/adr/0006-choosing-the-search-provider.md` records why the field exists and why a settings
+  panel, two unpinned providers or a per-call argument would not do.
+- Seven routing tests, and four mutations for the new branches — 24 in the scan, all killed.
+- The READMEs' "Switching back" section becomes "Choosing who searches": the three modes, the trade, and
+  the seam-level override as the blunter alternative.
+
 ## [0.1.8] - 2026-11-13
 
 - A stated publication date in front of a snippet is now carried as `publishedAt` (`YYYY-MM-DD`) instead of

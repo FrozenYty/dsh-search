@@ -16,7 +16,7 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 
 ## 状态
 
-- 当前版本：v0.1.8。
+- 当前版本：v0.1.9。
 - **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
@@ -84,11 +84,29 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 `redirect: "manual"`，因此永不跟随重定向——它变成一条点名目标地址的错误。`scripts/check.mjs` 在请求层
 断言：一次搜索只发一次请求、只发给 `cn.bing.com`，绝不发给 `www.bing.com` 或 `api.deepseek.com`。
 
-## 切回随附的 provider
+## 由你决定谁来搜
 
-什么都没被卸掉：随附的 `deepseek-official` 搜索 provider 仍然注册在 profile 里，它的凭据也还在 profile 的
-凭据库里。本 bundle 只改变**能力缝选哪一个**，所以切回去就是 profile 自己 `cordis.patch.yml` 里的一行——
-那一层在本 bundle 之后应用，因此它会赢：
+装了本 bundle 的 profile 里有两种搜索可用：它注册的免 key 那种，以及随附的 `deepseek-official`（profile 里
+可能还留着它的凭据）。**选哪个由你决定**，它在本 bundle 这一行的一个字段上：
+
+```yaml
+- id: web-search-bing-html
+  config:
+    provider: keyless   # keyless（默认）| official | auto
+```
+
+- `keyless` —— Bing 的结果页：不需要账户、不需要 key、不需要余额。默认值，也是此前所有版本的行为。
+- `official` —— 由随附 provider 服务这次搜索，和聊天记在同一份账户上。它没注册、或注册了但跑不起来时，搜索
+  会以能力缝自己的错误码失败（`WEB_PROVIDER_CONFIGURED_MISSING` / `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`），
+  并在消息里点名你要的是哪个 provider：刻意做出的选择，不该悄悄变成另一种。
+- `auto` —— 随附 provider 能跑就用它，否则走免 key。失败的账户会在本进程内被记住，所以余额为 0 只欠一次
+  注定失败的请求，而不是每次搜索都欠一次。
+
+在这台机器上实测：账户余额 `-0.09 CNY`、`is_available: false`，所以今天能出答案的是 `keyless` 和 `auto`；
+余额一充上，`official` 就能用。
+
+profile 也可以用更直接的方式把本 bundle 整条移出这条路径——在它自己的 `cordis.patch.yml` 里覆盖能力缝那一行
+（那一层在 bundle 之后应用，所以它会赢）：
 
 ```yaml
 - id: web
@@ -97,9 +115,7 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
     fetchProvider: http
 ```
 
-代价是一个账户：随附 provider 经由 `api.deepseek.com` 搜索，和聊天记在同一份余额上。在这台机器上实测——
-凭据能解析，账户回 `is_available: false`、余额 `-0.09 CNY`——所以余额充上之前，走它的搜索会以 HTTP 402
-失败；而本 bundle 在完全没有账户的情况下仍然工作。余额为正时两者都可用，上面那一行就是全部的取舍。
+这是更钝的工具：没有 `auto`，本 bundle 的错误消息也一并消失。两个开关都只有一行，区别只在于你要不要那个兜底。
 
 ## 另一半：`web_fetch`
 

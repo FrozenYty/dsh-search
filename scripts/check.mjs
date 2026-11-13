@@ -190,9 +190,7 @@ if (patchText !== undefined) {
     // `config` is replaced wholesale, so a dropped field silently changes the other half of the seam.
     if (!/fetchProvider:\s*http/.test(text)) {
       fail('cordis.patch.yml: the `web` override must restate fetchProvider: http; config is replaced, never merged')
-    }
-  }
-  const insertIndex = entries.findIndex((lines) => /^-\s+insert:\s*$/.test(lines[0]))
+    }  }  const insertIndex = entries.findIndex((lines) => /^-\s+insert:\s*$/.test(lines[0]))
   if (insertIndex === -1) {
     fail('cordis.patch.yml: expected an insert entry for this bundle')
   } else {
@@ -202,6 +200,14 @@ if (patchText !== undefined) {
     }
     if (!/id:\s*web-search-bing-html/.test(inserted)) {
       fail('cordis.patch.yml: insert must carry the frozen row id web-search-bing-html (ADR 0003)')
+    }
+    // The owner's choice of who searches lives in this row's config (ADR 0006). A profile overrides the
+    // whole row, so the field has to be here, with one of the three values the entry understands.
+    const provider = /provider:\s*(\S+)/.exec(inserted)
+    if (provider === null) {
+      fail('cordis.patch.yml: the inserted row must carry `config: { provider: … }` — the owner\'s choice of who searches (ADR 0006)')
+    } else if (!['keyless', 'official', 'auto'].includes(provider[1])) {
+      fail(`cordis.patch.yml: provider: ${provider[1]} is not a mode the entry understands (keyless | official | auto)`)
     }
   }
 }

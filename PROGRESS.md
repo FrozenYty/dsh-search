@@ -4,6 +4,48 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — v0.1.9, the owner chooses who searches
+
+The request was that the plugin give the user the right to choose between the shipped DeepSeek search and
+this bundle's keyless one, instead of the bundle deciding.
+
+### What was measured before designing it
+
+- `ctx.web.search(request, signal)` takes no provider argument and the `web_search` tool passes none; the
+  seam resolves `config.searchProvider` at call time, then `DSH_WEB_SEARCH_PROVIDER`, then the only usable
+  provider. **A per-search choice is not available through the seam's API**, so the choice has to live in
+  config — the question was only whose config and how discoverable.
+- Cordis passes a row's config through unchanged when a plugin declares no `Config` schema —
+  `resolveConfig`: `if (!runtime.Config) return config` — so one field costs this bundle no dependency
+  (its entry is allowed exactly one bare import) and cannot make a profile's config fail to load.
+
+### What was built
+
+This bundle's row carries `provider`, with `keyless` (default, unchanged), `official` (the shipped provider
+serves the search), and `auto` (the shipped provider when it can run, keyless otherwise). In `official`, a
+missing or unavailable shipped provider fails with the seam's codes
+`WEB_PROVIDER_CONFIGURED_MISSING` / `WEB_PROVIDER_CONFIGURED_UNAVAILABLE` and a message naming the provider
+the profile asked for; `auto` remembers a failed account for the process, so a zero balance costs one doomed
+request rather than one per search. `docs/adr/0006-choosing-the-search-provider.md` supersedes the
+"no configuration" stance of ADRs 0001/0003 for this one field, and says why a settings panel (no client
+half yet), two unpinned providers (the seam answers `WEB_PROVIDER_AMBIGUOUS`) or a per-call argument (does
+not exist) were not the answer.
+
+### What was verified
+
+```
+$ node scripts/check.mjs                              → check passed
+$ node --test --test-isolation=none tests/*.test.mjs  → ℹ tests 32  ℹ pass 32  ℹ fail 0  ℹ skipped 0
+$ node scripts/mutation-scan.mjs                      → 24 mutation(s): 24 killed, 0 not
+```
+
+Seven of those tests are the routing: the default mode, an unknown value falling back to keyless, `official`
+delegating and its two failure codes, `auto` preferring the account, `auto` falling back and not retrying,
+and `auto` with no shipped provider at all. Four new mutations cover the same branches, and the scan's own
+staleness check caught this refactor: moving the failure translation into a helper changed its indentation,
+and the two older mutations reported `STALE` rather than quietly mutating nothing — which is what that
+check exists for.
+
 ## 2026-11-13 — can the shipped DeepSeek search still be used? Yes, and the balance says not yet
 
 Asked after this bundle had been installed for a while, so the answer was measured rather than recalled.
