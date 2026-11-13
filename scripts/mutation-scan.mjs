@@ -86,8 +86,14 @@ const MUTATIONS = [
   {
     name: 'entities-are-kept',
     claim: 'the entities Bing emits are decoded',
-    from: '    .replace(/&#(\\d+);/g, (_match, decimal) => String.fromCodePoint(parseInt(decimal, 10)))',
+    from: '    .replace(/&#(\\d+);/g, (match, decimal) => decodedCodePoint(parseInt(decimal, 10), match))',
     to: '',
+  },
+  {
+    name: 'invalid-entity-throws',
+    claim: 'a numeric entity outside the Unicode range stays text instead of failing the parse',
+    from: '  return Number.isInteger(value) && value > 0 && value <= 0x10ffff ? String.fromCodePoint(value) : raw',
+    to: '  return String.fromCodePoint(value)',
   },
   {
     name: 'http-status-is-ignored',

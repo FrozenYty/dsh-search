@@ -139,6 +139,7 @@ which of the two it suspects — a challenge page, or markup that no longer pars
 | `cn.bing.com` unreachable | `WEB_PROVIDER_ERROR: … request failed` naming the URL | the fetch failure branch |
 | a redirect appears | `WEB_PROVIDER_ERROR: … redirects to <target>, and this provider follows no redirect` | `redirect: "manual"` |
 | a result link is Bing's own redirect wrapper | a `cn.bing.com/ck/a` URL among otherwise direct ones | not handled; named in the README's limits |
+| a truncated or corrupted response carries an out-of-range numeric entity | the entity stays literal text and the rest of the page parses | `decodedCodePoint` |
 | the seam moves its provider interface | the plugin does not activate | the peer range in `package.json`; the failure is loud, not silent |
 | a profile resolves no peer for a linked bundle | the plugin does not activate (`ERR_MODULE_NOT_FOUND`) | `docs/adr/0002-peer-dependency-on-the-web-seam.md`, and a check that the peer stays declared |
 

@@ -102,3 +102,8 @@ test('decodeHtml reads the entity forms Bing emits', () => {
   assert.equal(decodeHtml('<strong>DeepSeek Harness</strong> | Explore'), 'DeepSeek Harness | Explore')
   assert.equal(decodeHtml(null), '')
 })
+
+test('a numeric entity outside the Unicode range stays text instead of failing the parse', () => {
+  assert.equal(decodeHtml('&#x110000; &#9999999999; &#0;'), '&#x110000; &#9999999999; &#0;')
+  assert.equal(decodeHtml('ok &#183; &#x110000; end'), 'ok \u00b7 &#x110000; end')
+})

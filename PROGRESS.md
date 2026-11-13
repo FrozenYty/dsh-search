@@ -4,6 +4,45 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — v0.1.2, a malformed entity degrades instead of throwing
+
+### What was built
+
+- `decodedCodePoint` in `bing.js`: a numeric entity outside the Unicode range — `&#x110000;`, a decimal
+  run too large to be a code point, or `&#0;` — stays as its literal text. `String.fromCodePoint` throws
+  on the first two, and a parser that throws loses the whole search over one entity in one snippet; this
+  degrades in the text instead, which is visible and harmless.
+- A test for both directions: the invalid forms stay literal, and a valid entity in the same string is
+  still decoded. A mutation drops the guard, and that test kills it.
+- The risk table in `docs/architecture-en.md` and `docs/architecture-zh.md` gains the row for a truncated
+  or corrupted response.
+
+### What was verified
+
+```
+$ node --test --test-isolation=none tests/*.test.mjs
+ℹ tests 18
+ℹ pass 18
+ℹ fail 0
+
+$ node scripts/mutation-scan.mjs
+killed    invalid-entity-throws                 a numeric entity outside the Unicode range stays text instead of failing the parse
+…
+13 mutation(s): 13 killed, 0 not
+mutation scan passed
+
+$ node scripts/check.mjs
+check passed
+```
+
+### The repository
+
+- `main` is protected the way the sibling repositories protect theirs: a pull request is required, the
+  `check` job must be green, administrators are included, and force-pushes and deletions are refused.
+  This release is the first change that arrived through that path rather than by pushing to `main`.
+- The merged `chore/quality-gate` branch was deleted on merge, which is the repository setting rather
+  than a habit.
+
 ## 2026-11-13 — v0.1.1, the quality gate
 
 ### What was built

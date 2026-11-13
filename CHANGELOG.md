@@ -7,6 +7,14 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.1.2] - 2026-11-13
+
+- An out-of-range numeric entity (`&#x110000;`, a decimal run too large, `&#0;`) stays literal text
+  instead of making the parser throw away the whole search. A truncated response now degrades in one
+  snippet; the mutation scan covers the guard.
+- `main` is protected as the sibling repositories protect theirs: a pull request, a green `check`, no
+  force-push, no deletion. This release is the first change to arrive through that path.
+
 ## [0.1.1] - 2026-11-13
 
 - A mutation scan (`scripts/mutation-scan.mjs`) breaks one load-bearing line of `bing.js` at a time and

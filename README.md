@@ -13,7 +13,7 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.1.1.
+- Current version: v0.1.2.
 - **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
