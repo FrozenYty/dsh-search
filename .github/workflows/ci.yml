@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 24: Node 22 documents this flag as `--experimental-test-isolation`, and the local runner
+          # is Node 24. Pinning the same major keeps "passes locally" and "green in CI" the same statement.
+          node-version: "24"
+
+      - name: Modules parse as ESM
+        run: |
+          node --check index.js
+          node --check bing.js
+
+      - name: Unit tests
+        # One process on purpose: the tests stub `globalThis.fetch` and read saved fixtures, so process
+        # isolation would add nothing and this machine's sandbox refuses the spawn it costs.
+        run: node --test --test-isolation=none tests/*.test.mjs
+
+      - name: Repository checks
+        # Offline: the request-layer regressions run against the saved fixture, never the network.
+        run: node scripts/check.mjs
