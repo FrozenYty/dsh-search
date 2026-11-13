@@ -7,6 +7,12 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.1.7] - 2026-11-13
+
+- The list line settles on the owner's pick: 「只搜网页，不花额度。」 — 「额度」 is the thing a search
+  actually draws on, where 「余额」 was one step removed. English mirrors it: "Only pages, never the quota."
+  A locale file is a bundle file, so the version moves; no tag follows it (CONTRIBUTING §5).
+
 ## [0.1.6] - 2026-11-13
 
 - The plugin list line reads like the rest of the family's: 「只搜网页，不问余额。」 — the same two

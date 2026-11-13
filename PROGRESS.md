@@ -4,6 +4,26 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — v0.1.7, the list line settles
+
+The owner chose among the 4+4 alternates offered in the previous entry:
+
+```
+locale/zh.json   「只搜网页，不花额度。」
+locale/en.json   "Only pages, never the quota."
+```
+
+「额度」 is what a search draws on; 「余额」 was one step removed from it, so the line now names the thing
+that goes missing rather than the thing that holds it. Same shape as 团队's 「只是换人，不是换活。」: two
+four-character halves, one contrast. No behaviour change.
+
+```
+$ node scripts/check.mjs
+check passed
+```
+
+Version 0.1.7, no tag — a locale file is a bundle file, so the number moves and the tag stays deliberate.
+
 ## 2026-11-13 — v0.1.6, the plugin list line joins the family
 
 The owner's review of the plugin list: the description read as a complaint about the shipped provider
