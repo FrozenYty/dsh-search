@@ -4,6 +4,56 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — v0.1.8, the date a page states becomes metadata
+
+Two things were measured before anything was written, and the measurements decided both.
+
+### What was measured
+
+Eight pages — the two saved fixtures and six live queries — 80 results in total:
+
+```
+DeepSeek Harness 插件      status 200 | sources 10 | /ck/a hrefs 0 | dated snippets 9/10
+node fetch redirect manual status 200 | sources 10 | /ck/a hrefs 0 | dated snippets 7/10
+北京 天气                  status 200 | sources 10 | /ck/a hrefs 0 | dated snippets 0/10
+iphone 17 pro 评测         status 200 | sources 10 | /ck/a hrefs 0 | dated snippets 4/10
+site:github.com dsh plugin status 200 | sources 10 | /ck/a hrefs 0 | dated snippets 8/10
+how to cook rice           status 200 | sources 10 | /ck/a hrefs 0 | dated snippets 9/10
+```
+
+- **No `/ck/a` link anywhere**, so the redirect-unwrapping rule that had been sitting in `PLAN.md` as a
+  maybe was settled instead of implemented: 80 results, direct links, no code to write. `PLAN.md` records
+  the measurement so nobody re-derives it.
+- **Publication dates are common** — 37 of 60 live results open with one — and the shipped tool renders
+  `publishedAt` as metadata after the excerpt (`dsh-tool-web` reads the field and appends `(…)`), so the
+  date was being spent as the first words of a snippet instead of the field the seam has for it.
+
+### What was built
+
+- `bing.js` lifts an exact date (`2026年8月21日 · `, `Aug 21, 2026 · `) out of a snippet into `publishedAt`
+  as `YYYY-MM-DD`. An **age** (`7 小时之前 · `) is deliberately left in the snippet: it describes the moment
+  of the search, and converting it would invent precision. A date whose parts name no real day
+  (`2026年2月31日`) keeps its text too — the rollover check is what stops the page's mistake from becoming
+  the seam's metadata.
+- `tests/fixtures/bing-dated-snippets.html` — a third saved page, captured for this: `DeepSeek Harness 插件`,
+  HTTP 200, 10 blocks, 8 stating a date. Its provenance is in `tests/fixtures/sources.md` beside the others.
+- Three tests (the dated fixture, the English shape, the two cases that must *not* convert) and three
+  mutations in the scan: `date-stays-in-the-snippet`, `impossible-date-rolls-over`, `published-at-dropped`.
+
+### What was verified
+
+```
+$ node scripts/check.mjs
+check passed
+$ node --test --test-isolation=none tests/*.test.mjs
+ℹ tests 25  ℹ pass 25  ℹ fail 0  ℹ skipped 0
+$ node scripts/mutation-scan.mjs
+20 mutation(s): 20 killed, 0 not
+```
+
+The first fixture's pinned first source moved with the behaviour, as it should: it asserts
+`publishedAt === '2026-08-12'` and a snippet that no longer opens with the date.
+
 ## 2026-11-13 — the publishing apparatus is gone, the friend route is in the README
 
 The owner deleted the `awesome-dsh-plugin` fork and settled the project as private use: "我们不发布，只自己用".

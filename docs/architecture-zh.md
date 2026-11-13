@@ -39,8 +39,12 @@ dsh-search 是给 `ctx.web` 能力缝用的一个搜索 provider：不需要 key
 | `search(request, signal)` | 一次 GET，然后解析 | 全部操作；返回 `{ sources, truncated }` |
 | `ready(llmProvider)` | 不提供 | 不提供 `ready()` 就等于"永远就绪"，这让凭据型 provider 无法鉴权的路由上，`web_search` 仍然可用 |
 
-`sources[]` 的每一项带 `url` 和 `title`，块里有摘要时再带 `snippet`。能力缝的词汇把后两者定义为可选；
-本 provider 总是填 `title`（没有标题的块不算结果），摘要为空时省略字段而不是送一个空字符串。
+`sources[]` 的每一项带 `url` 和 `title`；块里有摘要时再带 `snippet`；页面在摘要前写明了发布日期时，再带
+`publishedAt`。能力缝把后两者定义为可选，而工具会把 `publishedAt` 渲染成摘要之后的元数据、而不是摘要的开头，
+所以写明了的日期会被从文本里取出来并归一成 `YYYY-MM-DD`；**相对时间**（`7 小时之前 · `）留在摘要里——它说的
+是"搜索发生的那一刻"，当成日期会凭空造出精确度。日期各部分凑不出真实的一天时（`2026年2月31日`）同样留作
+文本：页面的错误不该变成能力缝的元数据。本 provider 总是填 `title`（没有标题的块不算结果），字段为空时省略
+而不是送空字符串。
 
 失败一律抛出，从不作为返回值：`bing.js` 抛 `BingSearchError`，带能力缝的错误码——请求或页面有关的
 是 `WEB_PROVIDER_ERROR`，调用方取消的是 `WEB_ABORTED`——入口把它翻译成同码的 `WebError`，原始失败

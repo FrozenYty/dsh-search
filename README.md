@@ -17,7 +17,7 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.1.7.
+- Current version: v0.1.8.
 - **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
@@ -87,9 +87,10 @@ after this bundle's, so it wins:
 ## How it works
 
 One search is one HTTPS `GET` to `https://cn.bing.com/search?q=…`, and the response body is parsed for
-its organic result blocks. Each block contributes a title, an absolute URL and a snippet; the seam caps
-the list at the caller's `maxResults`. Nothing is sent to an account, nothing is billed, and no model
-call is involved.
+its organic result blocks. Each block contributes a title, an absolute URL and a snippet, plus the
+publication date when the page states one — lifted out of the snippet and normalised, because the seam
+carries it as its own field and the tool shows it as metadata. The seam caps the list at the caller's
+`maxResults`. Nothing is sent to an account, nothing is billed, and no model call is involved.
 
 The request never touches any other host. `www.bing.com` redirects to `cn.bing.com`, and this provider
 sets `redirect: "manual"`, so a redirect is never followed — it becomes an error naming its target

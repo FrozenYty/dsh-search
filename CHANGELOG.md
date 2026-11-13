@@ -7,6 +7,16 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.1.8] - 2026-11-13
+
+- A stated publication date in front of a snippet is now carried as `publishedAt` (`YYYY-MM-DD`) instead of
+  being the snippet's first words, because the seam has a field for it and the tool renders it as metadata.
+  An *age* (`7 小时之前`) stays in the snippet — it is a claim about the moment of the search, not a date —
+  and a date that names no real day (`2026年2月31日`) stays text rather than rolling over into a fake one.
+- A third saved page, `tests/fixtures/bing-dated-snippets.html`, is what tests this: eight of its ten
+  results state a date. Three mutations join the scan (the date staying in the snippet, the rollover check,
+  and the field itself), all killed.
+
 ## [0.1.7] - 2026-11-13
 
 - The list line settles on the owner's pick: 「只搜网页，不花额度。」 — 「额度」 is the thing a search
