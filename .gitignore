@@ -15,6 +15,9 @@ desktop.ini
 # Logs and local captures.
 *.log
 
+# Built release artifacts: `node scripts/pack.mjs` puts the tarball and its checksum here.
+dist/
+
 # Git worktrees. The pattern is machine-local in effect, but it belongs in the tracked ignore file:
 # .git/info/exclude is not cloned, so a fresh clone reports every worktree's contents as untracked.
 .worktrees/
