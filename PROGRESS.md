@@ -4,6 +4,43 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — can the shipped DeepSeek search still be used? Yes, and the balance says not yet
+
+Asked after this bundle had been installed for a while, so the answer was measured rather than recalled.
+
+Nothing was uninstalled. The profile's credential store still holds the named reference the shipped provider
+uses, and the profile's own patch has no `web` row of its own — this bundle's pin is the only thing that
+moved:
+
+```
+~/.dsh/.credentials.yaml → refs:
+  DEEPSEEK_API_KEY: sk-d5b3…f188          the shipped search provider's credential, still there
+  DO_API_KEY: sh_ARCNaW93x4NiBLtKA8ijBA   the relay key that carries the chat
+
+GET https://api.deepseek.com/user/balance → 200
+{"is_available":false,"balance_infos":[{"currency":"CNY","total_balance":"-0.09",
+ "granted_balance":"0.00","topped_up_balance":"-0.09"}]}
+```
+
+So: **installed and configured, but not usable at this balance.** `is_available: false` with `-0.09 CNY` is
+the same fact as the HTTP 402 a search through it returns — the account is 9 分 in the red, and nothing about
+the provider itself changed.
+
+Going back is one row in the profile's own `cordis.patch.yml` (that layer is applied after a bundle's, so it
+wins):
+
+```yaml
+- id: web
+  config:
+    searchProvider: deepseek-official
+    fetchProvider: http
+```
+
+The READMEs now carry that section, next to the numbers, so the choice reads as a trade rather than a
+migration: an account and a balance, versus a provider that needs neither. Worth noting for anyone reading
+the credential file: the first `sk-…` in the profile's patch is the *relay's* key, not DeepSeek's — probing
+`/user/balance` with it answers `401 … api key ****9b3b is invalid`, which is how the real one was found.
+
 ## 2026-11-13 — how Claude Code's `web_search` works, read from the shipped product
 
 The question was how Claude Code implements its search, and whether this bundle should copy it. Claude Code
