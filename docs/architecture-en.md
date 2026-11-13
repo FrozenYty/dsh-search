@@ -63,6 +63,12 @@ provider returns and sets `truncated` when it did, so a second trim here would b
 same bound and could disagree with the seam's. The provider reports `truncated: false` because it
 truncated nothing.
 
+That is also why nothing pages: one request is one page, and the page is all this endpoint will give a
+sessionless client. Measured — `count=20`, `count=30`, `first=11`, `first=21`, and the page's own "next"
+link with its `FPIG` impression hash all return the same ten results, and the RSS form of the same query
+carries ten items too. The seam's own bound is 8 (`searchMaxResults`), so a page is more than a call uses
+and a second request would add a failure mode to buy nothing.
+
 ## 3. Selection: which provider runs
 
 The seam resolves a provider per call, once, and never by registration order:
