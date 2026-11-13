@@ -27,6 +27,11 @@ jobs:
       - name: Repository checks
         run: node scripts/check.mjs
 
+      - name: Resolve the seam for the entry tests
+        # The same step `ci` runs: the entry tests load the real @deepseek-ai/dsh-web, and a release is
+        # only published when the same gate runs here.
+        run: npm install --no-save --no-package-lock @deepseek-ai/dsh-web
+
       - name: Unit tests
         run: node --test --test-isolation=none tests/*.test.mjs
 

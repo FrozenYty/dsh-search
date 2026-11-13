@@ -18,6 +18,10 @@ desktop.ini
 # Built release artifacts: `node scripts/pack.mjs` puts the tarball and its checksum here.
 dist/
 
+# Mutation-scan working copies. They live inside the repository on purpose: the entry tests resolve the
+# seam by walking up to node_modules, which a copy in the system temp directory would never reach.
+.mutation/
+
 # Git worktrees. The pattern is machine-local in effect, but it belongs in the tracked ignore file:
 # .git/info/exclude is not cloned, so a fresh clone reports every worktree's contents as untracked.
 .worktrees/

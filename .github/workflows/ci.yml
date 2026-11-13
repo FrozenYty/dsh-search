@@ -23,6 +23,13 @@ jobs:
           node --check index.js
           node --check bing.js
 
+      - name: Resolve the seam for the entry tests
+        # index.js imports @deepseek-ai/dsh-web, which a linked bundle receives from the runtime as a
+        # declared peer. The entry tests load the real class instead of a stand-in, so CI installs it —
+        # the bundle itself installs nothing at runtime, and no other test needs it. Without this step
+        # those tests skip, which `scripts/check.mjs` refuses.
+        run: npm install --no-save --no-package-lock @deepseek-ai/dsh-web
+
       - name: Unit tests
         # One process on purpose: the tests stub `globalThis.fetch` and read saved fixtures, so process
         # isolation would add nothing and this machine's sandbox refuses the spawn it costs.
