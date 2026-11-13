@@ -4,6 +4,44 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — post-v0.1.3: the published release, and the listing gate
+
+### What was verified
+
+The v0.1.3 release run, from the workflow's own job steps:
+
+```
+release  push  completed success
+  release: success; The tag names this version=success, Repository checks=success, Unit tests=success,
+  Mutation scan=success, Build the package tarball=success, Publish the release=success
+```
+
+The published assets, and the checksum checked against the tarball built here:
+
+```
+asset dsh-search-0.1.3.tgz  16362 bytes
+asset SHA256SUMS.txt           87 bytes
+published 64df118c94bf4b28a683ce8d4f5806dd12c3f71bed676206ada741d8f8e92057  dsh-search-0.1.3.tgz
+local     64df118c94bf4b28a683ce8d4f5806dd12c3f71bed676206ada741d8f8e92057  dsh-search-0.1.3.tgz
+match: true
+```
+
+So the artifact a user downloads is the artifact this repository builds, not a CI-only variant.
+
+### What was investigated, and what it changed
+
+- **The community list is data-driven.** `awesome-dsh-plugin` generates its READMEs from one YAML file per
+  plugin (`data/plugins/<owner>__<repo>.yml`); editing the README by hand is the documented way a
+  submission goes wrong. The draft for this plugin — category `browser`, the two descriptions — is in the
+  session's scratch folder, and `PLAN.md` records where it goes.
+- **Two of that list's automated requirements are unmet**, and neither is a defect in the plugin: the
+  repository must be at least one day old (it was hours old when checked), and it must carry the
+  `dsh-plugin` topic, which the owner declined. `PLAN.md` carries both so the next session does not
+  rediscover them; a resubmission is explicitly not held against anyone.
+- **`dsh plugin add` is the one documented route this repository has not executed** — the CLI is not on
+  the PATH of the shell these checks run in. The local-path form and the release tarball are the routes
+  the siblings and the release artifacts exercise; `PLAN.md` keeps the third as a task.
+
 ## 2026-11-13 — v0.1.3, the install routes
 
 ### What was built
