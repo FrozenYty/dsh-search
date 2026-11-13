@@ -63,11 +63,20 @@ make with a measurement in hand rather than a gap to close.
   index `dsh-market` reads. Its submission is one data file, `data/plugins/frozenyty__dsh-search.yml`,
   category `browser`; the draft with the exact description is in the session's scratch folder. Two
   automated requirements are unmet today and are not defects in the plugin: the repository must be at
-  least **one day old**, and it must carry the **`dsh-plugin` topic**, which the owner declined. A
-  maintainer reads the repository before merging, and a resubmission is not held against anyone.
+  least **one day old**, and it must carry the **`dsh-plugin` topic**, which the owner declined. A third
+  point has to be argued rather than passed: the list already carries a Bing-backed provider
+  (`godchen520/dsh-web-search-bing`, the upstream of the fork this plugin was compared against in ADR
+  0001), so the pull request has to name what this one adds — a fixed endpoint and a redirect that is
+  never followed, with nothing to configure — under the list's "is it already covered" rule instead of
+  presenting a duplicate. A maintainer reads the repository before merging, and a resubmission is not
+  held against anyone.
 - **Run `dsh plugin add` once** — the READMEs document it as the ecosystem's route, and it is the one
-  route this repository has not executed: the CLI is not on the PATH of the shell these checks run in.
-  The local-path form and the release tarball are what have been exercised.
+  route this repository has not executed. The CLI is not on this shell's PATH, and installing pnpm ad hoc
+  is not enough: `pnpm add` dies at its store operation lock (`os error 5`), a Windows kernel object this
+  machine's sandbox refuses to open — the same boundary as the named-pipe denials seen elsewhere, and it
+  is independent of `--store-dir`, `--state-dir` and `PNPM_HOME`. Finishing it needs an unsandboxed
+  shell, which is the owner's call; the local-path form and the release tarball are what have been
+  exercised.
 - **Unwrap Bing's own redirect links** (`cn.bing.com/ck/a?…`) if a result page ever carries them.
   Today's pages carry direct links, so this is a parser rule that would never run.
 - **A second backend as a fallback** if one starts answering with a parseable page from this machine.
