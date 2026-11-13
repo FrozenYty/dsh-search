@@ -111,6 +111,21 @@ function aborted(signal, fallback) {
 }
 
 /**
+ * One numeric entity as text, or the entity itself when it names no Unicode scalar value.
+ *
+ * A truncated or corrupted response can carry `&#x110000;` or a decimal run too large to be a code
+ * point, and `String.fromCodePoint` throws on both. A parser that throws loses the whole search over one
+ * entity; keeping the raw text degrades visibly in the snippet instead.
+ *
+ * @param {number} value - the parsed code point.
+ * @param {string} raw - the entity as it appeared, returned unchanged when the code point is unusable.
+ * @returns {string} the decoded character, or `raw`.
+ */
+function decodedCodePoint(value, raw) {
+  return Number.isInteger(value) && value > 0 && value <= 0x10ffff ? String.fromCodePoint(value) : raw
+}
+
+/**
  * Decode the entities and strip the markup Bing puts in a title or a snippet.
  *
  * The entity forms are decoded before the tags are stripped, so an escaped `&lt;b&gt;` in a snippet
@@ -123,8 +138,8 @@ function aborted(signal, fallback) {
 export function decodeHtml(value) {
   if (value === null || value === undefined) return ''
   return value
-    .replace(/&#x([0-9a-fA-F]+);/g, (_match, hex) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_match, decimal) => String.fromCodePoint(parseInt(decimal, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => decodedCodePoint(parseInt(hex, 16), match))
+    .replace(/&#(\d+);/g, (match, decimal) => decodedCodePoint(parseInt(decimal, 10), match))
     .replace(/&([a-zA-Z]+);/g, (match, name) => NAMED_ENTITIES.get(name.toLowerCase()) ?? match)
     .replace(/<[^>]*>/g, '')
     .replace(/\s+/g, ' ')

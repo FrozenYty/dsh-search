@@ -123,6 +123,7 @@ https://cn.bing.com/search?q=<query>
 | `cn.bing.com` 不可达 | `WEB_PROVIDER_ERROR: … request failed`，并点名 URL | fetch 失败分支 |
 | 出现重定向 | `WEB_PROVIDER_ERROR: … redirects to <target>, and this provider follows no redirect` | `redirect: "manual"` |
 | 结果链接是 Bing 自己的跳转壳 | 一批直链里混进 `cn.bing.com/ck/a` 的 URL | 不处理；写进 README 的局限清单 |
+| 被截断或损坏的响应里带着越界的数字实体 | 该实体保留为字面文本，页面其余部分照常解析 | `decodedCodePoint` |
 | 能力缝改了 provider 接口 | 插件不激活 | `package.json` 里的 peer 范围；失败是响的，不是静的 |
 | profile 没能为链接目录解析出 peer | 插件不激活（`ERR_MODULE_NOT_FOUND`） | `docs/adr/0002-peer-dependency-on-the-web-seam.md`，以及一条"peer 必须留在声明里"的检查 |
 
