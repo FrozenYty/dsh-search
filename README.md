@@ -113,6 +113,11 @@ The mutation scan is what keeps the suite honest: for each load-bearing line of 
 mutation and requires at least one test to fail. A survivor is a line nothing protects, and it fails the
 build with the mutation's name.
 
+A release is a tag, not an edit: the `release` workflow re-runs this gate, refuses a tag that does not
+name the manifest's version, and publishes `dsh-search-<version>.tgz` with its `SHA256SUMS.txt`.
+`node scripts/pack.mjs` builds the same tarball locally into `dist/`, so a release can be reproduced
+without pushing a tag.
+
 The manual acceptance run is the one thing the gate cannot do for you: it needs the network, and the
 session check needs the plugin enabled.
 

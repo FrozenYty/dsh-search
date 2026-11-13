@@ -4,6 +4,40 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — v0.1.2, the release pipeline
+
+Topics were removed from the repository at the owner's decision: the citation in the v0.1.1 entry below
+records what was done then, and the repository now carries none, like its two siblings.
+
+### What was built
+
+- `scripts/pack.mjs`: builds the installable tarball with `npm pack` (which reads `files`, so the tarball
+  is the bundle and nothing else), writes `SHA256SUMS.txt` beside it, and prints the checksum. npm runs
+  through the shell with its output written to files, because a sandboxed child cannot open a pipe; the
+  npm cache lives in a temp directory so nothing outside the workspace is written.
+- `.github/workflows/release.yml`: a `v*` tag re-runs the gate, refuses a tag that does not name
+  `package.json`'s version, builds the tarball, and publishes it with the checksum. A release download is
+  the one install route that needs neither the npm registry (the package is `private`, and the npm name
+  belongs to another package) nor GitHub at install time.
+- `CONTRIBUTING.md` gains the release procedure as its §5 and the later sections are renumbered;
+  `AGENTS.md` gains the rule that a release is a tag rather than an edit; both READMEs and
+  `CHANGELOG.md` say what a release is.
+
+### What was verified
+
+```
+$ node scripts/pack.mjs
+dsh-search-0.1.2.tgz  15.0 kB  sha256 0d9d8890ee41c3171cf4bdb055e04b4a26a06eb5606abaf3cf41c0873811d7d3
+total files: 10
+
+$ tar -tzf dist/dsh-search-0.1.2.tgz
+package/LICENSE  package/README.md  package/README-zh.md  package/bing.js  package/cordis.patch.yml
+package/icon.svg  package/index.js  package/locale/en.json  package/locale/zh.json  package/package.json
+```
+
+The manifest inside the tarball is the same one on disk, including `dsh.bundle.patch:
+./cordis.patch.yml`, so an install from the tarball mounts the bundle the repository documents.
+
 ## 2026-11-13 — v0.1.2, a malformed entity degrades instead of throwing
 
 ### What was built

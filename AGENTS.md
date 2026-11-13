@@ -61,6 +61,10 @@ either here.
 - **Never force-push `main`.** CI is the only gate.
 - **A fixture is evidence.** `tests/fixtures/` holds real captured responses; do not hand-edit one to
   make a test pass, and record where a new one came from in `tests/fixtures/sources.md`.
+- **A release is a tag, not an edit.** `node scripts/pack.mjs` builds the bundle tarball locally; the
+  `release` workflow rebuilds it from a `v*` tag, refuses a tag that does not name the manifest's
+  version, and publishes the tarball with its checksum. Never change a released version's contents —
+  the tarball a tag published is what people installed.
 
 ## 5. Verify before reporting
 
