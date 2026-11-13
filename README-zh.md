@@ -117,8 +117,11 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 
 ## 局限与刻意不做的事
 
-- **一个引擎，一个端点。** 在这台机器上，Bing 的 HTML 结果页是唯一能返回可解析页面的后端；其他候选及
-  其响应在 `docs/adr/0001-cn-bing-html-endpoint.md`。没有备用引擎，端点也不可配置。
+- **一个引擎、一个端点，这是实测结论而不是图省事。** 在这台机器上，只有 Bing 的 HTML 结果页会返回可解析、
+  可直接打开的链接：Google、DuckDuckGo、Brave 与某个 SearXNG 实例在这里根本连不通，Mojeek 回 `403`，搜狗
+  302 回自己，360 把每条结果都包进 `web_fetch` 不会跟随的跳转，百度在约八次请求之后开始回验证码。
+  表格在 `docs/adr/0004-one-backend-measured.md`；网络可能变了的时候，用
+  `node scripts/probe-backends.mjs` 再问一次。
 - **标记变化是真实风险。** 解析器读的是网页而不是 API。页面不再匹配时会以 `no parseable result block`
   失败，而不是悄悄返回空；`tests/fixtures/` 下保存的页面，就是让这件事表现为一个失败的测试而不是一桩
   悬案。

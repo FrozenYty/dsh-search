@@ -31,6 +31,7 @@ README.md  ->  PLAN.md  ->  PROGRESS.md  ->  docs/architecture-en.md  ->  the AD
 | Why is the endpoint `cn.bing.com`, and why is a redirect never followed? | `docs/adr/0001-cn-bing-html-endpoint.md` | English |
 | Why does the entry import a `@deepseek-ai` package when the sibling plugins do not? | `docs/adr/0002-peer-dependency-on-the-web-seam.md` | English |
 | Why is it called `dsh-search`, and which ids are frozen? | `docs/adr/0003-provider-id-and-plugin-name.md` | English |
+| Why is there only one backend — couldn't we add Google, Baidu or 360? | `docs/adr/0004-one-backend-measured.md`, and `node scripts/probe-backends.mjs` for the current answer | English |
 | How do we branch, commit and merge? | `CONTRIBUTING.md` | English |
 | What are an assistant's rules here? | `AGENTS.md` | English |
 

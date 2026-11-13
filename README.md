@@ -133,10 +133,12 @@ installed into, for every session in it, which is why it is stated here rather t
 
 ## Limits and deliberate omissions
 
-- **One engine, one endpoint.** Bing's HTML result page is the only backend that answered with a
-  parseable page from this machine; the alternatives and their responses are in
-  `docs/adr/0001-cn-bing-html-endpoint.md`. There is no fallback engine and the endpoint is not
-  configurable.
+- **One engine, one endpoint, and that is a measurement rather than a shortcut.** Bing's HTML result page is
+  the only backend that answers this machine with parseable, directly-linkable results: Google,
+  DuckDuckGo, Brave and a SearXNG instance are unreachable here, Mojeek answers `403`, Sogou redirects to
+  itself, 360 wraps every result in a redirect `web_fetch` will not follow, and Baidu starts answering with
+  a captcha after about eight requests. `docs/adr/0004-one-backend-measured.md` has the table;
+  `node scripts/probe-backends.mjs` re-asks the network whenever it may have changed.
 - **A markup change is a real risk.** The parser reads a page, not an API. A page that stops matching it
   fails with `no parseable result block` instead of quietly returning nothing, and the saved fixtures
   under `tests/fixtures/` are how that shows up as a failing test rather than as a mystery.

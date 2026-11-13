@@ -97,9 +97,13 @@ measured, and none of it turned into code — the measurements are the answer.
   pages: a browser disguise does not change Zhihu's 403 and turns CSDN's 200 into 521, so the honest
   product default stays. A second fetch provider would add an address-pinning and redirect policy of its
   own to re-earn what the shipped one already does.
-- **No second backend, for now.** Every alternative measured in ADR 0001 (DuckDuckGo 202, Brave 429/403, a
-  SearXNG instance with JSON off) is unreachable from this machine. Revisit when Bing itself starts
-  failing, not before: a fallback is worth its second parser only when the first one is what breaks.
+- **Settled: no second backend, measured twice.** ADR 0001 measured the engines available when the endpoint
+  was chosen; ADR 0004 measured them again when "add Google" was asked and found the same answer with more
+  detail: Google, DuckDuckGo, Brave and a SearXNG instance are unreachable on this path, Mojeek answers
+  `403`, Sogou redirects to itself, 360 wraps every result beyond what `web_fetch` follows, and Baidu
+  answered 13–16 usable results for a few requests and then a captcha. `node scripts/probe-backends.mjs`
+  re-asks the network in one command and exits non-zero when Bing itself is unusable, so the question stays
+  answerable without re-reading an ADR from another month.
 - **Run `dsh plugin add` once** — the READMEs document it as the ecosystem's route, and it is the one
   route this repository has not executed. The CLI is not on this shell's PATH, and installing pnpm ad hoc
   is not enough: `pnpm add` dies at its store operation lock (`os error 5`), a Windows kernel object this
