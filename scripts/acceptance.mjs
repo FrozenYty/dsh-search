@@ -57,6 +57,7 @@ for (const source of result.sources) {
   console.log(`  ${source.url}`)
   console.log(`    title: ${source.title}`)
   console.log(`    snippet: ${source.snippet ?? '(none)'}`)
+  if (source.publishedAt !== undefined) console.log(`    publishedAt: ${source.publishedAt}`)
 }
 
 if (requested.length === 0) problems.push('request layer: no request was made, so the host assertions prove nothing')
