@@ -154,6 +154,10 @@ installed into, for every session in it, which is why it is stated here rather t
   honoured on all ten results, `site:github.com dsh` on one and `site:github.com dsh plugin` on two;
   `intitle:` and quotation marks changed nothing measurable. Write the query you mean and treat an operator
   as a nudge, not a guarantee.
+- **No domain filter.** The seam's search request carries a query and a result bound, nothing else, so a
+  provider cannot receive `allowed_domains`/`blocked_domains`-style filters — that is a limit of where this
+  sits, not of the engine. Writing `site:` into the query works only when the query is nothing but the
+  operator (measured; see above).
 - **No `web_fetch` half of its own.** Fetching one URL is a different operation with a different trust
   problem, and the shipped anonymous provider owns it; the section above says why reusing it is the
   right call rather than a shortcut.

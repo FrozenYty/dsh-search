@@ -40,7 +40,9 @@ Two of these deserve their own note, because both looked promising for a while:
   answering `HTTP 302 → wappass.baidu.com/static/captcha/…`: a captcha gate, for a sessionless client, in
   under ten requests. It is also a 1.2 MB card-template page whose description container is a build-hashed
   class name (a stable description was present on 4 of 30 result blocks), so a parser for it would return
-  titles and URLs only.
+  titles and URLs only. **The three probe runs made while writing this ADR, minutes apart, read `usable`
+  once and `challenge` twice** — and that oscillation is itself the finding: a source that answers only
+  sometimes is not one a fallback can lean on.
 - **360 (`so.com`) returns 13 parseable blocks**, but every result URL is `so.com/link?m=…` — a
   cross-origin redirect away from `so.com`, which the shipped `web_fetch` provider refuses by design. Its
   results are therefore unfetchable, which makes them half-useful at best.
