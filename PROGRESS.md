@@ -4,6 +4,40 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — "one page only? really?" — asked with cookies this time
+
+The paging ceiling was challenged, which is fair: it is the limitation a user feels first. It was re-tested
+harder rather than restated, and the answer did not change.
+
+```
+query: python tutorial            (and 中国 历史, and node fetch redirect manual)
+  page1:    10 sources
+  first=11: 10 sources | overlap 10 | identical order: true
+  first=21: 10 sources | overlap 10
+  first=11&count=10&FORM=PERE: 10 sources | overlap 10
+  the page's own sb_pagN next link (FPIG and all): 10 sources | overlap 10
+  the same with the ten set-cookie values from page 1 sent back and a Referer: overlap 10
+  &format=rss: 10 items | &count=50: 10 | &first=11: 10
+```
+
+Broad queries were used on purpose, so "the result set is small" could not be mistaken for "paging is
+broken". Cookies and a referer were included because that is the difference between this client and a
+browser, and it changed nothing. The RSS form — the shape the closest sibling plugin prefers — carries ten
+items and ignores both parameters.
+
+Two things came out of it that are worth more than the negative result:
+
+- **The knob that does widen a call is elsewhere.** One `web_search` merges up to `searchMaxQueries` queries
+  (default 4) into at most `searchMaxResults` sources (default 8); those live on the base bundle's
+  `tool-web` row (`@deepseek-ai/dsh-tool-web`, config `fetch`, `searchTimeoutMs`), so a profile that wants
+  more raises them there — and must restate the row's other fields, because a patch replaces `config`
+  wholesale. Both READMEs now show that snippet, and `docs/adr/0004-one-backend-measured.md` carries the
+  addendum with this table.
+- **Bing's RSS `pubDate` is the fetch time, not the page's.** Every item in the RSS response carried
+  `周五, 13 11月 2026 04:39:00 GMT` — today — while the same results' HTML snippets state real publication
+  dates. So the decision to parse the HTML page (and lift a stated date into `publishedAt`) is also the
+  reason this bundle can report a date at all.
+
 ## 2026-11-13 — v0.1.9, the owner chooses who searches
 
 The request was that the plugin give the user the right to choose between the shipped DeepSeek search and

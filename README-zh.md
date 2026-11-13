@@ -158,10 +158,23 @@ profile 也可以用更直接的方式把本 bundle 整条移出这条路径—�
 - **标记变化是真实风险。** 解析器读的是网页而不是 API。页面不再匹配时会以 `no parseable result block`
   失败，而不是悄悄返回空；`tests/fixtures/` 下保存的页面，就是让这件事表现为一个失败的测试而不是一桩
   悬案。
-- **只有一页，大约十条，而且这就是上限。** 不翻页、不重试、不缓存——而且不是出于选择：实测这个端点，
-  `count=20`、`count=30`、`first=11`、`first=21`，甚至页面自己给出的"下一页"链接（`&first=11&FORM=PORE`，
-  连它带的 `FPIG` 印象哈希一起取）返回的都是同样的十条。Bing 无会话的 HTML 应答就一页。能力缝最多只要 8
-  条（`searchMaxResults`），一页本来就用不完。
+- **只有一页，大约十条，这就是这个端点的上限。** 不翻页、不重试、不缓存——不是没试过，而是三种方式都量过：任何
+  offset 与 count 都返回第一页那十条（`count=20/30/50`、`first=11/21/31`、页面自己给出的"下一页"链接及其
+  `FPIG` 哈希、以及把第一次响应的 `set-cookie` 原样带回并附上 `Referer` 的同一请求）；Bing 的 RSS 形式
+  （`&format=rss`）同样只有十条，`count` 与 `first` 一概无视；而这些请求用的都是宽查询（`python tutorial`、
+  `中国 历史`），所以不可能是"结果本来就少"。
+- **真正能扩大一次调用的是工具自己的上限，而不是翻页。** 一次 `web_search` 会把最多 `searchMaxQueries` 个查询
+  （默认 4）合并成至多 `searchMaxResults` 条来源（默认 8），所以一次问两三个子问题，本来就比只问一个撒得更开。
+  想要更多，就在 `tool-web` 这一行上提高这两个数字——并且必须把该行的其他字段重写一遍，因为 patch 会整段替换
+  一行的 `config`：
+
+  ```yaml
+  - id: tool-web
+    config:
+      fetch: true
+      searchTimeoutMs: 60000
+      searchMaxResults: 24
+  ```
 - **如果某条结果的链接被 Bing 包进自己的跳转**（`cn.bing.com/ck/a?…`），返回的会是那个跳转 URL 而不是
   拆开后的目标。实测的 80 条结果里一次都没出现，所以解析器不做拆解；测量记在 `PLAN.md`。
 - **查询操作符是提示，不是过滤器。** 在这个端点上实测：单独用 `site:github.com` 十条结果全部被遵守；

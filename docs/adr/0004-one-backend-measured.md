@@ -55,6 +55,27 @@ automated queries`, and Sogou redirects to its own host.
 
 **Keep one backend: Bing's HTML result page, one request per search, no fan-out and no fallback.**
 
+### Addendum: "surely the first page can be paged", measured harder
+
+Asked again later, because one page of results is the limitation a user feels first. It is not a small
+result set and not a missing parameter:
+
+```
+query: python tutorial              (and 中国 历史, and node fetch redirect manual)
+  page1: 10 sources
+  first=11: 10 sources | overlap with page 1: 10 | identical order: true
+  first=21: 10 sources | overlap: 10
+  first=11&count=10&FORM=PERE: 10 sources | overlap: 10
+  the page's own sb_pagN "next" link (with its FPIG hash): 10 sources | overlap: 10
+  the same with the ten set-cookie values from page 1 sent back and a Referer: overlap 10
+  &format=rss: 10 items | with &count=50: 10 | with &first=11: 10
+```
+
+Every offset, every count, cookies, referer and the RSS form all return page one. So the ceiling is real for
+a client that does not run Bing's JavaScript, and the honest response is not a second request but a wider
+*question*: one `web_search` merges up to `searchMaxQueries` queries into at most `searchMaxResults`
+sources, and those two numbers live on the `tool-web` row, where a profile can raise them.
+
 The reasons are the measurements above plus three structural ones:
 
 1. **A second backend would not be dependable here.** The only candidates that returned results either

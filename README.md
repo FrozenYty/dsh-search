@@ -179,11 +179,25 @@ installed into, for every session in it, which is why it is stated here rather t
 - **A markup change is a real risk.** The parser reads a page, not an API. A page that stops matching it
   fails with `no parseable result block` instead of quietly returning nothing, and the saved fixtures
   under `tests/fixtures/` are how that shows up as a failing test rather than as a mystery.
-- **One page, about ten results, and that is the ceiling.** No paging, no retries, no caching — and not by
-  choice: measured against this endpoint, `count=20`, `count=30`, `first=11`, `first=21` and even the
-  page's own "next" link (`&first=11&FORM=PORE`, fetched with its `FPIG` impression hash) all returned the
-  same ten results. Bing's sessionless HTML answer is one page. The seam asks for at most 8
-  (`searchMaxResults`), so a page is already more than a `web_search` call uses.
+- **One page, about ten results, and that is this endpoint's ceiling.** No paging, no retries, no caching —
+  and not for lack of trying. Measured three ways: every offset and count returns page one's ten results
+  (`count=20/30/50`, `first=11/21/31`, the page's own "next" link with its `FPIG` hash, the same with the
+  `set-cookie` values from the first response sent back **and** a `Referer`), Bing's RSS form
+  (`&format=rss`) carries ten items and ignores `count` and `first` alike, and the runs used broad queries
+  (`python tutorial`, `中国 历史`) so a small result set could not be mistaken for a paging failure.
+- **What widens a call is the tool's own caps, not paging.** One `web_search` merges up to
+  `searchMaxQueries` queries (default 4) into at most `searchMaxResults` sources (default 8), so two or
+  three sub-questions in one call already cast a wider net than one. A profile that wants more raises those
+  numbers on the `tool-web` row — and must restate the row's other fields, because a patch replaces a row's
+  `config` wholesale:
+
+  ```yaml
+  - id: tool-web
+    config:
+      fetch: true
+      searchTimeoutMs: 60000
+      searchMaxResults: 24
+  ```
 - **A result link that Bing wraps in its own redirect** (`cn.bing.com/ck/a?…`) would be returned as that
   wrapper URL rather than unwrapped. It has not happened once in 80 measured results, so the parser does
   not unwrap; `PLAN.md` records the measurement.
