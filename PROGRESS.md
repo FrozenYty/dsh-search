@@ -4,6 +4,36 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — the live proof of v0.1.8's date field
+
+`scripts/acceptance.mjs` now prints `publishedAt` when a source carries one — it printed the snippet and
+stopped, which was a gap in the tool as soon as a source had a fourth field. With that, the live run
+against a query whose results state dates:
+
+```
+$ node scripts/acceptance.mjs "DeepSeek Harness 插件"
+query: DeepSeek Harness 插件
+endpoint constant: https://cn.bing.com/search
+requests recorded at the request layer: 1
+  cn.bing.com  https://cn.bing.com/search?q=DeepSeek+Harness+%E6%8F%92%E4%BB%B6
+hosts: cn.bing.com
+sources: 10
+  https://blog.csdn.net/2301_81024796/article/details/163823565
+    title: DeepSeek Harness 插件推荐：装好之后，这 9 个插件值得一试
+    snippet: 本文系统介绍 DeepSeek Harness 插件生态的核心价值与安装方式，并重点推荐9个高人气、高实用性的开源插 …
+    publishedAt: 2026-08-21
+  … (eight of the ten carry a date; the run printed each one)
+  https://dshmarket.com/zh/
+    snippet: 1 天前 · DeepSeek Harness 插件市场 dsh-market 就是装在 DeepSeek Harness（简称 dsh）里的插件市场 …
+  https://deepseek-harness-plugin.com/zh-CN/
+    snippet: 7 小时之前 · DS Bot 是一个基于 DeepSeek Harness（简称 dsh）的开源项目 …
+acceptance 2 and 3 passed
+```
+
+Two things this run establishes beyond the unit tests: the field appears on a **live** page, and the two
+sources that state an *age* instead of a date kept their text untouched — the rule works on real markup in
+both directions. Acceptance item 3 is unchanged: one request, to `cn.bing.com`.
+
 ## 2026-11-13 — v0.1.8, the date a page states becomes metadata
 
 Two things were measured before anything was written, and the measurements decided both.
