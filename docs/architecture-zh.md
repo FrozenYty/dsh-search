@@ -35,6 +35,7 @@ dsh-search 是给 `ctx.web` 能力缝用的一个搜索 provider：不需要 key
 | 成员 | 本 provider | 原因 |
 |---|---|---|
 | `id` | `bing-html` | profile 用来指定的稳定键；已冻结（`docs/adr/0003-provider-id-and-plugin-name.md`） |
+| `config.provider` | `keyless` | 谁来服务这次搜索：`keyless`、`official` 或 `auto`，由 owner 选择（`docs/adr/0006-choosing-the-search-provider.md`） |
 | `available()` | `true` | 没有 key、没有端点选择、没有凭据要检查，可用性就是常量 |
 | `search(request, signal)` | 一次 GET，然后解析 | 全部操作；返回 `{ sources, truncated }` |
 | `ready(llmProvider)` | 不提供 | 不提供 `ready()` 就等于"永远就绪"，这让凭据型 provider 无法鉴权的路由上，`web_search` 仍然可用 |

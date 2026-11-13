@@ -17,7 +17,7 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.1.8.
+- Current version: v0.1.9.
 - **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
@@ -97,12 +97,32 @@ sets `redirect: "manual"`, so a redirect is never followed — it becomes an err
 instead. `scripts/check.mjs` asserts at the request layer that one search sends exactly one request, to
 `cn.bing.com`, and never to `www.bing.com` or `api.deepseek.com`.
 
-## Switching back to the shipped provider
+## Choosing who searches
 
-Nothing was uninstalled: the shipped `deepseek-official` search provider is still registered in the profile,
-with its credential still in the profile's store. This bundle only changes *which one the seam selects*, so
-going back is one row in the profile's own `cordis.patch.yml` — that layer is applied after this bundle's,
-so it wins:
+A profile with this bundle has two searches available: the keyless one it registers, and the shipped
+`deepseek-official` provider, whose credential the profile may still carry. **The choice is yours**, and it is
+one field on this bundle's row:
+
+```yaml
+- id: web-search-bing-html
+  config:
+    provider: keyless   # keyless (default) | official | auto
+```
+
+- `keyless` — Bing's result page: no account, no key, no balance. The default, and what every earlier
+  version did.
+- `official` — the shipped provider serves the search, billed to the same account as the chat. If it is not
+  registered, or registered and unable to run, the search fails with the seam's own code
+  (`WEB_PROVIDER_CONFIGURED_MISSING` / `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`) and a message naming the
+  provider you asked for: a deliberate choice should not quietly become a different one.
+- `auto` — the shipped provider when it can run, keyless otherwise. A failing account is remembered for the
+  rest of the process, so a zero balance costs one doomed request rather than one per search.
+
+Measured on this machine the account sits at `-0.09 CNY` with `is_available: false`, so `keyless` and `auto`
+are the modes that answer today and `official` becomes useful the moment the balance is topped up.
+
+A profile can also take this bundle out of the path entirely by overriding the seam's own row in its
+`cordis.patch.yml` — that layer is applied after a bundle's, so it wins:
 
 ```yaml
 - id: web
@@ -111,11 +131,8 @@ so it wins:
     fetchProvider: http
 ```
 
-What that costs is an account: the shipped provider searches through `api.deepseek.com` and is billed to the
-same balance as the chat. Measured on this machine — the credential resolves, and the account answers
-`is_available: false` with a `-0.09 CNY` balance — so a search through it fails with HTTP 402 until the
-account is topped up, while this bundle keeps working with no account at all. If the balance is positive,
-both are available and the row above is the whole choice.
+That is the blunter instrument: no `auto`, and this bundle's error messages go with it. Both switches are one
+line; the difference is whether you want the fallback.
 
 ## The other half: `web_fetch`
 

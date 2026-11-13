@@ -155,19 +155,47 @@ const MUTATIONS = [
     name: 'provider-failure-untranslated',
     file: 'index.js',
     claim: 'a provider failure reaches the seam as the seam\'s own error type',
-    from: '        throw new WebError(error.message, error.code, { cause: error })',
-    to: '        throw error',
+    from: '      throw new WebError(error.message, error.code, { cause: error })',
+    to: '      throw error',
   },
   {
     name: 'failure-code-flattened',
     file: 'index.js',
     claim: 'the provider\'s code survives the translation, WEB_ABORTED included',
-    from: '        throw new WebError(error.message, error.code, { cause: error })',
-    to: "        throw new WebError(error.message, 'WEB_PROVIDER_ERROR', { cause: error })",
+    from: '      throw new WebError(error.message, error.code, { cause: error })',
+    to: "      throw new WebError(error.message, 'WEB_PROVIDER_ERROR', { cause: error })",
+  },
+  {
+    name: 'configured-mode-ignored',
+    file: 'index.js',
+    claim: 'the row\'s `provider` field decides who serves the search',
+    from: "  const mode = MODES.includes(config?.provider) ? config.provider : 'keyless'",
+    to: "  const mode = 'keyless'",
+  },
+  {
+    name: 'missing-shipped-provider-unreported',
+    file: 'index.js',
+    claim: 'asking for the shipped provider when it is not registered says so, by the seam\'s code',
+    from: '    if (candidate === undefined) {',
+    to: '    if (false) {',
+  },
+  {
+    name: 'unavailable-shipped-provider-unreported',
+    file: 'index.js',
+    claim: 'asking for the shipped provider when it cannot run says so, by the seam\'s code',
+    from: '    if (!candidate.available()) {',
+    to: '    if (false) {',
+  },
+  {
+    name: 'auto-retries-a-failed-account',
+    file: 'index.js',
+    claim: 'auto pays for a failed account once, not on every search',
+    from: "    if (mode === 'auto' && !officialFailed) {",
+    to: "    if (mode === 'auto') {",
   },
 ]
 
-const TEST_FILES = ['parse.test.mjs', 'request.test.mjs', 'entry.test.mjs']
+const TEST_FILES = ['parse.test.mjs', 'request.test.mjs', 'entry.test.mjs', 'routing.test.mjs']
 
 const wanted = process.argv[2]
 const selected = wanted === undefined ? MUTATIONS : MUTATIONS.filter((mutation) => mutation.name.includes(wanted))

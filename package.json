@@ -1,6 +1,6 @@
 {
   "name": "dsh-search",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "type": "module",
   "description": "Keyless Bing-backed web search provider for DeepSeek Harness: web_search runs one HTTPS GET against cn.bing.com through the ctx.web seam, with no API key, no account balance and no model call.",

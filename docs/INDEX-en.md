@@ -33,6 +33,7 @@ README.md  ->  PLAN.md  ->  PROGRESS.md  ->  docs/architecture-en.md  ->  the AD
 | Why is it called `dsh-search`, and which ids are frozen? | `docs/adr/0003-provider-id-and-plugin-name.md` | English |
 | Why is there only one backend — couldn't we add Google, Baidu or 360? | `docs/adr/0004-one-backend-measured.md`, and `node scripts/probe-backends.mjs` for the current answer | English |
 | How does Claude Code implement `web_search`, and why is ours different? | `docs/adr/0005-local-search-vs-server-side.md` | English |
+| Who decides whether the keyless search or the shipped DeepSeek one runs, and how is that switched? | `docs/adr/0006-choosing-the-search-provider.md`, `cordis.patch.yml` | English |
 | How do we branch, commit and merge? | `CONTRIBUTING.md` | English |
 | What are an assistant's rules here? | `AGENTS.md` | English |
 
