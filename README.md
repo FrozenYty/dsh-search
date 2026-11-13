@@ -163,9 +163,11 @@ installed into, for every session in it, which is why it is stated here rather t
 Bing will change its result page eventually. The provider fails loudly rather than answering with nothing,
 and its message names the failure, so the first step is to read it:
 
-- `no parseable result block … shape may have changed` — the markup moved. Capture the page you got into
-  `tests/fixtures/` under a new name, add its provenance to `tests/fixtures/sources.md`, and teach the
-  parser its shape; the tests then pin what you saw.
+- `no parseable result block … shape may have changed` — the markup moved. Run
+  `node scripts/fixture-refresh.mjs`: it re-fetches the three pages the fixtures came from **through this
+  provider's own request**, reports what each one parses to now, and exits non-zero when a page yields
+  fewer sources than its stored fixture. Once you have read the page and know the parser is right,
+  `--write` saves it and re-dates the provenance table.
 - `challenge page instead of results` — Bing decided this client looked automated. Retry later, or open the
   same query in a browser once; the provider keeps no session and no cookie.
 - `HTTP 302 … redirects to https://www.bing.com/…` — the routing changed. That is a decision point, not a

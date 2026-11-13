@@ -17,7 +17,8 @@
     "test": "node --test --test-isolation=none tests/*.test.mjs",
     "check": "node scripts/check.mjs",
     "mutation": "node scripts/mutation-scan.mjs",
-    "acceptance": "node scripts/acceptance.mjs"
+    "acceptance": "node scripts/acceptance.mjs",
+    "refresh": "node scripts/fixture-refresh.mjs"
   },
   "exports": {
     ".": "./index.js",

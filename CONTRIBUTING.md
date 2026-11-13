@@ -89,9 +89,10 @@ links the working tree, and `git pull` is the update.
 
 Two things stay worth keeping straight:
 
-- **`package.json`'s version** moves when the *bundle* changes — the files `files` lists, which are the ones
-  a profile loads. A change to the tests, the scripts, the documents or the workflows does not need a new
-  number, because no profile behaves differently.
+- **`package.json`'s version** moves when a file **a profile loads** changes — `index.js`, `bing.js`,
+  `cordis.patch.yml`, `locale/*.json`, `icon.svg`. A README, a test, a script, a workflow or a fixture does
+  not move it, because no profile behaves differently; `files` still lists the READMEs, because they belong
+  in anything that gets handed over, but they are packaging rather than behaviour.
 - **`CHANGELOG.md`** is a log of what changed and when, grouped by the version the manifest carried at the
   time. It is a record, not a release contract, and its section belongs in the pull request that makes the
   change: a six-month-old "why" is otherwise gone. A change that moves no version writes no section there —

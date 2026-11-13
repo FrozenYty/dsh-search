@@ -4,6 +4,61 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — the drift tool, and what a page does and does not tell us
+
+Two additions, both aimed at the day this plugin breaks rather than at today.
+
+### `scripts/fixture-refresh.mjs`
+
+The README used to answer "the markup may have changed" with a four-step ritual: build a request by hand,
+save the body, keep the headers identical, remember which query each fixture came from. It is now one
+command, and it sends the **provider's own** request — `fetch` is wrapped and `BingSearchProvider.search`
+does the work — so the headers cannot drift from the bundle's:
+
+```
+$ node scripts/fixture-refresh.mjs
+endpoint: the provider's own request, one per fixture
+  bing-deepseek-harness.html
+    query: deepseek harness
+    stored fixture: 10 sources | live page: 10 sources, 3 with a date
+  bing-node-fetch-redirect.html
+    query: node fetch redirect manual
+    stored fixture: 10 sources | live page: 10 sources, 7 with a date
+  bing-dated-snippets.html
+    query: DeepSeek Harness 插件
+    stored fixture: 10 sources | live page: 10 sources, 8 with a date
+every fixture still parses to at least what it held
+```
+
+That run is also today's evidence that the parser still matches the live markup — the three pages parse to
+exactly what their fixtures hold. The failure path was proved rather than assumed: with one extra source
+appended to a stored fixture, the tool exits non-zero and names the counts.
+
+```
+fixture refresh found a regression:
+  - bing-deepseek-harness.html: the live page parses to 10 sources, the stored one to 11
+```
+
+`--write` is the deliberate step after reading the page: it saves the new bodies and re-dates the
+provenance table. `scripts/check.mjs` now also fails when a `*.html` fixture has no row in
+`tests/fixtures/sources.md`, so a page cannot arrive without its query and date.
+
+### What the page does and does not say
+
+Measured on the endpoint, and written into `docs/architecture`:
+
+- **`content-type: text/html; charset=utf-8` on every response** — reading the body as UTF-8 is correct, not
+  lucky, and nothing here needs to sniff a charset.
+- **A nonsense query still returns ten results**: `asdkjhqweoiuzxcvbnm` produced ten `b_algo` blocks of
+  loosely related pages, with Bing's usual result count (`sb_count`) **absent**. So "ten sources" is not a
+  statement that the query matched well, and the seam's source shape has no field to carry the count.
+- **The tool renders an empty `sources[]` as `No results found.`** (from `@deepseek-ai/dsh-tool-web`), which
+  is exactly why this provider throws instead: a page whose blocks stopped matching is a broken parser, and
+  telling a model "no results" would send it off to reformulate a query that was never the problem.
+
+`CONTRIBUTING.md` §5 also now says what it always meant: the version moves when a file **a profile loads**
+changes, not when a README or a script does. This change therefore moves no version.
+
 ## 2026-11-13 — the fetch half: reuse it, and prove the obvious "improvement" is not one
 
 The question was whether this bundle should also own `web_fetch`. It already reuses the shipped provider —

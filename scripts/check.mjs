@@ -130,6 +130,17 @@ if (!/npm install[^\n]*@deepseek-ai\/dsh-web/.test(ciWorkflow)) {
   fail('.github/workflows/ci.yml: must install @deepseek-ai/dsh-web, or the entry tests skip and the entry stays unverified')
 }
 
+// A fixture is evidence, and its provenance is what makes it re-capturable: the query it came from and the
+// day it was taken. A file in the directory with no row in sources.md is a page nobody can reproduce.
+const fixtureFiles = readdirSync(join(root, 'tests', 'fixtures')).filter((name) => name.endsWith('.html')).sort()
+if (fixtureFiles.length === 0) fail('tests/fixtures: no .html fixture at all')
+const provenance = read('tests/fixtures/sources.md') ?? ''
+for (const name of fixtureFiles) {
+  if (!provenance.includes(`\`${name}\``)) {
+    fail(`tests/fixtures/sources.md: no row for ${name}; a fixture without its provenance cannot be re-captured`)
+  }
+}
+
 // 3. Locale parity and the titles this family fixes by convention.
 const keysOf = (value, prefix = '') => Object.entries(value ?? {})
   .flatMap(([key, child]) => {

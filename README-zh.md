@@ -139,9 +139,9 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 
 Bing 的结果页迟早会变。provider 会**大声失败**而不是回一个空结果，报错里会写明是哪一种，所以第一步是读它：
 
-- `no parseable result block … shape may have changed` —— 标记结构变了。把拿到的页面存进 `tests/fixtures/`
-  并取个新名字，在 `tests/fixtures/sources.md` 里记下来源，然后让解析器读懂它的形状；测试就会把你看
-  到的固化成断言。
+- `no parseable result block … shape may have changed` —— 标记结构变了。跑 `node scripts/fixture-refresh.mjs`：
+  它会用**这个 provider 自己的请求**重新抓那三个页面，报告每个页面现在解析出多少条，并在某页比保存的
+  fixture 少时以非零码退出。读过页面、确认解析器没错之后，用 `--write` 把它存下来并更新来源表的抓取日期。
 - `challenge page instead of results` —— Bing 认为这个客户端像自动化程序。过一会儿再试，或者用浏览器打开
   同一个查询一次；这个 provider 不保持任何会话和 cookie。
 - `HTTP 302 … redirects to https://www.bing.com/…` —— 路由变了。这是一个决策点而不是 bug：ADR 0001 说

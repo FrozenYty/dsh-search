@@ -69,6 +69,22 @@ link with its `FPIG` impression hash all return the same ten results, and the RS
 carries ten items too. The seam's own bound is 8 (`searchMaxResults`), so a page is more than a call uses
 and a second request would add a failure mode to buy nothing.
 
+Two more measured properties of that page, both of which decide behaviour here:
+
+- **The body is declared `text/html; charset=utf-8`** on every response seen, which is what makes reading
+  it as UTF-8 correct rather than lucky. A page in another charset would need decoding by its declared
+  charset; nothing here sniffs, because nothing here has needed to.
+- **A page with no matching results is rare, and a generous fallback is why.** A nonsense query
+  (`asdkjhqweoiuzxcvbnm`) still came back with ten `b_algo` blocks of loosely related pages, and the result
+  count Bing normally states (`sb_count`) was absent from it. So "ten sources" is not a statement that the
+  query matched well, and a caller that needs to know should read the titles rather than count them. The
+  `sb_count` line is the one honest signal available, and it is not part of the seam's source shape — which
+  is why the tool's output does not carry it.
+
+An empty `sources[]` is a legal answer, and the tool renders it as `No results found.` — which is exactly
+why this provider throws instead. A page whose blocks stopped matching is a **broken parser**, and telling
+a model "no results" there would send it off to reformulate a query that was never the problem.
+
 ## 3. Selection: which provider runs
 
 The seam resolves a provider per call, once, and never by registration order:
