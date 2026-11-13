@@ -45,9 +45,9 @@ plugin_manager  install_bundle  target: <本仓库的绝对路径>
 dsh plugin --profile <profile> add <本仓库的绝对路径>
 ```
 
-每次改动都不发布，也不需要标签：link 进 profile 的工作树下次加载就会带上 `git pull` 的结果。
-`node scripts/pack.mjs` 仍然可以给"宁愿拿到一个文件、而不是一个仓库"的朋友打一个 tarball，`release`
-workflow 也仍然会在有人打标签时发布它——但这两件都是刻意为之的动作，不属于日常流程。
+不发布任何东西，link 进 profile 的工作树下次加载就会带上 `git pull` 的结果——升级的全部内容就这一条。要交给
+朋友，把仓库给他就行：`git clone`，或者用 **Code → Download ZIP**；这里没有构建步骤，所以那个压缩包本身
+就是可安装的 bundle。他用上面任意一条路线装这个目录、重启应用，插件列表里就会出现 搜索。
 
 这个包不在 npm 上是有意的：npm 上的 `dsh-search` 属于另一个无关的包，而本包是 `private`——它被 link
 或从文件安装，从不发布（`docs/adr/0003-provider-id-and-plugin-name.md`）。
@@ -107,6 +107,21 @@ workflow 也仍然会在有人打标签时发布它——但这两件都是刻�
   负责。
 - **没有设置项、没有定时器、没有后台工作。** 没有可配置的东西，没有搜索在飞时就什么都不跑。
 
+## 它坏掉的时候
+
+Bing 的结果页迟早会变。provider 会**大声失败**而不是回一个空结果，报错里会写明是哪一种，所以第一步是读它：
+
+- `no parseable result block … shape may have changed` —— 标记结构变了。把拿到的页面存进 `tests/fixtures/`
+  并取个新名字，在 `tests/fixtures/sources.md` 里记下来源，然后让解析器读懂它的形状；测试就会把你看
+  到的固化成断言。
+- `challenge page instead of results` —— Bing 认为这个客户端像自动化程序。过一会儿再试，或者用浏览器打开
+  同一个查询一次；这个 provider 不保持任何会话和 cookie。
+- `HTTP 302 … redirects to https://www.bing.com/…` —— 路由变了。这是一个决策点而不是 bug：ADR 0001 说
+  永远不跟随重定向，所以要写一份取代它的 ADR，而不是把那个开关翻过来。
+- `Bing search request failed:` —— 请求根本没完成。这一种是网络问题，不是解析器。
+
+`npm run acceptance` 会发一次真实请求并打印回来的东西，是在会话之外看到那条报错的最快方式。它只需要网络。
+
 ## 开发
 
 ```sh
@@ -128,9 +143,8 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 变异扫描是让测试保持诚实的那一环：它逐条修改 `bing.js` 的承重行，要求至少有一个测试失败。活下来的
 变异就是一条没有任何测试护着的代码行，构建会带着它的名字失败。
 
-发布是一次打标签，而不是一次编辑：`release` workflow 会重跑这道闸门，拒绝与本清单版本不一致的标签，
-并发布 `dsh-search-<version>.tgz` 及其 `SHA256SUMS.txt`。`node scripts/pack.mjs` 能在本地构建同一个
-tarball 到 `dist/`，所以不推标签也能复现一次发布。
+不发布任何东西，所以也没有"发布步骤"：上面这套闸门就是全部交付。版本号只在 bundle 自己的文件（`files`
+列出的那些）变化时才动，具体是哪些写在 `CONTRIBUTING.md` 第 5 节。
 
 手工验收是这道闸门替你做不了的那一件事：它需要网络，而会话那一项还需要插件已被启用。
 

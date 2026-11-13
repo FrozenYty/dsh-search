@@ -15,9 +15,6 @@ desktop.ini
 # Logs and local captures.
 *.log
 
-# Built release artifacts: `node scripts/pack.mjs` puts the tarball and its checksum here.
-dist/
-
 # Mutation-scan working copies. They live inside the repository on purpose: the entry tests resolve the
 # seam by walking up to node_modules, which a copy in the system temp directory would never reach.
 .mutation/

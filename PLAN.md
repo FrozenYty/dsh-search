@@ -58,33 +58,29 @@ translation.
 ## How this ships
 
 Owner and a few friends, not a release channel. `main` is the distribution: a profile links this working
-tree, and `git pull` is the update, so nothing is published per change and no tag is owed to one. A
-tarball is a deliberate act for a friend who would rather be handed one file (`node scripts/pack.mjs`,
-or a `v*` tag for the workflow) — see `CONTRIBUTING.md` §5. The four tags that exist (v0.1.2–v0.1.5) are
-history from before this was decided; they stay, and no fifth is planned.
+tree, and `git pull` is the update. Nothing is published — no npm package, no release, no tag as a step
+owed to a change — so the `release` workflow and the packing script that used to serve that have been
+removed (`CONTRIBUTING.md` §5). A friend is handed the repository, or the ZIP GitHub serves from it, and
+installs the folder with either local route. The four tags that exist (v0.1.2–v0.1.5) are history from
+before this was decided; they stay, and no fifth is planned.
 
-## Next, once A4 is answered
+## Next
 
 Candidates, not commitments. Each one costs a request shape or a parsing rule, so each is a decision to
 make with a measurement in hand rather than a gap to close.
 
-- **Submit to `awesome-dsh-plugin`** — the community list most discovery runs through, which is also the
-  index `dsh-market` reads. Its submission is one data file, `data/plugins/frozenyty__dsh-search.yml`,
-  category `browser`; the draft with the exact description is in the session's scratch folder. Two
-  automated requirements are unmet today and are not defects in the plugin: the repository must be at
-  least **one day old**, and it must carry the **`dsh-plugin` topic**, which the owner declined. A third
-  point has to be argued rather than passed: the list already carries a Bing-backed provider
-  (`godchen520/dsh-web-search-bing`, the upstream of the fork this plugin was compared against in ADR
-  0001), so the pull request has to name what this one adds — a fixed endpoint and a redirect that is
-  never followed, with nothing to configure — under the list's "is it already covered" rule instead of
-  presenting a duplicate. A maintainer reads the repository before merging, and a resubmission is not
-  held against anyone.
+- **Not pursued: listing this in `awesome-dsh-plugin`.** The owner deleted the fork and settled the
+  project as private use, so the community index is out of scope. The facts that would matter if that ever
+  changed are recorded, because re-deriving them cost an afternoon: the submission is one data file
+  (`data/plugins/frozenyty__dsh-search.yml`, category `browser`), the repository has to be a day old and
+  carry the `dsh-plugin` topic the owner declined, and the list already carries a Bing-backed provider
+  (`godchen520/dsh-web-search-bing`) whose entry means a new one has to argue what it adds.
 - **Run `dsh plugin add` once** — the READMEs document it as the ecosystem's route, and it is the one
   route this repository has not executed. The CLI is not on this shell's PATH, and installing pnpm ad hoc
   is not enough: `pnpm add` dies at its store operation lock (`os error 5`), a Windows kernel object this
   machine's sandbox refuses to open — the same boundary as the named-pipe denials seen elsewhere, and it
   is independent of `--store-dir`, `--state-dir` and `PNPM_HOME`. Finishing it needs an unsandboxed
-  shell, which is the owner's call; the local-path form and the release tarball are what have been
+  shell, which is the owner's call; the local-path form through the plugin manager is what has been
   exercised.
 - **Unwrap Bing's own redirect links** (`cn.bing.com/ck/a?…`) if a result page ever carries them.
   Today's pages carry direct links, so this is a parser rule that would never run.
