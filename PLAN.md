@@ -36,6 +36,15 @@ targets, and a `web_search` in a live session returns sources rather than an HTT
 - [ ] **Open.** It needs the bundle enabled, and enabling it is the owner's decision: this repository's
       checks never load the Harness. The one-line enable command is in `README.md`.
 
+## A5 — every load-bearing line of `bing.js` is covered by a test that fails without it
+
+Done when: `node scripts/mutation-scan.mjs` reports 0 survivors. It applies one mutation per claim —
+the endpoint, the redirect policy, the block token, the heading anchor, the snippet shape, deduplication,
+the scheme filter, entity decoding, tag stripping, the non-2xx branch, the empty-page failure and
+cancellation — and names the test that caught each. A survivor means no test stands behind that line.
+
+- [x] Delivered and recorded in `PROGRESS.md`.
+
 ## Next, once A4 is answered
 
 Candidates, not commitments. Each one costs a request shape or a parsing rule, so each is a decision to

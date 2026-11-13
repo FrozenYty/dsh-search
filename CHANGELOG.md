@@ -7,6 +7,15 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.1.1] - 2026-11-13
+
+- A mutation scan (`scripts/mutation-scan.mjs`) breaks one load-bearing line of `bing.js` at a time and
+  requires the test suite to fail; it runs in CI, and a survivor blocks a merge.
+- The parse tests pin the first result of the saved page field by field, and cover a page carrying the
+  same URL twice — the gap the first scan run found.
+- Bug and feature issue templates; `homepage` and the `mutation`/`acceptance` script entries in the
+  manifest. No change to the bundle's behaviour.
+
 ## [0.1.0] - 2026-11-13
 
 - The bundle: `index.js` registers the `bing-html` provider with the `ctx.web` seam, `bing.js` performs

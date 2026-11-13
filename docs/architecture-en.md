@@ -145,8 +145,10 @@ which of the two it suspects — a challenge page, or markup that no longer pars
 ## 8. What the repository can and cannot prove
 
 `node --test --test-isolation=none tests/*.test.mjs` proves the parser over two saved responses and the
-request shape over a stubbed request layer. `node scripts/check.mjs` proves the manifest, the import
-rules, the locale pair, the patch rows, the documents, and the two request-layer regressions of
+request shape over a stubbed request layer. `node scripts/mutation-scan.mjs` proves those tests can fail:
+it breaks each load-bearing line of `bing.js` in turn and requires the suite to notice, so a line nothing
+protects is reported by name instead of passing quietly. `node scripts/check.mjs` proves the manifest, the
+import rules, the locale pair, the patch rows, the documents, and the two request-layer regressions of
 acceptance item 3. The live search and a real session are manual: the first needs the network, the
 second needs the plugin enabled, and enabling it is the owner's decision every time. `PROGRESS.md`
 records the runs that were actually made, with their output.

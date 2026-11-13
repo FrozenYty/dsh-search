@@ -47,7 +47,14 @@ contributor.
 |---|---|---|
 | Modules parse | `node --check index.js bing.js` | repair the syntax error |
 | Unit tests | `node --test --test-isolation=none tests/*.test.mjs` | fix the behaviour, not the assertion |
+| Mutation scan | `node scripts/mutation-scan.mjs` | strengthen the test that should have failed; never delete the mutation |
 | Repository checks | `node scripts/check.mjs` | read the reported file and key |
+
+The mutation scan is the other half of the test suite. For each load-bearing line of `bing.js` it applies
+one mutation in a throwaway copy and requires at least one test to fail; the run prints which test caught
+each one. A mutation the suite still passes is a survivor — the line is unprotected, and coverage would
+not have told you that, because coverage counts executed lines rather than checked ones. The fix is
+always a test; a mutation is removed only when the line it breaks is gone.
 
 `scripts/check.mjs` verifies, without loading the Harness and without the network:
 

@@ -32,6 +32,25 @@ test('a saved result page yields at least five complete sources', () => {
   assert.ok(sources.length >= 5, `expected at least 5 sources, parsed ${sources.length}`)
   sources.forEach((source, index) => assertComplete(source, `source ${index + 1}`))
   assert.equal(new Set(sources.map((source) => source.url)).size, sources.length, 'sources are unique by URL')
+  // The first result, field by field. A count and three non-empty fields would survive a parser that
+  // read the site-icon anchor above the heading, or that kept the markup inside the text; this pins
+  // which anchor and which text the source came from.
+  assert.equal(sources[0].url, 'https://www.deepseek.com/harness/')
+  assert.equal(sources[0].title, 'DeepSeek Harness | Explore the limits of intelligence')
+  assert.match(sources[0].snippet, /^2026年8月12日 · /)
+  assert.match(sources[0].snippet, /DeepSeek Harness is in preview/)
+})
+
+test('the same URL twice on a page is one source', () => {
+  const page = [
+    '<li class="b_algo"><h2><a href="https://example.com/once">First title</a></h2>',
+    '<p class="b_lineclamp2">First snippet</p></li>',
+    '<li class="b_algo"><h2><a href="https://example.com/once">Second title</a></h2>',
+    '<p class="b_lineclamp2">Second snippet</p></li>',
+  ].join('')
+  assert.deepEqual(parseBingHtml(page), [
+    { url: 'https://example.com/once', title: 'First title', snippet: 'First snippet' },
+  ])
 })
 
 test('a second saved page parses too, so the parser is not tuned to one query', () => {

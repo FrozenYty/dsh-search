@@ -67,8 +67,13 @@ either here.
 ```sh
 node --check index.js bing.js
 node --test --test-isolation=none tests/*.test.mjs
+node scripts/mutation-scan.mjs
 node scripts/check.mjs
 ```
+
+The mutation scan is not decoration: it breaks each load-bearing line of `bing.js` in turn and requires
+the suite to fail. A survivor is a line no test stands behind; fix it with a test, never by deleting the
+mutation.
 
 `--test-isolation=none` is required here: the default runner spawns one process per test file and this
 machine's sandbox refuses that spawn. It also requires Node 24 — Node 22 spells the flag

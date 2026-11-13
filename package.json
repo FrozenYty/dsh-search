@@ -1,6 +1,6 @@
 {
   "name": "dsh-search",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Keyless Bing-backed web search provider for DeepSeek Harness: web_search runs one HTTPS GET against cn.bing.com through the ctx.web seam, with no API key, no account balance and no model call.",
@@ -12,9 +12,12 @@
   "bugs": {
     "url": "https://github.com/FrozenYty/dsh-search/issues"
   },
+  "homepage": "https://github.com/FrozenYty/dsh-search#readme",
   "scripts": {
     "test": "node --test --test-isolation=none tests/*.test.mjs",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "mutation": "node scripts/mutation-scan.mjs",
+    "acceptance": "node scripts/acceptance.mjs"
   },
   "exports": {
     ".": "./index.js",
