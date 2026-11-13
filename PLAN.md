@@ -67,7 +67,8 @@ before this was decided; they stay, and no fifth is planned.
 ## Next
 
 Candidates, not commitments. Each one costs a request shape or a parsing rule, so each is a decision to
-make with a measurement in hand rather than a gap to close.
+make with a measurement in hand rather than a gap to close. Everything that was open has now been
+measured, and none of it turned into code — the measurements are the answer.
 
 - **Not pursued: listing this in `awesome-dsh-plugin`.** The owner deleted the fork and settled the
   project as private use, so the community index is out of scope. The facts that would matter if that ever
@@ -75,6 +76,24 @@ make with a measurement in hand rather than a gap to close.
   (`data/plugins/frozenyty__dsh-search.yml`, category `browser`), the repository has to be a day old and
   carry the `dsh-plugin` topic the owner declined, and the list already carries a Bing-backed provider
   (`godchen520/dsh-web-search-bing`) whose entry means a new one has to argue what it adds.
+- **Settled: more than ten results.** Not available from this endpoint for a sessionless client.
+  `count=20`, `count=30`, `first=11`, `first=21` and the page's own next link (with its `FPIG` impression
+  hash) all returned page one's ten results, and `&format=rss` carried ten items as well. The seam asks for
+  8 (`searchMaxResults`), so a page already exceeds a call's bound: paging would add a request shape and a
+  failure mode to buy nothing.
+- **Settled: unwrapping Bing's own redirect links** (`cn.bing.com/ck/a?…`). Eight saved and live pages —
+  80 results — carried direct links and no `/ck/a` href at all, so a rule for them would be code nothing
+  runs. If a page ever does carry one, the source URL shows up as a `cn.bing.com` link and this note is
+  the place to start.
+- **Settled: a block whose heading is empty.** The rule that drops such a block never fired — 30 fresh
+  blocks over three queries parsed to 30 sources, and eleven pages dropped none. A fallback title would be
+  code for a case real pages have not exhibited.
+- **Measured, and stated in the README because a user meets it: query operators are hints.**
+  `site:github.com` alone was honoured on all ten results; `site:github.com dsh` on one,
+  `site:github.com dsh plugin` on two; `intitle:` and quotation marks changed nothing measurable.
+- **No second backend, for now.** Every alternative measured in ADR 0001 (DuckDuckGo 202, Brave 429/403, a
+  SearXNG instance with JSON off) is unreachable from this machine. Revisit when Bing itself starts
+  failing, not before: a fallback is worth its second parser only when the first one is what breaks.
 - **Run `dsh plugin add` once** — the READMEs document it as the ecosystem's route, and it is the one
   route this repository has not executed. The CLI is not on this shell's PATH, and installing pnpm ad hoc
   is not enough: `pnpm add` dies at its store operation lock (`os error 5`), a Windows kernel object this
@@ -82,11 +101,3 @@ make with a measurement in hand rather than a gap to close.
   is independent of `--store-dir`, `--state-dir` and `PNPM_HOME`. Finishing it needs an unsandboxed
   shell, which is the owner's call; the local-path form through the plugin manager is what has been
   exercised.
-- **Settled by measurement, not implemented: unwrapping Bing's own redirect links** (`cn.bing.com/ck/a?…`).
-  Eight saved and live pages — 80 results — carried direct links and no `/ck/a` href at all, so a rule for
-  them would be code nothing runs. If a page ever does carry one, the source URL shows up as a `cn.bing.com`
-  link and this note is the place to start.
-- **A second backend as a fallback** if one starts answering with a parseable page from this machine.
-  Supersedes ADR 0001 rather than editing it.
-- **More than ten results** if a `web_search` caller needs them: Bing's first page holds about ten, and
-  paging would add a second request shape and its own failure modes.

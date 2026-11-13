@@ -116,10 +116,18 @@ installed into, for every session in it, which is why it is stated here rather t
 - **A markup change is a real risk.** The parser reads a page, not an API. A page that stops matching it
   fails with `no parseable result block` instead of quietly returning nothing, and the saved fixtures
   under `tests/fixtures/` are how that shows up as a failing test rather than as a mystery.
-- **One page, about ten results.** No paging, no retries, no caching. `web_search` asking for more than
-  the page holds gets what the page holds.
+- **One page, about ten results, and that is the ceiling.** No paging, no retries, no caching — and not by
+  choice: measured against this endpoint, `count=20`, `count=30`, `first=11`, `first=21` and even the
+  page's own "next" link (`&first=11&FORM=PORE`, fetched with its `FPIG` impression hash) all returned the
+  same ten results. Bing's sessionless HTML answer is one page. The seam asks for at most 8
+  (`searchMaxResults`), so a page is already more than a `web_search` call uses.
 - **A result link that Bing wraps in its own redirect** (`cn.bing.com/ck/a?…`) would be returned as that
-  wrapper URL rather than unwrapped. Today's pages carry direct links, so the parser does not unwrap.
+  wrapper URL rather than unwrapped. It has not happened once in 80 measured results, so the parser does
+  not unwrap; `PLAN.md` records the measurement.
+- **Query operators are hints, not filters.** Measured on this endpoint: `site:github.com` alone was
+  honoured on all ten results, `site:github.com dsh` on one and `site:github.com dsh plugin` on two;
+  `intitle:` and quotation marks changed nothing measurable. Write the query you mean and treat an operator
+  as a nudge, not a guarantee.
 - **No `web_fetch` half.** Fetching one URL is a different operation with a different trust problem; the
   shipped anonymous HTTP provider owns it.
 - **No settings, no timers, no background work.** There is nothing to configure and nothing running when

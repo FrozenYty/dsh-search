@@ -4,6 +4,52 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — the three open questions, all answered by measurement
+
+Nothing was implemented here on purpose: each question had a cheaper answer than code, and the answer is
+what went into `PLAN.md` and the READMEs.
+
+### More than ten results
+
+```
+page 1: status 200 | blocks 10 | sources 10
+page 2 (first=11): status 200 | blocks 10 | sources 10   overlap with page 1: 10
+next link from the page itself (&first=11&FORM=PORE, with its FPIG hash): overlap 10
+count=20 / count=30 / count=50:  sources 10 each
+first=21 / first=31:              page one's first result each time
+&format=rss:                      status 200 | items 10
+```
+
+This endpoint answers a sessionless client with one page, whatever is asked for. The seam's own bound is
+`searchMaxResults: 8` (read from `@deepseek-ai/dsh-tool-web`), so a page already holds more than a
+`web_search` call consumes. Paging would add a request shape and a failure mode to buy nothing.
+
+### Blocks that parse to nothing
+
+```
+deepseek harness       blocks 10 | sources 10 | dropped 0
+DeepSeek Harness 插件   blocks 10 | sources 10 | dropped 0
+北京 天气               blocks 10 | sources 10 | dropped 0
+```
+
+The rule that drops a block with an empty heading never fired — 30 fresh blocks became 30 sources, and the
+earlier 80-result sweep dropped none either. A fallback title would be code for a case real pages have not
+shown.
+
+### Query operators
+
+```
+site:github.com            sources 10 | on github.com 10
+site:github.com dsh        sources 10 | on github.com 1
+site:github.com dsh plugin sources 10 | on github.com 2
+intitle:菜鸟 dsh            sources 10 | titles containing 菜鸟: 0   (the plain query: 0 too)
+"plugin harness deepseek"  same shape as the unquoted query
+dsh plugin -market         sources 10 | market results 1
+```
+
+Operators are hints on this endpoint, and the README now says so where a user will meet it: write the query
+you mean, treat an operator as a nudge.
+
 ## 2026-11-13 — the live proof of v0.1.8's date field
 
 `scripts/acceptance.mjs` now prints `publishedAt` when a source carries one — it printed the snippet and
