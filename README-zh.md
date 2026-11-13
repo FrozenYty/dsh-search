@@ -175,6 +175,10 @@ profile 也可以用更直接的方式把本 bundle 整条移出这条路径—�
       searchTimeoutMs: 60000
       searchMaxResults: 24
   ```
+
+  profile 在**加载时**读它的 patch，所以运行中的 Host 会一直用旧数字，直到重启——除非它的 `package.json` 里
+  设了 `dsh.profile.patchReload: live`（那样文件会被监听）。想判断现在是哪个上限在生效：工具**只在能力缝截断
+  时**才追加 `(Showing the first N sources…)`，所以那行消失就是改动生效了。
 - **如果某条结果的链接被 Bing 包进自己的跳转**（`cn.bing.com/ck/a?…`），返回的会是那个跳转 URL 而不是
   拆开后的目标。实测的 80 条结果里一次都没出现，所以解析器不做拆解；测量记在 `PLAN.md`。
 - **查询操作符是提示，不是过滤器。** 在这个端点上实测：单独用 `site:github.com` 十条结果全部被遵守；
