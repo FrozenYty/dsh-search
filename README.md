@@ -185,11 +185,10 @@ installed into, for every session in it, which is why it is stated here rather t
   `set-cookie` values from the first response sent back **and** a `Referer`), Bing's RSS form
   (`&format=rss`) carries ten items and ignores `count` and `first` alike, and the runs used broad queries
   (`python tutorial`, `中国 历史`) so a small result set could not be mistaken for a paging failure.
-- **What widens a call is the tool's own caps, not paging.** One `web_search` merges up to
-  `searchMaxQueries` queries (default 4) into at most `searchMaxResults` sources (default 8), so two or
-  three sub-questions in one call already cast a wider net than one. A profile that wants more raises those
-  numbers on the `tool-web` row — and must restate the row's other fields, because a patch replaces a row's
-  `config` wholesale:
+- **What widens a call is the tool's own caps — when the layer that owns the row lets you set them.** One
+  `web_search` merges up to `searchMaxQueries` queries (default 4) into at most `searchMaxResults` sources
+  (default 8). Both live on the base bundle's `tool-web` row, and a profile can raise them — restating the
+  row's other fields, because a patch replaces its `config` wholesale:
 
   ```yaml
   - id: tool-web
@@ -198,6 +197,13 @@ installed into, for every session in it, which is why it is stated here rather t
       searchTimeoutMs: 60000
       searchMaxResults: 24
   ```
+
+  A later patch layer that restates the same row replaces its `config` too, and the value falls back to the
+  default without a word. A desktop profile does exactly that: the app's own preset patch restates
+  `tool-web` with `fetch` and `searchTimeoutMs` only, so the snippet above composes correctly — the loader's
+  own `composeEntries` over that profile's layers resolves it to 24 — and the tool still measures 8. What
+  works in that situation is the question rather than the cap: two or three sub-queries in one call are what
+  widen the net, and a second `web_search` call is how to see more.
 
   A profile reads its patch when it loads, so a running Host keeps the old number until it restarts —
   unless its `package.json` sets `dsh.profile.patchReload: live`, in which case the file is watched. How to

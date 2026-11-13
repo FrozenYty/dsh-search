@@ -163,10 +163,10 @@ profile 也可以用更直接的方式把本 bundle 整条移出这条路径—�
   `FPIG` 哈希、以及把第一次响应的 `set-cookie` 原样带回并附上 `Referer` 的同一请求）；Bing 的 RSS 形式
   （`&format=rss`）同样只有十条，`count` 与 `first` 一概无视；而这些请求用的都是宽查询（`python tutorial`、
   `中国 历史`），所以不可能是"结果本来就少"。
-- **真正能扩大一次调用的是工具自己的上限，而不是翻页。** 一次 `web_search` 会把最多 `searchMaxQueries` 个查询
-  （默认 4）合并成至多 `searchMaxResults` 条来源（默认 8），所以一次问两三个子问题，本来就比只问一个撒得更开。
-  想要更多，就在 `tool-web` 这一行上提高这两个数字——并且必须把该行的其他字段重写一遍，因为 patch 会整段替换
-  一行的 `config`：
+- **真正能扩大一次调用的是工具自己的上限——前提是拥有那一行的层允许你设。** 一次 `web_search` 会把最多
+  `searchMaxQueries` 个查询（默认 4）合并成至多 `searchMaxResults` 条来源（默认 8）。这两个都住在基础 bundle
+  的 `tool-web` 行上，profile 可以提高它们——并且必须把该行的其他字段重写一遍，因为 patch 会整段替换
+  `config`：
 
   ```yaml
   - id: tool-web
@@ -175,6 +175,11 @@ profile 也可以用更直接的方式把本 bundle 整条移出这条路径—�
       searchTimeoutMs: 60000
       searchMaxResults: 24
   ```
+
+  但**更靠后的一层 patch 也会整段替换同一行的 `config`**，于是这个值一声不响地退回默认。桌面 profile 正是
+  如此：应用自带的 preset patch 用 `fetch` 和 `searchTimeoutMs` 重述了 `tool-web`，所以上面这段配置能正确合成
+  ——用加载器自己的 `composeEntries` 跑这个 profile 的各层，解析出来就是 24——而工具实测仍是 8。这种情况下
+  管用的是问法而不是上限：一次调用里问两三个子问题才真正撒开网，想看得更多就再调一次 `web_search`。
 
   profile 在**加载时**读它的 patch，所以运行中的 Host 会一直用旧数字，直到重启——除非它的 `package.json` 里
   设了 `dsh.profile.patchReload: live`（那样文件会被监听）。想判断现在是哪个上限在生效：工具**只在能力缝截断
