@@ -4,6 +4,38 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — the CLI install route, and a duplicate that has to be argued
+
+### What was investigated
+
+- **`dsh plugin add` cannot complete on this machine.** The CLI exists only inside the npx cache
+  (`0.1.5-rc.1`), and pnpm is not installed anywhere. Installing pnpm into a scratch prefix worked
+  (`--ignore-scripts`, because its postinstall is spawned with a piped stdio the sandbox refuses), and a
+  one-line `.cmd` was enough to make it callable — but `pnpm add` itself then failed:
+
+  ```
+  Error: ERR_PNPM_STORE_DIR_OPEN_OPERATION_LOCK
+    × adding a new package
+    ╰─▶ Failed to open the store operation lock at "pnpm-store-operation-locks":
+        拒绝访问。 (os error 5)
+  ```
+
+  It failed identically with `--store-dir`, `--state-dir` and `PNPM_HOME` pointed into the workspace, and
+  with the lock directory pre-created: the lock is a Windows kernel object, and the sandbox denies opening
+  it — the same boundary as the named-pipe denials seen elsewhere in this session. The profile the CLI
+  created in a scratch `DSH_HOME` was removed afterwards; the real `~/.dsh` was never touched.
+- **The community list already carries a Bing-backed provider**: `godchen520/dsh-web-search-bing`
+  (category `browser`, the upstream of the `whiteS18/dsh-bing-search` fork that ADR 0001 measured). Under
+  the list's "is it already covered" rule this plugin is not a blank slot, so its submission has to name
+  what it adds — the fixed endpoint and the redirect that is never followed, with nothing to configure —
+  in the pull request, not in the entry's one-line description.
+
+### What it means
+
+Both facts are recorded in `PLAN.md` with the exact next step: the CLI route needs an unsandboxed shell
+(the owner's call), and the listing submission needs a day-old repository, the `dsh-plugin` topic the
+owner declined, and an argument rather than a duplicate.
+
 ## 2026-11-13 — v0.1.4, the entry is covered
 
 The entry was the one file nothing executed: `index.js` imports the seam, so the old unit tests could not
