@@ -13,11 +13,12 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.1.0.
-- **Verified here**: the parser over two saved result pages, and the request shape over a stubbed
-  request layer — `node --test` and `node scripts/check.mjs`, both recorded with their output in
-  `PROGRESS.md`. The live search was run by hand against `cn.bing.com` and answered with real sources;
-  that run and its output are in `PROGRESS.md` too.
+- Current version: v0.1.1.
+- **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
+  layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
+  notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
+  with their output in `PROGRESS.md`. The live search was run by hand against `cn.bing.com` and answered
+  with real sources; that run and its output are in `PROGRESS.md` too.
 - **Not proven here**: that the plugin activates in a profile, and that a real session's `web_search`
   returns results through it. Both need the bundle enabled, which is the owner's decision; the checks in
   this repository never load the Harness.
@@ -99,6 +100,7 @@ installed into, for every session in it, which is why it is stated here rather t
 ```sh
 node --check index.js bing.js
 node --test --test-isolation=none tests/*.test.mjs
+node scripts/mutation-scan.mjs
 node scripts/check.mjs
 ```
 
@@ -106,6 +108,10 @@ node scripts/check.mjs
 itself fixes the major version at Node 24, and the default runner spawns one process per test file,
 which this machine's sandbox refuses. CI pins Node 24 and runs the same commands, so a local pass is the
 same statement as a green run.
+
+The mutation scan is what keeps the suite honest: for each load-bearing line of `bing.js` it applies one
+mutation and requires at least one test to fail. A survivor is a line nothing protects, and it fails the
+build with the mutation's name.
 
 The manual acceptance run is the one thing the gate cannot do for you: it needs the network, and the
 session check needs the plugin enabled.

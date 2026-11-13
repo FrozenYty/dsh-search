@@ -1,8 +1,65 @@
 # Progress
 
-Append-only: what was built, what was run, and what it printed. A release's entry is added in the same
-pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the acceptance state;
-this file owns the evidence behind it.
+Append-only, newest first: what was built, what was run, and what it printed. A release's entry is added
+in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
+acceptance state; this file owns the evidence behind it.
+
+## 2026-11-13 — v0.1.1, the quality gate
+
+### What was built
+
+- `scripts/mutation-scan.mjs`: twelve mutations, one per load-bearing line of `bing.js` — the endpoint,
+  the redirect policy, the block token, the heading anchor, the snippet shape, URL deduplication, the
+  scheme filter, entity decoding, tag stripping, the non-2xx branch, the empty-page failure and
+  cancellation. Each is applied to a copy of the module in a throwaway directory, and the whole test
+  suite is run against it.
+- CI runs it, so a line no test stands behind blocks a merge.
+- Test assertions strengthened where the scan found a gap, and one added: the same URL twice on a page is
+  one source, and the first result of the saved page is pinned field by field.
+- `.github/ISSUE_TEMPLATE/`: bug and feature templates, in the shape the sibling repositories use.
+- `package.json`: `homepage`, and the `mutation` and `acceptance` script entries.
+
+### What was verified
+
+```
+$ node --test --test-isolation=none tests/*.test.mjs
+ℹ tests 17
+ℹ pass 17
+ℹ fail 0
+
+$ node scripts/mutation-scan.mjs
+killed    endpoint-moves-to-www                 a relative or non-web link is resolved against the endpoint or dropped
+killed    redirect-is-followed                  one search is one GET against the endpoint, with the query encoded and no redirect followed
+killed    result-block-token-changes            a saved result page yields at least five complete sources
+killed    title-reads-any-anchor                a saved result page yields at least five complete sources
+killed    snippet-shape-changes                 the same URL twice on a page is one source
+killed    duplicate-urls-are-kept               the same URL twice on a page is one source
+killed    non-web-scheme-is-kept                a relative or non-web link is resolved against the endpoint or dropped
+killed    html-tags-are-kept                    a saved result page yields at least five complete sources
+killed    entities-are-kept                     a saved result page yields at least five complete sources
+killed    http-status-is-ignored                a redirect is reported, not followed
+killed    empty-page-is-a-success               a 200 page with no result block fails loudly instead of answering with nothing
+killed    cancellation-is-a-transport-failure   a cancellation during the request is WEB_ABORTED, not a transport failure
+
+12 mutation(s): 12 killed, 0 not
+mutation scan passed
+```
+
+The first run of the scan was not clean, and that is the point of it: `duplicate-urls-are-kept` survived,
+because neither saved page happens to carry the same URL twice. The fix was a test, not an assertion
+weakened to fit — a synthetic page with one URL in two blocks — and the scan then killed it. The
+`title-reads-any-anchor` mutation was added at the same time, because the first result of the saved page
+is the one place where the heading anchor and the site-icon anchor point at the same destination.
+
+### The repository
+
+- Published at `https://github.com/FrozenYty/dsh-search`, with the About description written in the
+  sibling repositories' shape, and topics (`deepseek-harness`, `dsh-plugin`, `web-search`,
+  `search-provider`, `bing`) — the siblings carry none, and the ecosystem search finds plugins by them.
+- Settings: squash-only merges, delete-branch-on-merge, wiki off — the wiki carries nothing this
+  repository does not, which is the same choice the sibling plugin made.
+- The `ci` workflow ran on the pushed commit and completed successfully: modules parse, unit tests,
+  mutation scan, repository checks.
 
 ## 2026-11-13 — v0.1.0, the first bundle
 

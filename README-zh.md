@@ -12,8 +12,9 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 
 ## 状态
 
-- 当前版本：v0.1.0。
-- **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，以及打桩请求层上的请求形状——`node --test`
+- 当前版本：v0.1.1。
+- **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
+  它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
   了真实结果；那次运行和输出同样在 `PROGRESS.md` 里。
 - **本仓库证明不了的**：插件在 profile 里能否激活，以及真实会话里的 `web_search` 是否真的经由它返回结果。
@@ -86,12 +87,16 @@ bundle 的 patch——让这个 provider 被选中的，正是 patch 那部分�
 ```sh
 node --check index.js bing.js
 node --test --test-isolation=none tests/*.test.mjs
+node scripts/mutation-scan.mjs
 node scripts/check.mjs
 ```
 
 `--test-isolation=none` 不是可选项：Node 22 把它拼作 `--experimental-test-isolation`，所以这个拼法本身
 就把大版本固定在 Node 24；而默认 runner 会为每个测试文件 spawn 一个进程，这台机器的沙箱拒绝这种
 spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全绿是同一句话。
+
+变异扫描是让测试保持诚实的那一环：它逐条修改 `bing.js` 的承重行，要求至少有一个测试失败。活下来的
+变异就是一条没有任何测试护着的代码行，构建会带着它的名字失败。
 
 手工验收是这道闸门替你做不了的那一件事：它需要网络，而会话那一项还需要插件已被启用。
 

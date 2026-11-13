@@ -129,6 +129,7 @@ https://cn.bing.com/search?q=<query>
 ## 8. 本仓库能证明什么、不能证明什么
 
 `node --test --test-isolation=none tests/*.test.mjs` 证明解析器在两个真实保存的响应上的行为，以及打桩
-请求层上的请求形状。`node scripts/check.mjs` 证明清单、import 规则、locale 对、patch 行、文档，以及
-验收第 3 条那两条请求层回归。实网搜索和真实会话是手工步骤：前者要网络，后者要插件被启用，而启用始终
-是 owner 的决定。真正跑过的验收，连同输出，记在 `PROGRESS.md`。
+请求层上的请求形状。`node scripts/mutation-scan.mjs` 证明这些测试能失败：它逐条打断 `bing.js` 的承重行，
+要求测试注意到——于是没人护着的代码行会被点名，而不是悄悄通过。`node scripts/check.mjs` 证明清单、
+import 规则、locale 对、patch 行、文档，以及验收第 3 条那两条请求层回归。实网搜索和真实会话是手工步骤：
+前者要网络，后者要插件被启用，而启用始终是 owner 的决定。真正跑过的验收，连同输出，记在 `PROGRESS.md`。
