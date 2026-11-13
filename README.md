@@ -2,6 +2,10 @@
 
 [中文](README-zh.md)
 
+[![ci](https://github.com/FrozenYty/dsh-search/actions/workflows/ci.yml/badge.svg)](https://github.com/FrozenYty/dsh-search/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![DSH](https://img.shields.io/badge/DSH-0.1.5--rc.1%20..%20%3C0.3.0-brightgreen)](https://github.com/deepseek-ai/deepseek-harness)
+
 > A real result page, not an account balance.
 
 A DeepSeek Harness profile bundle that gives the `web_search` tool a search backend which needs no API
@@ -13,7 +17,7 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.1.2.
+- Current version: v0.1.3.
 - **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
@@ -24,15 +28,38 @@ out — the failure that makes chat work and every search fail.
   this repository never load the Harness.
 - Release list: [CHANGELOG.md](CHANGELOG.md). Append-only history: [PROGRESS.md](PROGRESS.md).
 
-## Enable and verify
+## Install and verify
+
+Three routes, and all of them put the same bundle into a profile and apply its patch. None needs a build
+step, and none touches the npm registry.
+
+**From the Harness** — ask for this directory to be installed:
 
 ```
 plugin_manager  install_bundle  target: <absolute path to this repository>
 ```
 
-The install links this directory into the profile rather than copying it, so what runs is this working
-tree and there is no build step. It also applies this bundle's patch, which is the part that makes the
-provider selected — see below.
+**From the CLI**, with a local path — the route the rest of the plugin ecosystem documents, and the one
+that needs no GitHub network access at install time either:
+
+```sh
+dsh plugin --profile <profile> add <absolute path to this repository>
+```
+
+**From a release download** — the same bundle as a tarball with its checksum, built by the `release`
+workflow from the tag:
+
+```sh
+dsh plugin --profile <profile> add <path to dsh-search-<version>.tgz>
+```
+
+That this package is not on npm is deliberate: the name `dsh-search` there belongs to an unrelated
+package, and this one is `private` — it is linked or installed from a file, never published
+(`docs/adr/0003-provider-id-and-plugin-name.md`).
+
+Whichever route you use, the patch moves the web seam's `searchProvider` to `bing-html` and restates the
+row's fetch half. That is the part that makes the provider selected, and it changes the profile for every
+session in it — see below.
 
 Verification afterwards is live calls, not check output:
 

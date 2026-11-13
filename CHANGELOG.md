@@ -7,6 +7,14 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.1.3] - 2026-11-13
+
+- The READMEs document all three install routes — `plugin_manager install_bundle`, `dsh plugin add` with
+  a local path, and `dsh plugin add` with a release tarball — and carry the CI, licence and DSH-range
+  badges the rest of the ecosystem uses. Why the package is not on npm is now said where a reader looks
+  for the install command.
+- No change to the bundle's behaviour.
+
 ## [0.1.2] - 2026-11-13
 
 - An out-of-range numeric entity (`&#x110000;`, a decimal run too large, `&#0;`) stays literal text

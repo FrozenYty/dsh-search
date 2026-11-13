@@ -4,6 +4,48 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — v0.1.3, the install routes
+
+### What was built
+
+- Both READMEs now document three install routes that all end in the same bundle: `plugin_manager
+  install_bundle` from inside the Harness, `dsh plugin --profile <profile> add <local path>` from the CLI
+  (the form a high-star peer documents), and `dsh plugin --profile <profile> add <release>.tgz` — the one
+  that needs neither the registry nor GitHub at install time. The npm name belonging to another package
+  is stated next to the install command rather than only in an ADR.
+- Both READMEs carry the badges the ecosystem uses: the `ci` workflow's live status, the licence, and the
+  DSH range the peer declaration admits.
+- v0.1.2 was tagged and published: the `release` workflow re-ran the gate on the tag, built the tarball
+  and attached it with `SHA256SUMS.txt`.
+
+### What was verified
+
+The v0.1.2 release run, from the workflow's own job steps:
+
+```
+release  push  completed success
+  release: success; The tag names this version=success, Repository checks=success, Unit tests=success,
+  Mutation scan=success, Build the package tarball=success, Publish the release=success
+```
+
+The release it published is tagged `v0.1.2` and carries the tarball; the release notes name the install
+command and point at `CHANGELOG.md`.
+
+For this version:
+
+```
+$ node scripts/check.mjs
+check passed
+
+$ node scripts/pack.mjs
+dsh-search-0.1.3.tgz  16.0 kB  sha256 64df118c94bf4b28a683ce8d4f5806dd12c3f71bed676206ada741d8f8e92057
+total files: 10
+```
+
+The digest the release run publishes with that tag is the one a download is checked against; the local
+run and the workflow both build the tarball from the manifest's `files`, so the two agree on what is in
+it.
+
 ## 2026-11-13 — v0.1.2, the release pipeline
 
 Topics were removed from the repository at the owner's decision: the citation in the v0.1.1 entry below
