@@ -33,8 +33,9 @@ Done when: the bundle is enabled in a profile, the patch applies with no warning
 targets, and a `web_search` in a live session returns sources rather than an HTTP 402 from
 `api.deepseek.com`.
 
-- [ ] **Open.** It needs the bundle enabled, and enabling it is the owner's decision: this repository's
-      checks never load the Harness. The one-line enable command is in `README.md`.
+- [x] Delivered on 2026-11-13 and recorded in `PROGRESS.md`: installed into the desktop profile
+      (`application: applied`, no warnings), and a `web_search` in that session — chat through the relay,
+      account balance zero — returned eight live sources.
 
 ## A5 — every load-bearing line of `bing.js` is covered by a test that fails without it
 

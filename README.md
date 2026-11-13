@@ -17,15 +17,19 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.1.4.
+- Current version: v0.1.5.
 - **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
   with their output in `PROGRESS.md`. The live search was run by hand against `cn.bing.com` and answered
   with real sources; that run and its output are in `PROGRESS.md` too.
-- **Not proven here**: that the plugin activates in a profile, and that a real session's `web_search`
-  returns results through it. Both need the bundle enabled, which is the owner's decision; the checks in
-  this repository never load the Harness.
+- **Exercised in a real profile**: installed into a desktop profile on 2026-11-13, and `web_search`
+  returned eight live sources in a session whose chat runs through a relay while the DeepSeek account
+  balance is zero — the case this bundle exists for. The install output, and why it is that provider
+  serving the call, are recorded in `PROGRESS.md`.
+- **Not automatic**: `scripts/check.mjs` and the tests never load the Harness, so the live check above is
+  a manual step each time. Nothing in this repository can show that the plugin activates in *your*
+  profile.
 - Release list: [CHANGELOG.md](CHANGELOG.md). Append-only history: [PROGRESS.md](PROGRESS.md).
 
 ## Install and verify
