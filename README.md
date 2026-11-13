@@ -97,6 +97,30 @@ sets `redirect: "manual"`, so a redirect is never followed — it becomes an err
 instead. `scripts/check.mjs` asserts at the request layer that one search sends exactly one request, to
 `cn.bing.com`, and never to `www.bing.com` or `api.deepseek.com`.
 
+## The other half: `web_fetch`
+
+The seam has two halves, search and fetch, and this bundle owns only the first. `web_fetch` keeps the
+shipped anonymous HTTP provider — and the patch **restates `fetchProvider: http`** while overriding the
+`web` row, because the seam replaces a row's config wholesale: without that line, installing this bundle
+would silently take `web_fetch` away. `scripts/check.mjs` fails if the line disappears.
+
+That is the whole "support" for fetching: reuse the official provider rather than growing a second one. It
+pins the resolved address, follows same-origin redirects up to a hop cap, enforces byte and time limits,
+and reports a non-2xx response as a result instead of a throw.
+
+Its one knob is `userAgent`, and it defaults to an honest product agent (`deepseek-harness/0.0.1`) rather
+than a browser disguise. Measured across six real result pages, the disguise is not an improvement:
+
+| Host | Product UA (shipped) | Desktop Chrome UA |
+|---|---|---|
+| `zhuanlan.zhihu.com` | 403 — Zhihu's own block | 403, unchanged |
+| `blog.csdn.net` | 200, 317 kB | **521, 2 kB — worse** |
+| `juejin.cn`, `developer.aliyun.com`, `github.com`, `deepseekharness.online` | 200 | 200 |
+
+So the default stays: a browser disguise wins nothing here and loses CSDN's whole page, and the sites the
+shipped provider cannot fetch are ones whose anti-bot rejects a sessionless client whatever it claims to
+be. `web_fetch` reports the status it actually got, which is the honest answer to give a model.
+
 ## The one composition change
 
 Registering a provider is not enough to be selected. The shipped base bundle pins the seam's
@@ -128,8 +152,9 @@ installed into, for every session in it, which is why it is stated here rather t
   honoured on all ten results, `site:github.com dsh` on one and `site:github.com dsh plugin` on two;
   `intitle:` and quotation marks changed nothing measurable. Write the query you mean and treat an operator
   as a nudge, not a guarantee.
-- **No `web_fetch` half.** Fetching one URL is a different operation with a different trust problem; the
-  shipped anonymous HTTP provider owns it.
+- **No `web_fetch` half of its own.** Fetching one URL is a different operation with a different trust
+  problem, and the shipped anonymous provider owns it; the section above says why reusing it is the
+  right call rather than a shortcut.
 - **No settings, no timers, no background work.** There is nothing to configure and nothing running when
   a search is not in flight.
 
