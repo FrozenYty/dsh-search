@@ -81,29 +81,36 @@ type. CI installs the seam as a step of its own (`npm install --no-save`), becau
 installs nothing at runtime. Without it those four tests skip rather than fail, so `scripts/check.mjs`
 fails when the install step disappears: a silently skipped entry is the one file nothing else executes.
 
-## 5. Releases
+## 5. Versions, tags and tarballs
 
-A version is published by a tag; the `release` workflow does the rest.
+**Nothing is published per change.** This is a project for its owner and a few friends: `main` is the
+distribution, a profile links the working tree, and `git pull` is the update. No npm package, no tag per
+change, no tarball to keep in sync with a source tree that is already the thing people install.
 
-1. `CHANGELOG.md` gains the version's section, `package.json` carries that version, and `PROGRESS.md`
-   gains the dated entry with the commands that were run — in the pull request that delivers the
-   change, not in a later one.
-2. Tag the merge commit on `main`: `git tag v0.1.3 && git push origin v0.1.3`.
-3. The `release` workflow re-runs the gate, refuses a tag that does not name the manifest's version,
-   builds the tarball with `node scripts/pack.mjs`, and publishes it with `SHA256SUMS.txt` on the
-   release.
+What that leaves, and why each still exists:
 
-The tarball is the bundle and nothing else: `npm pack` reads `files` from the manifest, so the tests,
-scripts, fixtures and documents stay out of it. It exists because a release download is the one install
-route that needs neither the npm registry nor GitHub at install time — this package is `private`, and
-the name `dsh-search` on npm belongs to another package (ADR 0003):
+- **`CHANGELOG.md`** is a log of what changed and when, grouped by the version the manifest carried at the
+  time. It is a record, not a release contract, and writing its section in the pull request that makes the
+  change is still worth doing: a six-month-old "why" is otherwise gone.
+- **`package.json`'s version** moves when the *bundle* changes — the files a profile loads. A change to
+  the tests, the scripts, the documents or the workflows does not need a new number, because no profile
+  behaves differently.
+- **A tarball** exists for the friend who would rather be handed one file than a repository:
+  `node scripts/pack.mjs` builds it into `dist/` (ignored) with its checksum, and it contains the bundle
+  and nothing else, because `npm pack` reads `files` from the manifest and leaves the tests, scripts,
+  fixtures and documents out.
+- **The `release` workflow** re-runs the gate on a `v*` tag, refuses a tag that does not name the
+  manifest's version, and publishes that tarball with `SHA256SUMS.txt`. It is dormant when nobody tags,
+  which is the normal state.
+
+So tagging is a deliberate act — "hand me that state as one file" — not a step every change owes:
 
 ```sh
-dsh plugin --profile <profile> add <path to dsh-search-<version>.tgz>
+git tag v0.1.6 && git push origin v0.1.6
 ```
 
-`node scripts/pack.mjs` rebuilds it locally into `dist/` (ignored) with the same checksum the workflow
-publishes, so a release can be reproduced without pushing a tag.
+This package is `private` on purpose, and the name `dsh-search` on npm belongs to another package
+(ADR 0003), so the registry was never the destination anyway.
 
 ## 6. Files
 
@@ -152,5 +159,5 @@ folder names. Write commands relative to the repository root.
       someone else
 - [ ] `docs/INDEX-en.md` and `INDEX-zh.md` updated if a document was added, renamed or removed
 - [ ] A dated `PROGRESS.md` entry records the commands that were run and their real output
-- [ ] The version, its `CHANGELOG.md` section and its `PROGRESS.md` entry are in the same pull request,
-      so the tag that publishes them has something true to name
+- [ ] `CHANGELOG.md`'s section and the `PROGRESS.md` entry are in the same pull request as the change, and
+      `package.json`'s version moves only if the bundle itself changed

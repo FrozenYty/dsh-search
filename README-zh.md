@@ -30,7 +30,8 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 
 ## 安装与验证
 
-三条路线，都是把同一个 bundle 装进 profile 并应用它的 patch。都不需要构建步骤，也都不经过 npm registry。
+两条路线，都是把同一个 bundle 装进 profile 并应用它的 patch。都不需要构建步骤，也都不经过 npm registry：
+这个规模的项目里，工作树**就是**发布物——clone 下来、装这个路径，之后 `git pull` 就是升级。
 
 **从 Harness 内** —— 让这个目录被安装：
 
@@ -38,17 +39,15 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 plugin_manager  install_bundle  target: <本仓库的绝对路径>
 ```
 
-**从命令行**，用本地路径——这是插件生态其他项目通行的路线，安装时也不需要访问 GitHub：
+**从命令行**，用同一个本地路径——这是插件生态其他项目通行的路线：
 
 ```sh
 dsh plugin --profile <profile> add <本仓库的绝对路径>
 ```
 
-**从 Release 下载** —— 同一个 bundle 的 tarball 及其校验和，由 `release` workflow 从标签构建：
-
-```sh
-dsh plugin --profile <profile> add <dsh-search-<version>.tgz 的路径>
-```
+每次改动都不发布，也不需要标签：link 进 profile 的工作树下次加载就会带上 `git pull` 的结果。
+`node scripts/pack.mjs` 仍然可以给"宁愿拿到一个文件、而不是一个仓库"的朋友打一个 tarball，`release`
+workflow 也仍然会在有人打标签时发布它——但这两件都是刻意为之的动作，不属于日常流程。
 
 这个包不在 npm 上是有意的：npm 上的 `dsh-search` 属于另一个无关的包，而本包是 `private`——它被 link
 或从文件安装，从不发布（`docs/adr/0003-provider-id-and-plugin-name.md`）。

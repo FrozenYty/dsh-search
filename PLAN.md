@@ -55,6 +55,14 @@ translation.
 
 - [x] Delivered and recorded in `PROGRESS.md`.
 
+## How this ships
+
+Owner and a few friends, not a release channel. `main` is the distribution: a profile links this working
+tree, and `git pull` is the update, so nothing is published per change and no tag is owed to one. A
+tarball is a deliberate act for a friend who would rather be handed one file (`node scripts/pack.mjs`,
+or a `v*` tag for the workflow) — see `CONTRIBUTING.md` §5. The four tags that exist (v0.1.2–v0.1.5) are
+history from before this was decided; they stay, and no fifth is planned.
+
 ## Next, once A4 is answered
 
 Candidates, not commitments. Each one costs a request shape or a parsing rule, so each is a decision to
