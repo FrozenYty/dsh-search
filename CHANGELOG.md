@@ -7,6 +7,14 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.1.5] - 2026-11-13
+
+- Acceptance item 4 is delivered: the bundle was installed into a desktop profile and `web_search`
+  returned eight live sources in a session whose chat runs through a relay while the DeepSeek account
+  balance is zero. The READMEs no longer say the plugin is unproven in a profile, and `PROGRESS.md`
+  records the install output, the search, and how the serving provider was identified.
+- No change to the bundle's behaviour.
+
 ## [0.1.4] - 2026-11-13
 
 - `tests/entry.test.mjs` covers the entry by loading the **real** `@deepseek-ai/dsh-web`: that `apply`

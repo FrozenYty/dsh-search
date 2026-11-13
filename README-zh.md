@@ -16,13 +16,16 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 
 ## 状态
 
-- 当前版本：v0.1.4。
+- 当前版本：v0.1.5。
 - **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
   了真实结果；那次运行和输出同样在 `PROGRESS.md` 里。
-- **本仓库证明不了的**：插件在 profile 里能否激活，以及真实会话里的 `web_search` 是否真的经由它返回结果。
-  两者都需要启用这个 bundle，而启用是 owner 的决定；本仓库的检查从不加载 Harness。
+- **已在真实 profile 里跑过**：2026-11-13 装进 desktop profile，在一个聊天走中转、DeepSeek 账户余额为 0 的
+  会话里，`web_search` 返回了八条真实来源——正是本 bundle 存在的那个场景。安装输出，以及为什么可以断定是
+  这个 provider 在服务这次调用，都记在 `PROGRESS.md`。
+- **不是自动的**：`scripts/check.mjs` 与测试从不加载 Harness，所以上面那次实网检查每次都是手工步骤；本
+  仓库里的任何东西都不能证明插件在**你的** profile 里能激活。
 - 版本列表：[CHANGELOG.md](CHANGELOG.md)。只追加的历史：[PROGRESS.md](PROGRESS.md)。
 
 ## 安装与验证

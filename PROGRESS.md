@@ -4,6 +4,53 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — v0.1.5, acceptance item 4 in a real profile
+
+### What was run
+
+The bundle was installed into the desktop profile at the owner's decision, and then used from the live
+session that installed it — chat through a relay, the DeepSeek account balance at zero, which is exactly
+the case this plugin exists for.
+
+```
+plugin_manager  install_bundle  target: <this repository>
+{"stage":"enable","target":"dsh-search","enabled":true,"changed":true,"application":"applied",
+ "bundle":"dsh-search","version":"0.1.4","warnings":[]}
+```
+
+pnpm's install output carried its standard warning for a linked package that declares peers —
+"the linked in dependency will not resolve the peer dependencies from the target node_modules" — which is
+expected here and is what ADR 0002 exists for: the Host resolves `@deepseek-ai/dsh-web` from its own
+runtime table at import time. The install reported no warnings of its own.
+
+Then, in the same session:
+
+```
+web_search { queries: ["DeepSeek Harness plugin market"] }
+→ 8 sources, every URL absolute: dshmarket.com/zh, github.com/dsh-market/dsh-market,
+  deepseekharness.online/plugins/dshmarket, dsh.market, deepseek-plugin.org, dsh-plugin.org,
+  dshplugin.market, dsh-plugin.org/zh/tutorials/dsh-plugin-guide
+```
+
+### Why that is this provider serving the call, and not the shipped one
+
+- The shipped `deepseek-official` provider answers `api.deepseek.com` with HTTP 402 while the balance is
+  zero, so a search that returns sources cannot have been served by it.
+- The only thing this install changed is what the seam selects: this bundle's patch moves
+  `web.searchProvider` to `bing-html`, verified by composing the three layers with the loader's own
+  `composeEntries` before anything was installed (`{"searchProvider":"bing-html","fetchProvider":"http"}`).
+- The returned snippets carry the Bing result shape this parser produces — a relative age, a middle dot
+  and the page's own text ("1 天前 · DeepSeek Harness 插件市场 …"), the same shape as the saved fixture's
+  ("2026年8月12日 · DeepSeek Harness is in preview …") — rather than a model-written summary.
+
+### What it means
+
+Acceptance items 1–4 are all delivered. Items 1–3 were already covered by the offline gate and the live
+acceptance run; item 4 is the one that needed the profile, and it is now recorded with the install output
+and the search it served. The READMEs no longer say the plugin is unproven in a profile; what remains
+outside this repository's reach is only that a *different* profile's activation is still its owner's
+decision.
+
 ## 2026-11-13 — the CLI install route, and a duplicate that has to be argued
 
 ### What was investigated
