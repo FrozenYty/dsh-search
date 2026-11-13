@@ -91,6 +91,12 @@ measured, and none of it turned into code — the measurements are the answer.
 - **Measured, and stated in the README because a user meets it: query operators are hints.**
   `site:github.com` alone was honoured on all ten results; `site:github.com dsh` on one,
   `site:github.com dsh plugin` on two; `intitle:` and quotation marks changed nothing measurable.
+- **Settled: the fetch half stays the shipped provider.** `web_fetch` is reused, not reimplemented, and the
+  patch restates `fetchProvider: http` so overriding the `web` row cannot drop it (`scripts/check.mjs`
+  guards the line). The one knob that provider exposes — `userAgent` — was measured on six real result
+  pages: a browser disguise does not change Zhihu's 403 and turns CSDN's 200 into 521, so the honest
+  product default stays. A second fetch provider would add an address-pinning and redirect policy of its
+  own to re-earn what the shipped one already does.
 - **No second backend, for now.** Every alternative measured in ADR 0001 (DuckDuckGo 202, Brave 429/403, a
   SearXNG instance with JSON off) is unreachable from this machine. Revisit when Bing itself starts
   failing, not before: a fallback is worth its second parser only when the first one is what breaks.

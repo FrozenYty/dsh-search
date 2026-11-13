@@ -84,6 +84,27 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 `redirect: "manual"`，因此永不跟随重定向——它变成一条点名目标地址的错误。`scripts/check.mjs` 在请求层
 断言：一次搜索只发一次请求、只发给 `cn.bing.com`，绝不发给 `www.bing.com` 或 `api.deepseek.com`。
 
+## 另一半：`web_fetch`
+
+能力缝有两半——搜索和抓取——本 bundle 只拥有前一半。`web_fetch` 保持随附的匿名 HTTP provider；而 patch 在
+覆盖 `web` 那一行时**把 `fetchProvider: http` 重写了一遍**，因为能力缝会整段替换一行的 config：少了这一行，
+装本 bundle 就等于悄悄把 `web_fetch` 拿掉。删掉它，`scripts/check.mjs` 会失败。
+
+这就是对抓取的"支持"：**复用官方 provider**，而不是再长出一个。它会钉住解析出的地址、只跟随同源重定向且
+有跳数上限、强制字节与时间上限，并把非 2xx 响应当作结果返回而不是抛出。
+
+它唯一的旋钮是 `userAgent`，默认是一个诚实的产物标识（`deepseek-harness/0.0.1`），而不是浏览器伪装。在六个
+真实结果页上实测，伪装并不是改进：
+
+| 主机 | 产物 UA（默认） | 桌面 Chrome UA |
+|---|---|---|
+| `zhuanlan.zhihu.com` | 403——知乎自己的拦截 | 403，没有变化 |
+| `blog.csdn.net` | 200，317 kB | **521，2 kB——更差** |
+| `juejin.cn`、`developer.aliyun.com`、`github.com`、`deepseekharness.online` | 200 | 200 |
+
+因此默认值保持不动：伪装在这里换不到任何东西，还会丢掉 CSDN 的整页；而随附 provider 抓不到的站点，是那些
+无论你自称什么都会拒绝无会话客户端的站点。`web_fetch` 会把实际拿到的状态如实报告，这对模型来说就是诚实的答案。
+
 ## 唯一的那处组合改动
 
 只注册 provider 并不足以被选中。随附的 base bundle 把能力缝的 `searchProvider` 钉在
@@ -110,8 +131,8 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 - **查询操作符是提示，不是过滤器。** 在这个端点上实测：单独用 `site:github.com` 十条结果全部被遵守；
   `site:github.com dsh` 只守住一条，`site:github.com dsh plugin` 两条；`intitle:` 与引号没有可测量的影响。
   把你想搜的话写清楚，把操作符当成轻推，而不是保证。
-- **没有 `web_fetch` 那一半。** 抓取单个 URL 是另一种操作，有另一套信任问题；由随附的匿名 HTTP provider
-  负责。
+- **自己不拥有 `web_fetch` 那一半。** 抓取单个 URL 是另一种操作，有另一套信任问题，由随附的匿名 provider
+  负责；上面那一节说明了为什么"复用它"是正确判断，而不是图省事。
 - **没有设置项、没有定时器、没有后台工作。** 没有可配置的东西，没有搜索在飞时就什么都不跑。
 
 ## 它坏掉的时候

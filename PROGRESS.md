@@ -4,6 +4,32 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — the fetch half: reuse it, and prove the obvious "improvement" is not one
+
+The question was whether this bundle should also own `web_fetch`. It already reuses the shipped provider —
+the patch restates `fetchProvider: http` because the seam replaces a row's config wholesale — so the only
+question left was whether the one knob that provider exposes should be turned.
+
+`@deepseek-ai/dsh-web-fetch-http` has `userAgent`, defaulting to `deepseek-harness/0.0.1
+(+https://github.com/deepseek-ai)` with the comment "an explicit product agent, never a browser disguise".
+Six real result pages, fetched twice each, full browser header set on both sides:
+
+```
+zhuanlan.zhihu.com       product: 403/628      | chrome: 403/628
+blog.csdn.net            product: 200/317565   | chrome: 521/2252
+juejin.cn                product: 200/141262   | chrome: 200/141262
+developer.aliyun.com     product: 200/70219    | chrome: 200/70219
+github.com               product: 200/367719   | chrome: 200/367719
+deepseekharness.online   product: 200/22163    | chrome: 200/22163
+```
+
+The browser disguise wins nothing and loses CSDN's whole page (521 where the product agent gets 200), and
+Zhihu answers 403 to both — its block is not about the User-Agent at all. So the default stays, and the
+READMEs now say why with this table instead of leaving "no fetch half" as an unexplained omission.
+
+`scripts/check.mjs` already refused a patch that drops `fetchProvider: http`, which is the guard that keeps
+a future "cleanup" from silently taking `web_fetch` away from the profile.
+
 ## 2026-11-13 — the three open questions, all answered by measurement
 
 Nothing was implemented here on purpose: each question had a cheaper answer than code, and the answer is
