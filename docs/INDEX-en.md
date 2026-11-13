@@ -54,6 +54,7 @@ result page contains. If this repository and the running system disagree, the re
 | the endpoint, the request headers or the redirect policy | `bing.js`, `docs/architecture-en.md`, `README.md` + `README-zh.md`, `scripts/check.mjs` (the request-layer assertions), a new ADR if the endpoint moves |
 | the parser's block, title or snippet rules | `bing.js`, `tests/parse.test.mjs`, the fixtures if the page shape changed, `docs/architecture-en.md` |
 | a load-bearing line of `bing.js` — the endpoint, the redirect policy, the block token, the snippet shape, deduplication, an error branch | the mutation that breaks it in `scripts/mutation-scan.mjs`, and the test that kills that mutation |
+| the entry's registration, the provider id, or the failure translation | `index.js`, `tests/entry.test.mjs`, the `index.js` mutations in `scripts/mutation-scan.mjs`, `docs/architecture-en.md` |
 | the provider id or the patch row id | `bing.js`, `index.js`, `cordis.patch.yml`, `docs/architecture-en.md`, `README.md` + `README-zh.md`, ADR 0003 |
 | the peer declaration, or the entry's imports | `package.json`, `scripts/check.mjs`, ADR 0002 |
 | the package name or the display title | `package.json`, `locale/en.json`, `locale/zh.json`, `scripts/check.mjs`, `README.md` + `README-zh.md`, ADR 0003 |

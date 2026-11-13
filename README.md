@@ -17,7 +17,7 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.1.3.
+- Current version: v0.1.4.
 - **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
@@ -125,11 +125,17 @@ installed into, for every session in it, which is why it is stated here rather t
 ## Development
 
 ```sh
+npm install                       # the seam the entry tests load; the bundle installs nothing itself
 node --check index.js bing.js
 node --test --test-isolation=none tests/*.test.mjs
 node scripts/mutation-scan.mjs
 node scripts/check.mjs
 ```
+
+`npm install` is for the entry tests alone: `index.js` imports the seam, which a linked bundle receives
+from the runtime as a declared peer, and those tests load the real class rather than a stand-in. Without
+it they skip — and a skip means the entry is unverified, which is why `scripts/check.mjs` fails when CI
+stops installing it. Everything else in the suite runs with no install at all.
 
 `--test-isolation=none` is not optional: Node 22 spells it `--experimental-test-isolation`, so the flag
 itself fixes the major version at Node 24, and the default runner spawns one process per test file,

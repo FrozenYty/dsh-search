@@ -7,6 +7,18 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.1.4] - 2026-11-13
+
+- `tests/entry.test.mjs` covers the entry by loading the **real** `@deepseek-ai/dsh-web`: that `apply`
+  registers one provider under `bing-html`, that it reports itself available and has no `ready()`, that a
+  search reaches the request layer, and that a provider failure arrives as the seam's `WebError` carrying
+  `WEB_PROVIDER_ERROR` or `WEB_ABORTED`. That translation was the one line no test executed.
+- The mutation scan now covers `index.js` as well as `bing.js` — 17 mutations, each killed by the test
+  that names its claim — and its working copies moved into `.mutation/` inside the repository so the entry
+  tests resolve the seam there too.
+- CI and the release workflow install the seam before the tests; `scripts/check.mjs` fails if that step
+  disappears, because without it those tests skip instead of failing.
+
 ## [0.1.3] - 2026-11-13
 
 - The READMEs document all three install routes — `plugin_manager install_bundle`, `dsh plugin add` with

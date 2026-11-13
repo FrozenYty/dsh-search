@@ -4,6 +4,63 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — v0.1.4, the entry is covered
+
+The entry was the one file nothing executed: `index.js` imports the seam, so the old unit tests could not
+load it, and its registration and its translation of a provider failure into `WebError` were asserted
+only structurally. That is now closed by loading the **real** seam.
+
+### What was built
+
+- `tests/entry.test.mjs` (four tests): `apply` registers exactly one provider under `bing-html`, that
+  provider reports itself available and has no `ready()`, a search reaches the request layer and returns
+  the page's sources, an empty query rejects with a **real `WebError`** carrying `WEB_PROVIDER_ERROR` and
+  the provider failure as its `cause`, and an aborted search carries `WEB_ABORTED` through the same
+  translation. When the seam is not resolvable the tests skip with that reason instead of failing.
+- `scripts/mutation-scan.mjs` now mutates `index.js` too — four mutations, each killed by the entry test
+  that names its claim — and its working copies moved from the system temp directory to `.mutation/`
+  inside the repository, because the entry tests resolve the seam by walking up to `node_modules` and a
+  copy elsewhere would skip and make an `index.js` mutation look killed for the wrong reason.
+- CI and the release workflow install the seam before the tests (`npm install --no-save`), because the
+  bundle itself installs nothing at runtime; `scripts/check.mjs` now fails when that step disappears, so a
+  skipped entry test cannot become the permanent state.
+- `CONTRIBUTING.md`, `AGENTS.md`, both READMEs and `docs/architecture` say what the entry tests prove and
+  what they need; `PLAN.md` gains item A6.
+
+### What was verified
+
+```
+$ npm install --no-save --no-package-lock @deepseek-ai/dsh-web
+added 12 packages in 8s
+
+$ node --test --test-isolation=none tests/*.test.mjs
+ℹ tests 22
+ℹ pass 22
+ℹ fail 0
+ℹ skipped 0
+
+$ node scripts/mutation-scan.mjs
+17 mutation(s): 17 killed, 0 not
+mutation scan passed
+
+$ node scripts/check.mjs
+check passed
+```
+
+The four `index.js` mutations and the tests that killed them:
+
+```
+killed    registration-reports-unavailable      the entry registers exactly one usable provider under the frozen id
+killed    registration-id-renamed               the entry registers exactly one usable provider under the frozen id
+killed    provider-failure-untranslated         a provider failure reaches the seam as a real WebError carrying its code
+killed    failure-code-flattened                a cancelled search carries WEB_ABORTED through the same translation
+```
+
+The skip path was exercised too, by renaming `node_modules` away and running the entry tests alone: all
+four reported `# @deepseek-ai/dsh-web is not resolvable (ERR_MODULE_NOT_FOUND); run npm install to
+exercise the entry tests`, and `node_modules` was restored afterwards. A skip is honest only because CI
+never lets it happen, which is what the new check enforces.
+
 ## 2026-11-13 — post-v0.1.3: the published release, and the listing gate
 
 ### What was verified

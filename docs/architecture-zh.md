@@ -130,7 +130,10 @@ https://cn.bing.com/search?q=<query>
 ## 8. 本仓库能证明什么、不能证明什么
 
 `node --test --test-isolation=none tests/*.test.mjs` 证明解析器在两个真实保存的响应上的行为，以及打桩
-请求层上的请求形状。`node scripts/mutation-scan.mjs` 证明这些测试能失败：它逐条打断 `bing.js` 的承重行，
-要求测试注意到——于是没人护着的代码行会被点名，而不是悄悄通过。`node scripts/check.mjs` 证明清单、
-import 规则、locale 对、patch 行、文档，以及验收第 3 条那两条请求层回归。实网搜索和真实会话是手工步骤：
-前者要网络，后者要插件被启用，而启用始终是 owner 的决定。真正跑过的验收，连同输出，记在 `PROGRESS.md`。
+请求层上的请求形状；其中的入口测试加载**真实**的能力缝，证明 Host 拿这个 bundle 做了什么——`apply` 在
+`bing-html` 下只注册一个 provider、该 provider 自报可用且没有 `ready()`、provider 的失败以能力缝的
+`WebError` 带着自己的错误码抵达。`node scripts/mutation-scan.mjs` 证明这些测试能失败：它逐条打断
+`bing.js` 与 `index.js` 的承重行，要求测试注意到——于是没人护着的代码行会被点名，而不是悄悄通过。
+`node scripts/check.mjs` 证明清单、import 规则、locale 对、patch 行、文档，以及验收第 3 条那两条请求层
+回归。实网搜索和真实会话是手工步骤：前者要网络，后者要插件被启用，而启用始终是 owner 的决定。真正跑过的
+验收，连同输出，记在 `PROGRESS.md`。
