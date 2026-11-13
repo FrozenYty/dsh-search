@@ -50,10 +50,10 @@ plugin_manager  install_bundle  target: <absolute path to this repository>
 dsh plugin --profile <profile> add <absolute path to this repository>
 ```
 
-Nothing is published per change, and no tag is needed for one: a linked working tree picks up a `git pull`
-on the next load. `node scripts/pack.mjs` can still build a one-file tarball for a friend who would rather
-be handed that than a repository, and the `release` workflow still publishes one when somebody tags — but
-both are deliberate acts, not part of the loop.
+Nothing is published, and a linked working tree picks up a `git pull` on the next load — that is the whole
+update story. To hand it to a friend, send them the repository: `git clone`, or **Code → Download ZIP**,
+which is already installable because nothing here needs a build. They install that folder with either route
+above, restart the app, and the plugin list shows 搜索.
 
 That this package is not on npm is deliberate: the name `dsh-search` there belongs to an unrelated
 package, and this one is `private` — it is linked or installed from a file, never published
@@ -124,6 +124,23 @@ installed into, for every session in it, which is why it is stated here rather t
 - **No settings, no timers, no background work.** There is nothing to configure and nothing running when
   a search is not in flight.
 
+## When it stops working
+
+Bing will change its result page eventually. The provider fails loudly rather than answering with nothing,
+and its message names the failure, so the first step is to read it:
+
+- `no parseable result block … shape may have changed` — the markup moved. Capture the page you got into
+  `tests/fixtures/` under a new name, add its provenance to `tests/fixtures/sources.md`, and teach the
+  parser its shape; the tests then pin what you saw.
+- `challenge page instead of results` — Bing decided this client looked automated. Retry later, or open the
+  same query in a browser once; the provider keeps no session and no cookie.
+- `HTTP 302 … redirects to https://www.bing.com/…` — the routing changed. That is a decision point, not a
+  bug: ADR 0001 says a redirect is never followed, so supersede that ADR rather than flipping the flag.
+- `Bing search request failed:` — the request never completed. That one is the network, not the parser.
+
+`npm run acceptance` sends one real request and prints what came back, which is the quickest way to see
+that message outside a session. It needs the network and nothing else.
+
 ## Development
 
 ```sh
@@ -148,10 +165,9 @@ The mutation scan is what keeps the suite honest: for each load-bearing line of 
 mutation and requires at least one test to fail. A survivor is a line nothing protects, and it fails the
 build with the mutation's name.
 
-A release is a tag, not an edit: the `release` workflow re-runs this gate, refuses a tag that does not
-name the manifest's version, and publishes `dsh-search-<version>.tgz` with its `SHA256SUMS.txt`.
-`node scripts/pack.mjs` builds the same tarball locally into `dist/`, so a release can be reproduced
-without pushing a tag.
+Nothing is published, so there is no release step either: the gate above is the whole delivery. A version
+number moves only when the bundle's own files change — the ones `files` lists — and `CONTRIBUTING.md` §5
+says which those are.
 
 The manual acceptance run is the one thing the gate cannot do for you: it needs the network, and the
 session check needs the plugin enabled.

@@ -81,36 +81,24 @@ type. CI installs the seam as a step of its own (`npm install --no-save`), becau
 installs nothing at runtime. Without it those four tests skip rather than fail, so `scripts/check.mjs`
 fails when the install step disappears: a silently skipped entry is the one file nothing else executes.
 
-## 5. Versions, tags and tarballs
+## 5. Versions
 
-**Nothing is published per change.** This is a project for its owner and a few friends: `main` is the
-distribution, a profile links the working tree, and `git pull` is the update. No npm package, no tag per
-change, no tarball to keep in sync with a source tree that is already the thing people install.
+**Nothing is published.** Not to npm — the name there belongs to another package (ADR 0003) — and not as a
+release either: this bundle is for its owner and a few friends, so `main` is the distribution, a profile
+links the working tree, and `git pull` is the update.
 
-What that leaves, and why each still exists:
+Two things stay worth keeping straight:
 
+- **`package.json`'s version** moves when the *bundle* changes — the files `files` lists, which are the ones
+  a profile loads. A change to the tests, the scripts, the documents or the workflows does not need a new
+  number, because no profile behaves differently.
 - **`CHANGELOG.md`** is a log of what changed and when, grouped by the version the manifest carried at the
-  time. It is a record, not a release contract, and writing its section in the pull request that makes the
-  change is still worth doing: a six-month-old "why" is otherwise gone.
-- **`package.json`'s version** moves when the *bundle* changes — the files a profile loads. A change to
-  the tests, the scripts, the documents or the workflows does not need a new number, because no profile
-  behaves differently.
-- **A tarball** exists for the friend who would rather be handed one file than a repository:
-  `node scripts/pack.mjs` builds it into `dist/` (ignored) with its checksum, and it contains the bundle
-  and nothing else, because `npm pack` reads `files` from the manifest and leaves the tests, scripts,
-  fixtures and documents out.
-- **The `release` workflow** re-runs the gate on a `v*` tag, refuses a tag that does not name the
-  manifest's version, and publishes that tarball with `SHA256SUMS.txt`. It is dormant when nobody tags,
-  which is the normal state.
+  time. It is a record, not a release contract, and its section belongs in the pull request that makes the
+  change: a six-month-old "why" is otherwise gone. A change that moves no version writes no section there —
+  `PROGRESS.md` is where its evidence goes.
 
-So tagging is a deliberate act — "hand me that state as one file" — not a step every change owes:
-
-```sh
-git tag v0.1.6 && git push origin v0.1.6
-```
-
-This package is `private` on purpose, and the name `dsh-search` on npm belongs to another package
-(ADR 0003), so the registry was never the destination anyway.
+A friend who would rather be handed a folder than a git remote can use GitHub's **Code → Download ZIP**.
+There is no build step, so that archive is the whole installable bundle as it stands.
 
 ## 6. Files
 

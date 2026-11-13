@@ -4,6 +4,47 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — the publishing apparatus is gone, the friend route is in the README
+
+The owner deleted the `awesome-dsh-plugin` fork and settled the project as private use: "我们不发布，只自己用".
+The repository now says only that — no release machinery, no listing task.
+
+### What changed
+
+- **Removed**: `.github/workflows/release.yml` (the `v*` tag trigger) and `scripts/pack.mjs` (the tarball
+  builder), plus `.gitignore`'s `dist/` entry. Nothing in the bundle depended on either; the gate they ran
+  is the same `ci` gate, so no verification was lost — only a second copy of it behind a tag.
+- **`CONTRIBUTING.md` §5** is now "Versions" and nothing else: nothing is published, `main` is the
+  distribution, the version moves only when a file `files` lists changes, and the `CHANGELOG` is a log. A
+  change that moves no version writes no section there — `PROGRESS.md` is where its evidence goes.
+- **`AGENTS.md` §4**: "A release is a tag, not an edit" became "a version is a label, not a release".
+- **Both READMEs** gained the friend route and lost the tarball one: hand over the repository, or the ZIP
+  GitHub serves from it — there is no build step, so that archive is already installable — then either
+  local install route.
+- **Both READMEs** also gained "When it stops working": the four messages this provider can fail with, and
+  what each one means — markup drift (capture a fixture), a challenge page (retry, no session is kept), a
+  redirect to `www.bing.com` (an ADR decision, not a flag to flip), a transport failure (the network).
+  That is the section a private user needs in three months, when Bing moves the page and there is nobody to
+  ask.
+- **`PLAN.md`** drops the listing task and marks it not pursued, keeping the facts that cost an afternoon
+  to find in case that ever changes.
+- **No version bump**: no file in `files` changed, which is the rule this change is the first to exercise.
+
+### What was verified
+
+```
+$ node scripts/check.mjs
+check passed
+$ node --test --test-isolation=none tests/*.test.mjs
+ℹ tests 22  ℹ pass 22  ℹ fail 0  ℹ skipped 0
+$ node scripts/mutation-scan.mjs
+17 mutation(s): 17 killed, 0 not
+```
+
+A search for `release.yml`, `pack.mjs`, `tarball`, `SHA256SUMS` and `dist/` across the documents now
+returns hits only in `CHANGELOG.md` and the older entries of this file, which are history and stay as
+written. `scripts/check.mjs` never referenced the removed workflow, so nothing there had to move.
+
 ## 2026-11-13 — v0.1.7, the list line settles
 
 The owner chose among the 4+4 alternates offered in the previous entry:
