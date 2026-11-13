@@ -198,6 +198,11 @@ installed into, for every session in it, which is why it is stated here rather t
       searchTimeoutMs: 60000
       searchMaxResults: 24
   ```
+
+  A profile reads its patch when it loads, so a running Host keeps the old number until it restarts —
+  unless its `package.json` sets `dsh.profile.patchReload: live`, in which case the file is watched. How to
+  tell which cap is live: the tool appends `(Showing the first N sources…)` **only when the seam truncated**,
+  so that line disappearing is the change taking effect.
 - **A result link that Bing wraps in its own redirect** (`cn.bing.com/ck/a?…`) would be returned as that
   wrapper URL rather than unwrapped. It has not happened once in 80 measured results, so the parser does
   not unwrap; `PLAN.md` records the measurement.
