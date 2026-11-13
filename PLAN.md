@@ -50,6 +50,15 @@ cancellation — and names the test that caught each. A survivor means no test s
 Candidates, not commitments. Each one costs a request shape or a parsing rule, so each is a decision to
 make with a measurement in hand rather than a gap to close.
 
+- **Submit to `awesome-dsh-plugin`** — the community list most discovery runs through, which is also the
+  index `dsh-market` reads. Its submission is one data file, `data/plugins/frozenyty__dsh-search.yml`,
+  category `browser`; the draft with the exact description is in the session's scratch folder. Two
+  automated requirements are unmet today and are not defects in the plugin: the repository must be at
+  least **one day old**, and it must carry the **`dsh-plugin` topic**, which the owner declined. A
+  maintainer reads the repository before merging, and a resubmission is not held against anyone.
+- **Run `dsh plugin add` once** — the READMEs document it as the ecosystem's route, and it is the one
+  route this repository has not executed: the CLI is not on the PATH of the shell these checks run in.
+  The local-path form and the release tarball are what have been exercised.
 - **Unwrap Bing's own redirect links** (`cn.bing.com/ck/a?…`) if a result page ever carries them.
   Today's pages carry direct links, so this is a parser rule that would never run.
 - **A second backend as a fallback** if one starts answering with a parseable page from this machine.
