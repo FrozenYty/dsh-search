@@ -74,7 +74,31 @@ always a test; a mutation is removed only when the line it breaks is gone.
 It cannot prove that the plugin activates in a profile, or that the live endpoint answers. Those are
 manual steps: the first needs an install, the second the network.
 
-## 5. Files
+## 5. Releases
+
+A version is published by a tag; the `release` workflow does the rest.
+
+1. `CHANGELOG.md` gains the version's section, `package.json` carries that version, and `PROGRESS.md`
+   gains the dated entry with the commands that were run — in the pull request that delivers the
+   change, not in a later one.
+2. Tag the merge commit on `main`: `git tag v0.1.3 && git push origin v0.1.3`.
+3. The `release` workflow re-runs the gate, refuses a tag that does not name the manifest's version,
+   builds the tarball with `node scripts/pack.mjs`, and publishes it with `SHA256SUMS.txt` on the
+   release.
+
+The tarball is the bundle and nothing else: `npm pack` reads `files` from the manifest, so the tests,
+scripts, fixtures and documents stay out of it. It exists because a release download is the one install
+route that needs neither the npm registry nor GitHub at install time — this package is `private`, and
+the name `dsh-search` on npm belongs to another package (ADR 0003):
+
+```sh
+dsh plugin --profile <profile> add <path to dsh-search-<version>.tgz>
+```
+
+`node scripts/pack.mjs` rebuilds it locally into `dist/` (ignored) with the same checksum the workflow
+publishes, so a release can be reproduced without pushing a tag.
+
+## 6. Files
 
 - **Filenames are English**, lowercase, hyphen-separated.
 - Never commit: `node_modules/`, logs, editor scratch, any `.env`.
@@ -83,7 +107,7 @@ manual steps: the first needs an install, the second the network.
 - A fixture under `tests/fixtures/` is a captured response, not a document: it is never translated,
   reformatted or trimmed, and `tests/fixtures/sources.md` records where it came from and when.
 
-## 6. Documents
+## 7. Documents
 
 `docs/INDEX-en.md` is the map. Naming and placement:
 
@@ -112,7 +136,7 @@ folder names. Write commands relative to the repository root.
   target is not there. `PROGRESS.md` and `CHANGELOG.md` are exempt from nothing except history: an entry
   describes what was true when it was written.
 
-## 7. Definition of done
+## 8. Definition of done
 
 - [ ] Every CI job is green on the PR
 - [ ] The PR template is filled in
@@ -121,3 +145,5 @@ folder names. Write commands relative to the repository root.
       someone else
 - [ ] `docs/INDEX-en.md` and `INDEX-zh.md` updated if a document was added, renamed or removed
 - [ ] A dated `PROGRESS.md` entry records the commands that were run and their real output
+- [ ] The version, its `CHANGELOG.md` section and its `PROGRESS.md` entry are in the same pull request,
+      so the tag that publishes them has something true to name

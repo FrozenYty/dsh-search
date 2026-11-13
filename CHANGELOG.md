@@ -14,6 +14,10 @@ commands that were run. This file is the release-level summary of that narrative
   snippet; the mutation scan covers the guard.
 - `main` is protected as the sibling repositories protect theirs: a pull request, a green `check`, no
   force-push, no deletion. This release is the first change to arrive through that path.
+- A version is published by a tag: the `release` workflow re-runs the gate, refuses a tag that does not
+  name the manifest's version, and attaches `dsh-search-<version>.tgz` with `SHA256SUMS.txt` — the
+  install route that needs neither the npm registry nor GitHub at install time. `scripts/pack.mjs`
+  builds the same tarball locally.
 
 ## [0.1.1] - 2026-11-13
 
