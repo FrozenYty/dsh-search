@@ -84,6 +84,23 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 `redirect: "manual"`，因此永不跟随重定向——它变成一条点名目标地址的错误。`scripts/check.mjs` 在请求层
 断言：一次搜索只发一次请求、只发给 `cn.bing.com`，绝不发给 `www.bing.com` 或 `api.deepseek.com`。
 
+## 切回随附的 provider
+
+什么都没被卸掉：随附的 `deepseek-official` 搜索 provider 仍然注册在 profile 里，它的凭据也还在 profile 的
+凭据库里。本 bundle 只改变**能力缝选哪一个**，所以切回去就是 profile 自己 `cordis.patch.yml` 里的一行——
+那一层在本 bundle 之后应用，因此它会赢：
+
+```yaml
+- id: web
+  config:
+    searchProvider: deepseek-official
+    fetchProvider: http
+```
+
+代价是一个账户：随附 provider 经由 `api.deepseek.com` 搜索，和聊天记在同一份余额上。在这台机器上实测——
+凭据能解析，账户回 `is_available: false`、余额 `-0.09 CNY`——所以余额充上之前，走它的搜索会以 HTTP 402
+失败；而本 bundle 在完全没有账户的情况下仍然工作。余额为正时两者都可用，上面那一行就是全部的取舍。
+
 ## 另一半：`web_fetch`
 
 能力缝有两半——搜索和抓取——本 bundle 只拥有前一半。`web_fetch` 保持随附的匿名 HTTP provider；而 patch 在

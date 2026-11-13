@@ -97,6 +97,26 @@ sets `redirect: "manual"`, so a redirect is never followed — it becomes an err
 instead. `scripts/check.mjs` asserts at the request layer that one search sends exactly one request, to
 `cn.bing.com`, and never to `www.bing.com` or `api.deepseek.com`.
 
+## Switching back to the shipped provider
+
+Nothing was uninstalled: the shipped `deepseek-official` search provider is still registered in the profile,
+with its credential still in the profile's store. This bundle only changes *which one the seam selects*, so
+going back is one row in the profile's own `cordis.patch.yml` — that layer is applied after this bundle's,
+so it wins:
+
+```yaml
+- id: web
+  config:
+    searchProvider: deepseek-official
+    fetchProvider: http
+```
+
+What that costs is an account: the shipped provider searches through `api.deepseek.com` and is billed to the
+same balance as the chat. Measured on this machine — the credential resolves, and the account answers
+`is_available: false` with a `-0.09 CNY` balance — so a search through it fails with HTTP 402 until the
+account is topped up, while this bundle keeps working with no account at all. If the balance is positive,
+both are available and the row above is the whole choice.
+
 ## The other half: `web_fetch`
 
 The seam has two halves, search and fetch, and this bundle owns only the first. `web_fetch` keeps the
