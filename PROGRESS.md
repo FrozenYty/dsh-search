@@ -4,6 +4,36 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — v0.1.6, the plugin list line joins the family
+
+The owner's review of the plugin list: the description read as a complaint about the shipped provider
+rather than as a claim about this one, and it did not have the shape the family's lines have.
+
+### What changed
+
+```
+locale/zh.json   「只搜网页，不问余额。」
+locale/en.json   "Only pages, never the balance."
+```
+
+That is two four-character halves with the same contrast 团队 uses (「只是换人，不是换活。」), and the two
+things a reader can act on: what it fetches, and what it never consults. The previous line
+(「真正的结果页，不是账户余额。」) set a result page against an account balance — two different categories,
+which is why it read as a jab. No behaviour change, and the locale pair is the only bundle file that moved.
+
+Version 0.1.6, with no tag: under `CONTRIBUTING.md` §5 a locale file *is* the bundle, so the number moves,
+while a tag stays the deliberate act it is.
+
+### What was verified
+
+```
+$ node scripts/check.mjs
+check passed
+```
+
+The check covers the pair's parity, the titles and the two-character title rule; the description itself is
+prose, and its test is the owner looking at the plugin list.
+
 ## 2026-11-13 — no more publishing: `main` is the distribution
 
 The owner's call, in their words: this is for them and a few friends, so nothing is published and no tag

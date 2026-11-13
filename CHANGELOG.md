@@ -7,6 +7,14 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.1.6] - 2026-11-13
+
+- The plugin list line reads like the rest of the family's: 「只搜网页，不问余额。」 — the same two
+  four-character halves and the same contrast as 团队's 「只是换人，不是换活。」, instead of contrasting a
+  result page against an account balance. English: "Only pages, never the balance."
+- No behaviour change; the locale pair is the only bundle file that moved, which is why the version does
+  and no tag follows it.
+
 ## [0.1.5] - 2026-11-13
 
 - Acceptance item 4 is delivered: the bundle was installed into a desktop profile and `web_search`
