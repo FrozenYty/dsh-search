@@ -31,6 +31,7 @@ README.md  ->  PLAN.md  ->  PROGRESS.md  ->  docs/architecture-en.md  ->  与你
 | 为什么入口 import 了一个 `@deepseek-ai` 包，而兄弟插件不 import？ | `docs/adr/0002-peer-dependency-on-the-web-seam.md` | 英文 |
 | 为什么叫 `dsh-search`，哪些 id 已冻结？ | `docs/adr/0003-provider-id-and-plugin-name.md` | 英文 |
 | 为什么只有一个后端——不能加 Google、百度或 360 吗？ | `docs/adr/0004-one-backend-measured.md`；当前的答案用 `node scripts/probe-backends.mjs` 问 | 英文 |
+| Claude Code 的 `web_search` 是怎么做的，为什么我们不一样？ | `docs/adr/0005-local-search-vs-server-side.md` | 英文 |
 | 分支、提交、合并怎么做？ | `CONTRIBUTING.md` | 英文 |
 | 助手在这里要守什么规矩？ | `AGENTS.md` | 英文 |
 

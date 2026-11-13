@@ -4,6 +4,67 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-13 — how Claude Code's `web_search` works, read from the shipped product
+
+The question was how Claude Code implements its search, and whether this bundle should copy it. Claude Code
+2.1.178 is installed on this machine as a native binary (`@anthropic-ai/claude-code/bin/claude.exe`,
+246 715 552 bytes) with `sdk-tools.d.ts` describing every tool, so the answer came from the product rather
+than from its documentation.
+
+### What the binary contains
+
+```js
+function LG5(H){return{type:"web_search_20250305",name:"web_search",
+  allowed_domains:H.allowed_domains,blocked_domains:H.blocked_domains,max_uses:8}}
+```
+
+A **server tool**: the client declares it in the model request and Anthropic's servers perform the search —
+no search request leaves the client. `max_uses: 8` bounds it per request.
+
+From `sdk-tools.d.ts`:
+
+```
+WebSearchInput  { query: string; allowed_domains?: string[]; blocked_domains?: string[] }
+WebSearchOutput { query: string; results: ({ tool_use_id: string; content: { title: string; url: string }[] } | string)[];
+                  durationSeconds: number; … }
+WebFetchInput   { url: string; prompt: string }
+```
+
+So a hit is **title and URL** (a `string` result is "text commentary from the model"), the tool's own
+description says the search is **US-only**, and its fetch tool runs a **prompt** over the fetched page.
+Strings in the same binary also describe newer `web_search_20260209` / `web_fetch_20260209` versions whose
+**dynamic filtering** lets Claude write and execute code to filter results before they reach the context.
+
+### What it means for this bundle
+
+- **The official DSH provider is the same architecture** — search on the provider's servers, on the account
+  — which is exactly why it answers HTTP 402 at a zero balance. This bundle is different in kind, not in
+  degree: it performs the search on the machine.
+- **Two gaps here are seam-shaped, not defect-shaped**: the seam's search request has no domain field
+  (`allowed_domains` cannot reach a provider), and its fetch request has no prompt (so a noisy page reaches
+  the model with its ads attached — the filtering model sits elsewhere in Claude Code). A future seam field
+  is where either would close.
+- **Where we are ahead**: a source here carries a snippet and, when stated, a `publishedAt` the tool renders
+  as metadata; Claude Code's hits carry a title and a URL.
+
+`docs/adr/0005-local-search-vs-server-side.md` records the comparison, the code excerpt and the two
+seam-shaped gaps. No code changed.
+
+Incidental, and worth writing down because it is the documented limit happening live: fetching the online
+docs for that tool failed here — `docs.claude.com` → `platform.claude.com` → `www.anthropic.com`, two
+cross-origin redirects, which `web_fetch` refuses by design.
+
+### And one correction to yesterday's tool
+
+Running `scripts/probe-backends.mjs` again exposed a flaw in the tool rather than in the engines: a 553 kB
+Sogou page with real results was reported as `challenge` merely because this script's own marker matched
+one block. A big page with no marker hit says the **marker** is wrong, not that the engine refused, so the
+probe now has an `unverified` verdict for exactly that case and reserves `challenge` for a small page or one
+that says so in its own words.
+
+The same three runs also caught Baidu oscillating — `usable` once, `challenge` twice, minutes apart, the
+challenge being `HTTP 302 → wappass.baidu.com`. ADR 0004 now records that oscillation as the finding it is.
+
 ## 2026-11-13 — "can we stop using a single search source?" — asked of the network
 
 The question was whether to add Google "if the network allows", or another engine, so the bundle stops

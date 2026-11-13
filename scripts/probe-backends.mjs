@@ -11,6 +11,9 @@
  *   usable      2xx, and the page carries result blocks a rule could read
  *   wrapped     2xx with results, but every result URL is the engine's own redirect
  *   challenge   2xx, but the page is a captcha or a consent gate rather than results
+ *   unverified  2xx and a page of a plausible size, but this script's own marker matched nothing —
+ *               which says the marker is wrong, not that the engine refused; read the page before
+ *               concluding anything
  *   blocked     a non-2xx status
  *   unreachable the request never completed
  *
@@ -103,12 +106,13 @@ for (const candidate of CANDIDATES) {
     if (response.status < 200 || response.status >= 300) {
       verdict = response.status >= 300 && response.status < 400 ? 'challenge' : 'blocked'
       detail = `HTTP ${response.status}${response.headers.get('location') === null ? '' : ` → ${new URL(response.headers.get('location'), candidate.url).host}`}`
-    } else if (CHALLENGE.test(body.slice(0, 20000))) {
+    } else if (CHALLENGE.test(body.slice(0, 20000)) || body.length < 20000) {
       verdict = 'challenge'
-      detail = 'the page says so in its own words'
+      detail = CHALLENGE.test(body.slice(0, 20000)) ? 'the page says so in its own words' : `${blocks} result block(s), ${body.length} bytes — too small to be a result page`
     } else if (blocks < 3) {
-      verdict = 'challenge'
-      detail = `${blocks} result block(s) matched`
+      // A big page with no marker hit is a statement about this script's pattern, not about the engine.
+      verdict = 'unverified'
+      detail = `${body.length} bytes, but this script's marker matched ${blocks}`
     } else {
       verdict = candidate.wrapped ? 'wrapped' : 'usable'
       detail = `${blocks} result blocks`
