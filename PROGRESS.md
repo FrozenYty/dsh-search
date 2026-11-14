@@ -4,6 +4,35 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-14 — the guard for a document nothing points at
+
+An audit of yesterday's ADR 0006 found the failure the citation rule cannot see. `scripts/check.mjs` §6
+already refuses a citation that points at nothing; nothing refused the opposite — a document that exists,
+cites correctly, and is named by nobody. All three newer ADRs were indexed in `docs/INDEX-*.md` but the two
+READMEs' "where everything else lives" tables still stopped at ADR 0003, which is the file a reader opens
+first.
+
+Both README tables now carry all six ADRs, and `check.mjs` §6b enforces it as a **set over `docs/adr/`**:
+every ADR file must be named by `docs/INDEX-en.md`, `docs/INDEX-zh.md`, `README.md` and `README-zh.md`. A
+set, not a list, so the next ADR is covered the moment it is written.
+
+Proven by breaking it, which is the only proof that matters for a check:
+
+```
+$ node scripts/check.mjs                          → check passed
+$ (drop the 0005 row from README.md)
+$ node scripts/check.mjs                          → check failed: 1 problem(s)
+                                                    README.md: never names docs/adr/0005-local-search-vs-server-side.md;
+                                                    an ADR nothing points at is one nobody reads
+$ (restore the row, re-run)                       → check passed
+```
+
+Also re-measured today, because the page that feeds all of it is not ours: `node scripts/acceptance.mjs`
+returned one request to `cn.bing.com`, no request to `www.bing.com` or `api.deepseek.com`, and ten sources
+with four dates; `node scripts/fixture-refresh.mjs` in compare mode found all three stored fixtures still
+parsing to at least what they held (live pages: 10/10/10 sources, 4/6/8 dated). No drift, so nothing was
+re-captured.
+
 ## 2026-11-13 — the cap that composes and does not apply
 
 `searchMaxResults: 24` was written into the desktop profile's own patch, the app was restarted, and

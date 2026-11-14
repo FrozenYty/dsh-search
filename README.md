@@ -297,6 +297,9 @@ session check needs the plugin enabled.
 | Why the endpoint is `cn.bing.com`, and why a redirect is never followed | `docs/adr/0001-cn-bing-html-endpoint.md` |
 | Why the entry imports a Harness package when the sibling plugins do not | `docs/adr/0002-peer-dependency-on-the-web-seam.md` |
 | Why it is called `dsh-search`, and which ids are frozen | `docs/adr/0003-provider-id-and-plugin-name.md` |
+| Why there is only one backend — couldn't we add Google, Baidu or 360? | `docs/adr/0004-one-backend-measured.md`, and `node scripts/probe-backends.mjs` for the current answer |
+| How does Claude Code implement `web_search`, and why is ours different? | `docs/adr/0005-local-search-vs-server-side.md` |
+| Who decides whether the keyless search or the shipped DeepSeek one runs, and how is that switched? | `docs/adr/0006-choosing-the-search-provider.md`, `cordis.patch.yml` |
 | What was verified, with what output | `PROGRESS.md` |
 | What is still unproven | `PLAN.md` |
 
