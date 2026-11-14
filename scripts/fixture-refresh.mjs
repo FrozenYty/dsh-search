@@ -12,6 +12,14 @@
  *
  *   node scripts/fixture-refresh.mjs            compare only (the default); exits non-zero on a regression
  *   node scripts/fixture-refresh.mjs --write    overwrite the fixtures with what the endpoint serves now
+ *   node scripts/fixture-refresh.mjs --via www.bing.com
+ *                                               ask a different Bing host for the same query
+ *
+ * `--via` exists for one machine: GitHub's runners sit outside the endpoint's region, and `cn.bing.com`
+ * answers them `301 → https://www.bing.com/?q=…` (measured on a dispatched run), which the provider refuses
+ * by design (ADR 0001). It rewrites the request host *in transit, inside this script* — the provider's
+ * endpoint stays a constant — so a scheduled job can still exercise the parser against Bing's markup. What
+ * `--via` cannot check is the CN endpoint itself; that is what a local run, the default, does.
  *
  * A regression is a page that now parses to fewer sources than the stored fixture, or one whose parse
  * throws at all. A page that parses to *more* is reported but not a failure.
@@ -26,6 +34,8 @@ import { BingSearchProvider, parseBingHtml } from '../bing.js'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const fixtures = join(root, 'tests', 'fixtures')
 const shouldWrite = process.argv.includes('--write')
+const viaIndex = process.argv.indexOf('--via')
+const via = viaIndex === -1 ? undefined : process.argv[viaIndex + 1]
 
 /** The pages under tests/fixtures, with the query each was captured for. */
 const CAPTURES = [
@@ -37,13 +47,19 @@ const CAPTURES = [
 const realFetch = globalThis.fetch
 let captured
 globalThis.fetch = async (url, init) => {
-  const response = await realFetch(url, init)
+  const requested = String(url)
+  const target = via === undefined ? requested : requested.replace(new URL(requested).host, via)
+  const response = await realFetch(target, init)
   captured = await response.clone().text()
   return response
 }
 
 const problems = []
-console.log(`endpoint: the provider's own request, one per fixture`)
+console.log(
+  via === undefined
+    ? 'endpoint: the provider\'s own request, one per fixture'
+    : `endpoint: the provider's own request, rewritten in transit to ${via}, one per fixture`,
+)
 for (const capture of CAPTURES) {
   const stored = readFileSync(join(fixtures, capture.file), 'utf8')
   const before = parseBingHtml(stored).length

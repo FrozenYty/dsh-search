@@ -28,5 +28,9 @@ jobs:
           node-version: "24"
 
       - name: Re-fetch the fixtures and compare
-        # No `npm install`: this reads `bing.js`, whose entire point is that it imports nothing.
-        run: node scripts/fixture-refresh.mjs
+        # `--via www.bing.com` for one measured reason: a GitHub runner sits outside the endpoint's region,
+        # and `cn.bing.com` answers it `301 → https://www.bing.com/?q=…` (run 43567692402), which the
+        # provider refuses by design. The flag rewrites the request host inside the script so the parser is
+        # still exercised against real Bing markup every week; the CN endpoint itself is what a local run,
+        # with no flag, checks. No `npm install`: this reads `bing.js`, which imports nothing.
+        run: node scripts/fixture-refresh.mjs --via www.bing.com
