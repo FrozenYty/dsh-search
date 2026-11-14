@@ -258,6 +258,9 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 | 为什么端点是 `cn.bing.com`，为什么永不跟随重定向 | `docs/adr/0001-cn-bing-html-endpoint.md` |
 | 为什么入口 import 了一个 Harness 包，而兄弟插件不 import | `docs/adr/0002-peer-dependency-on-the-web-seam.md` |
 | 为什么叫 `dsh-search`，哪些 id 已冻结 | `docs/adr/0003-provider-id-and-plugin-name.md` |
+| 为什么只有一个后端——不能加 Google、百度或 360 吗 | `docs/adr/0004-one-backend-measured.md`；当前的答案用 `node scripts/probe-backends.mjs` 问 |
+| Claude Code 的 `web_search` 是怎么做的，为什么我们不一样 | `docs/adr/0005-local-search-vs-server-side.md` |
+| 由谁决定跑免 key 搜索还是随附的 DeepSeek 搜索，怎么切 | `docs/adr/0006-choosing-the-search-provider.md`、`cordis.patch.yml` |
 | 验证了什么，输出是什么 | `PROGRESS.md` |
 | 还有什么没被证明 | `PLAN.md` |
 

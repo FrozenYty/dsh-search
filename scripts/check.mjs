@@ -295,6 +295,21 @@ for (const document of referenceSources) {
   }
 }
 
+// 6b. Reachability — a document nothing points at is a document nobody finds.
+//
+// The reverse of the citation rule above, and the failure mode it cannot see: a new ADR is a file that
+// exists, cites correctly and is cited by nobody, so every earlier check passes while a reader looking for
+// the answer never arrives. Enforced as a set over the ADR directory rather than a list, so the next ADR
+// is covered the moment it is written, and over all four entry points because a question is asked from a
+// README as often as from the index.
+for (const name of adrNames) {
+  for (const entry of ['docs/INDEX-en.md', 'docs/INDEX-zh.md', 'README.md', 'README-zh.md']) {
+    if (!read(entry).includes(`docs/adr/${name}`)) {
+      fail(`${entry}: never names docs/adr/${name}; an ADR nothing points at is one nobody reads`)
+    }
+  }
+}
+
 // 7. Acceptance item 3, asserted at the request layer.
 //
 // The stub IS the request layer: it is the function the provider calls to send a request, so what it
