@@ -21,8 +21,15 @@
  * endpoint stays a constant — so a scheduled job can still exercise the parser against Bing's markup. What
  * `--via` cannot check is the CN endpoint itself; that is what a local run, the default, does.
  *
- * A regression is a page that now parses to fewer sources than the stored fixture, or one whose parse
- * throws at all. A page that parses to *more* is reported but not a failure.
+ * The two modes therefore ask different questions, and the criteria differ with them. The default asks "is
+ * the page we saved still the page we get?" and fails on a count that dropped. `--via` asks "does the parser
+ * still find results at all?" — another region serves a different, often smaller, set for the same query
+ * (measured: 10 / 7 / 8 sources from `www.bing.com` against 10 / 10 / 10 here), so it fails only under a
+ * structural floor rather than on a count that was never comparable.
+ *
+ * A regression is a page that now parses to fewer sources than the stored fixture (default mode), one that
+ * parses under the floor (`--via`), or one whose parse throws at all. A page that parses to *more* is
+ * reported but not a failure.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -36,6 +43,8 @@ const fixtures = join(root, 'tests', 'fixtures')
 const shouldWrite = process.argv.includes('--write')
 const viaIndex = process.argv.indexOf('--via')
 const via = viaIndex === -1 ? undefined : process.argv[viaIndex + 1]
+/** How much of a page the parser must still read when the host is not the one the fixtures came from. */
+const STRUCTURAL_FLOOR = 5
 
 /** The pages under tests/fixtures, with the query each was captured for. */
 const CAPTURES = [
@@ -80,7 +89,14 @@ for (const capture of CAPTURES) {
   console.log(`  ${capture.file}`)
   console.log(`    query: ${capture.query}`)
   console.log(`    stored fixture: ${before} sources | live page: ${after} sources, ${dated} with a date`)
-  if (after < before) problems.push(`${capture.file}: the live page parses to ${after} sources, the stored one to ${before}`)
+  if (via === undefined) {
+    if (after < before) problems.push(`${capture.file}: the live page parses to ${after} sources, the stored one to ${before}`)
+  } else if (after < STRUCTURAL_FLOOR) {
+    problems.push(
+      `${capture.file}: ${after} sources from ${via} is under the structural floor of ${STRUCTURAL_FLOOR}; `
+      + 'the parser, not the region, is the suspect',
+    )
+  }
   if (shouldWrite && fetched !== undefined) {
     writeFileSync(join(fixtures, capture.file), fetched)
     console.log(`    written over the stored fixture`)
@@ -109,4 +125,6 @@ if (problems.length > 0) {
   console.error('Re-run with --write once you have read the page and know the parser is right.')
   process.exit(1)
 }
-console.log(shouldWrite ? 'fixtures refreshed' : 'every fixture still parses to at least what it held')
+console.log(shouldWrite ? 'fixtures refreshed' : via === undefined
+  ? 'every fixture still parses to at least what it held'
+  : `every fixture from ${via} still parses structurally, at least ${STRUCTURAL_FLOOR} sources each`)
