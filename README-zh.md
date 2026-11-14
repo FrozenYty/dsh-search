@@ -249,6 +249,7 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 | `docs/` | 设计文档（双语）与 ADR |
 | `PLAN.md`、`PROGRESS.md`、`CHANGELOG.md` | 验收状态、只追加的记录、版本摘要 |
 | `locale/`、`icon.svg`、`package.json` | bundle 的清单部分 |
+| `.github/workflows/` | `ci.yml`：改动必须过的闸门；`drift.yml`：每周复核保存的页面 |
 
 ## 其他问题在哪份文档里
 
