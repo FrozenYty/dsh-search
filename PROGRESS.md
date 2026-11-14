@@ -4,6 +4,42 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-14 — the drift job, dispatched twice, and what a runner actually sees
+
+The weekly job was dispatched on `main` before anyone believed it, and it failed — with the answer, not with
+a mystery:
+
+```
+live: FAILED — Bing answered HTTP 301 for https://cn.bing.com/search?q=deepseek+harness; it redirects to
+      https://www.bing.com/?q=deepseek+harness&mkt=zh-CN, and this provider follows no redirect (ADR 0001).
+```
+
+A GitHub runner is outside the endpoint's region, so `cn.bing.com` sends it to the global host — and this
+provider refuses redirects by design. Written that way, the job would have been permanently red for a
+geographic reason, which teaches a reader to ignore it.
+
+`scripts/fixture-refresh.mjs` gained `--via <host>`: it rewrites the request host **in transit, inside the
+script**, so the provider's endpoint stays the constant ADR 0001 made it while the parser is still exercised
+against real Bing markup. The second dispatched run failed for the next honest reason — the counts. From
+`www.bing.com` the same three queries returned **10 / 7 / 8** sources against this machine's **10 / 10 / 10**:
+a different region serves a different result set, so count parity is not a drift signal across hosts.
+
+The two modes therefore ask two questions. The default (local, the endpoint this bundle actually uses) keeps
+count parity and fails on a page that parses to fewer sources than stored. `--via` fails only under a
+structural floor of five sources — the parser losing the page is the drift worth a red ✗. Third dispatched
+run, the one that passed:
+
+```
+endpoint: the provider's own request, rewritten in transit to www.bing.com, one per fixture
+  bing-deepseek-harness.html     stored 10 | live 10 sources, 2 with a date
+  bing-node-fetch-redirect.html  stored 10 | live 7 sources, 0 with a date
+  bing-dated-snippets.html       stored 10 | live 10 sources, 3 with a date
+every fixture from www.bing.com still parses structurally, at least 5 sources each
+```
+
+Two facts came out of it that the fixtures could not teach: a non-CN host renders the same block structure
+with many fewer dates (2/0/3 against 4/6/8 here), and a region's result count says nothing about our parser.
+
 ## 2026-11-14 — the saved pages re-check themselves
 
 Everything else in this repository is verified offline against `tests/fixtures/`, which means the one
