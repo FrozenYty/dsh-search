@@ -288,6 +288,7 @@ session check needs the plugin enabled.
 | `docs/` | The design document (bilingual) and the ADRs |
 | `PLAN.md`, `PROGRESS.md`, `CHANGELOG.md` | Acceptance state, the append-only record, release summaries |
 | `locale/`, `icon.svg`, `package.json` | The bundle's inventory half |
+| `.github/workflows/` | `ci.yml`, the gate a change must pass; `drift.yml`, the weekly re-check of the saved pages |
 
 ## Where everything else lives
 

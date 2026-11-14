@@ -1,0 +1,32 @@
+name: drift
+
+# The one thing this repository cannot test offline: whether the page it parses still looks like the page it
+# saved. `scripts/fixture-refresh.mjs` re-fetches the same three queries through the provider's own request
+# and compares what parses now with what the stored fixture holds. Fewer sources than stored is drift, and
+# drift breaks a user before it breaks a test — the stored pages are the only part of this bundle that
+# depends on someone else's markup.
+#
+# Weekly, and on demand. A failure here is a prompt to run the script locally with `--write` after reading
+# the difference, not a signal that the endpoint is down: an unreachable page and a changed page read
+# differently in the output (`fetch failed` versus `3 sources, stored 10`), which is why the step prints the
+# per-fixture counts before it exits.
+
+on:
+  schedule:
+    # Monday 03:17 UTC — 11:17 in Asia/Shanghai, far enough from the top of the hour that a runner is free.
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Re-fetch the fixtures and compare
+        # No `npm install`: this reads `bing.js`, whose entire point is that it imports nothing.
+        run: node scripts/fixture-refresh.mjs

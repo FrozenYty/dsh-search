@@ -4,6 +4,31 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-14 — the saved pages re-check themselves
+
+Everything else in this repository is verified offline against `tests/fixtures/`, which means the one
+dependency nobody here controls — Bing's markup — is also the one nobody re-checked on a schedule. The
+scripts existed (`scripts/fixture-refresh.mjs` re-fetches the same three queries through the provider's own
+request and compares parsed sources with the stored page), and the only thing that ran them was a person
+remembering to.
+
+`.github/workflows/drift.yml` now runs that comparison weekly and on demand. It installs nothing: `bing.js`
+imports nothing, which is what makes the whole check a checkout plus one `node` call. The workflow's comment
+says what a failure means and what it does not — an unreachable page and a changed page read differently in
+the output (`fetch failed` versus `3 sources, stored 10`), so the counts are printed before the exit code and
+the fix is `--write` after reading the difference, never a re-captured page taken on faith.
+
+Verified today by hand, in compare mode, against the live pages — the state the scheduled job should also
+see on a healthy week:
+
+```
+$ node scripts/fixture-refresh.mjs
+  bing-deepseek-harness.html   stored 10 | live 10 sources, 4 with a date
+  bing-node-fetch-redirect.html stored 10 | live 10 sources, 6 with a date
+  bing-dated-snippets.html     stored 10 | live 10 sources, 8 with a date
+every fixture still parses to at least what it held
+```
+
 ## 2026-11-14 — the guard for a document nothing points at
 
 An audit of yesterday's ADR 0006 found the failure the citation rule cannot see. `scripts/check.mjs` §6
