@@ -7,6 +7,19 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.2.0] - 2026-11-15
+
+- **The patch row id is `search`**, the package name without its `dsh-` prefix — matching `dsh-memory`
+  (`memory`) and `dsh-cleaner` (`cleaner`) — instead of `web-search-bing-html`, which described the slot the
+  bundle fills rather than the bundle. A profile overrides it as `- id: search`. An override still written
+  against the old id stops matching, and a patch that targets no row is skipped with a warning rather than
+  an error, which is the one cost of this version; nothing in this repository's own profile pays it.
+  `docs/adr/0007-row-id-follows-the-package-name.md` supersedes that part of ADR 0003. The provider id
+  `bing-html` and the package name `dsh-search` are unchanged, so `searchProvider` and existing installs
+  keep working.
+- `scripts/check.mjs` derives the expected row id from `package.json`'s name instead of comparing against a
+  second literal, so the two cannot drift apart again in either direction.
+
 ## [0.1.9] - 2026-11-13
 
 - **The owner chooses who searches.** This bundle's row now carries `provider`, with three values:

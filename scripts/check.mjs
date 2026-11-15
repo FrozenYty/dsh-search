@@ -198,8 +198,12 @@ if (patchText !== undefined) {
     if (pluginName !== undefined && !inserted.includes(`name: '${pluginName}'`)) {
       fail(`cordis.patch.yml: insert must name ${pluginName}`)
     }
-    if (!/id:\s*web-search-bing-html/.test(inserted)) {
-      fail('cordis.patch.yml: insert must carry the frozen row id web-search-bing-html (ADR 0003)')
+    // The row id follows the package name rather than repeating it in a second spelling: the family reads
+    // `dsh-memory` → `memory` and `dsh-cleaner` → `cleaner`, and a profile addresses this bundle by the
+    // same word (ADR 0007, which supersedes the fixed string in ADR 0003).
+    const rowId = pluginName === undefined ? undefined : pluginName.replace(/^dsh-/, '')
+    if (rowId !== undefined && !new RegExp(`id:\\s*${rowId}\\s*$`, 'm').test(inserted)) {
+      fail(`cordis.patch.yml: the inserted row must be id: ${rowId}, derived from the package name ${pluginName} (ADR 0007)`)
     }
     // The owner's choice of who searches lives in this row's config (ADR 0006). A profile overrides the
     // whole row, so the field has to be here, with one of the three values the entry understands.
