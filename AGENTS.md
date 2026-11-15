@@ -15,24 +15,30 @@ README.md  ->  docs/architecture-en.md  ->  docs/adr/  ->  PLAN.md
 
 - The files beat your memory. The plugin runs against a Harness and a search page that both change under
   you; anything you remember about either may already be wrong.
-- For any question about behaviour, `bing.js` and `index.js` are the authority, then
+- For any question about behaviour, `bing.js`, `article.js` and `index.js` are the authority, then
   `docs/architecture-en.md`, then `README.md`.
 - When something is unclear, say what is unclear and what would make it clear. Do not guess.
 
 ## 2. The project
 
-A DeepSeek Harness bundle that registers one keyless search provider with the `ctx.web` seam and points
-the seam's search half at it. Two constraints carry everything else, and both are decisions, not
-oversights:
+A DeepSeek Harness bundle that registers both halves of the `ctx.web` seam: a keyless search provider
+(`bing-html`, pointing the seam's search half at Bing's result page) and a fetch provider (`article`,
+handing the model a page's prose instead of its markup). It is still one subject — search that needs no
+account — and the fetch half exists because the shipped one hands over a page's chrome with it
+(`docs/adr/0010-the-other-half-of-the-result.md`).
 
-- **The endpoint is `cn.bing.com`, and a redirect is never followed.** `redirect: "manual"` is what makes
-  "no request goes to `www.bing.com`" a property of the code rather than of today's routing
-  (`docs/adr/0001-cn-bing-html-endpoint.md`). Do not "fix" a redirect by following it.
-- **`bing.js` imports nothing, and `index.js` imports only the seam.** The import-free module is what
+Two constraints carry everything else, and both are decisions, not oversights:
+
+- **The search endpoint is `cn.bing.com`, and a redirect is never followed.** `redirect: "manual"` is what
+  makes "no request goes to `www.bing.com`" a property of the code rather than of today's routing
+  (`docs/adr/0001-cn-bing-html-endpoint.md`). Do not "fix" a redirect by following it. The fetch half
+  follows same-origin hops and no others, for the same reason.
+- **`bing.js` imports nothing, and the entry's only bare import is the seam.** The import-free module is what
   lets plain `node` drive the real search path in the tests and in the request-layer checks; the entry's
-  single import is a peer dependency whose declaration is what makes it resolve for a profile-linked
-  bundle (`docs/adr/0002-peer-dependency-on-the-web-seam.md`). Adding a dependency to either file is a
-  decision, not a convenience.
+  single bare import is a peer dependency whose declaration is what makes it resolve for a profile-linked
+  bundle (`docs/adr/0002-peer-dependency-on-the-web-seam.md`), and `article.js` may import this bundle's own
+  modules and nothing else. `scripts/check.mjs` enforces all three rules. Adding a dependency is a decision,
+  not a convenience.
 
 `PLAN.md` owns acceptance state; `PROGRESS.md` owns the record of what was verified. Do not restate
 either here.
@@ -69,15 +75,15 @@ either here.
 ## 5. Verify before reporting
 
 ```sh
-node --check index.js bing.js
+node --check index.js bing.js article.js
 node --test --test-isolation=none tests/*.test.mjs
 node scripts/mutation-scan.mjs
 node scripts/check.mjs
 ```
 
-The mutation scan is not decoration: it breaks each load-bearing line of `bing.js` and `index.js` in turn
-and requires the suite to fail. A survivor is a line no test stands behind; fix it with a test, never by
-deleting the mutation.
+The mutation scan is not decoration: it breaks each load-bearing line of `bing.js`, `article.js` and
+`index.js` in turn and requires the suite to fail. A survivor is a line no test stands behind; fix it with a
+test, never by deleting the mutation.
 
 `tests/entry.test.mjs` needs `@deepseek-ai/dsh-web` resolvable (`npm install` in the working tree, which
 is what CI does before the tests). Without it those tests skip — not fail — so never leave a working tree

@@ -4,6 +4,22 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the rule file catches up with 0.4.0
+
+The migration entry above ends by noting that `AGENTS.md` §5 parsed `index.js bing.js` and not `article.js`.
+Reading the rest of that file for the fix found three more places where it described the bundle as it was
+before 0.4.0 — a rule file that is subtly wrong is worse than a missing one, because the rules are what a
+new reader trusts instead of the code:
+
+- §2 said the bundle "registers one keyless search provider"; it registers **both halves** of the seam now.
+- §2's import rule named two files; `scripts/check.mjs` enforces **three** rules (nothing imported by
+  `bing.js`, one bare import in the entry, and `article.js` importing only this bundle's own modules).
+- §1's "the authority" list, §5's parse line and §5's mutation description each named two modules.
+
+All five are corrected in one commit, and nothing else changed: this is the file catching up, not a change
+of rules. Verified with the same gate as any other change — `node scripts/check.mjs` passes, and no version
+moved, because `AGENTS.md` is not a file a profile loads.
+
 ## 2026-11-16 — the repository moved, and the peer still resolves
 
 The working tree moved from `DSH_FILES\dsh-search` to `DSH_PLUGINS\dsh-search`, the workspace's own
