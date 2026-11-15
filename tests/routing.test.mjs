@@ -45,10 +45,15 @@ function register(config, official) {
         registered.push(provider)
         return () => {}
       },
+      // The entry registers the fetch half too; these tests are about which provider serves a search.
+      registerFetchProvider() {
+        return () => {}
+      },
     },
   }, config)
-  assert.equal(registered.length, 1, 'apply registers exactly one provider')
-  return registered[0]
+  const searches = registered.filter((provider) => provider.id === 'bing-html')
+  assert.equal(searches.length, 1, 'apply registers exactly one search provider')
+  return searches[0]
 }
 
 /** Stub `fetch` with one body, and count the requests the keyless path makes. */
@@ -98,7 +103,7 @@ test('provider: official serves the search through the shipped provider', skip, 
 test('provider: official says which provider this profile missed, by the seam\'s code', skip, async () => {
   // Not registered at all.
   const registered = []
-  entry.apply({ web: { searchProviders: new Map(), registerSearchProvider: (provider) => registered.push(provider) } }, { provider: 'official' })
+  entry.apply({ web: { searchProviders: new Map(), registerSearchProvider: (provider) => registered.push(provider), registerFetchProvider: () => () => {} } }, { provider: 'official' })
   await assert.rejects(
     () => registered[0].search({ query: 'x' }),
     (error) => error instanceof seam.WebError && error.code === 'WEB_PROVIDER_CONFIGURED_MISSING',
@@ -133,7 +138,7 @@ test('auto lets the account serve the search when it can', skip, async () => {
 
 test('auto with no shipped provider at all searches keyless and does not fail', skip, async () => {
   const registered = []
-  entry.apply({ web: { searchProviders: new Map(), registerSearchProvider: (provider) => registered.push(provider) } }, { provider: 'auto' })
+  entry.apply({ web: { searchProviders: new Map(), registerSearchProvider: (provider) => registered.push(provider), registerFetchProvider: () => () => {} } }, { provider: 'auto' })
   const page = (await import('node:fs')).readFileSync(FIXTURE, 'utf8')
   const { result } = await withFetch(page, () => registered[0].search({ query: 'deepseek harness' }))
   assert.ok(result.sources.length >= 5)

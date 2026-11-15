@@ -81,7 +81,7 @@ if (manifest !== undefined) {
     }
     if (!existsSync(join(root, entry))) fail(`package.json: files entry "${entry}" does not exist`)
   }
-  for (const required of ['index.js', 'bing.js']) {
+  for (const required of ['index.js', 'bing.js', 'article.js']) {
     if (!(manifest.files ?? []).includes(required)) fail(`package.json: files must include ${required}`)
   }
   // A linked bundle resolves a bare `@deepseek-ai/*` specifier only for a name its own package.json
@@ -106,6 +106,17 @@ if (bingSource !== undefined) {
   const bingCode = bingSource.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
   if (/\b(?:import|require)\b/.test(bingCode)) {
     fail('bing.js: must import nothing; it is the module plain node loads (index.js owns the seam import)')
+  }
+}
+// The fetch half may import this bundle's own modules and nothing else: a bare specifier would need a peer
+// declaration to resolve for a profile-linked bundle, and the one this bundle declares is the seam.
+const articleSource = read('article.js')
+if (articleSource !== undefined) {
+  const articleCode = articleSource.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  for (const match of articleCode.matchAll(/^\s*import\s+[^'"]*['"]([^'"]+)['"]/gm)) {
+    if (!match[1].startsWith('.')) {
+      fail(`article.js: may import only this bundle's own modules; found ${JSON.stringify(match[1])}`)
+    }
   }
 }
 const entrySource = read('index.js')
@@ -188,8 +199,8 @@ if (patchText !== undefined) {
       fail('cordis.patch.yml: the `web` override must pin searchProvider: bing-html; without it the shipped DeepSeek provider stays selected')
     }
     // `config` is replaced wholesale, so a dropped field silently changes the other half of the seam.
-    if (!/fetchProvider:\s*http/.test(text)) {
-      fail('cordis.patch.yml: the `web` override must restate fetchProvider: http; config is replaced, never merged')
+    if (!/fetchProvider:\s*article/.test(text)) {
+      fail('cordis.patch.yml: the `web` override must restate fetchProvider: article; config is replaced, never merged')
     }  }  const insertIndex = entries.findIndex((lines) => /^-\s+insert:\s*$/.test(lines[0]))
   if (insertIndex === -1) {
     fail('cordis.patch.yml: expected an insert entry for this bundle')

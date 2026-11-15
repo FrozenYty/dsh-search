@@ -37,6 +37,7 @@
 
 import { WebError } from '@deepseek-ai/dsh-web'
 
+import { ArticleFetchError, ArticleFetchProvider } from './article.js'
 import { BingSearchError, BingSearchProvider } from './bing.js'
 
 /** Cordis plugin name used by loader diagnostics. */
@@ -122,5 +123,21 @@ export function apply(ctx, config) {
     id: provider.id,
     available: () => provider.available(),
     search,
+  })
+
+  // The fetch half: the same bundle, the other capability. A page's chrome is what the model pays for on
+  // every later turn of a session, and it is measured, not assumed (docs/adr/0010-the-other-half-of-the-result.md).
+  const article = new ArticleFetchProvider()
+  ctx.web.registerFetchProvider({
+    id: article.id,
+    available: () => article.available(),
+    async fetch(request, signal) {
+      try {
+        return await article.fetch(request, signal)
+      } catch (error) {
+        if (!(error instanceof ArticleFetchError)) throw error
+        throw new WebError(error.message, error.code, { cause: error })
+      }
+    },
   })
 }

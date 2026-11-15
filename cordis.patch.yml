@@ -1,18 +1,22 @@
 # dsh-search bundle patch.
 #
-# 1. Point the web seam's search half at this provider.
+# 1. Point the web seam's two halves at this bundle.
 #
-#    The shipped base bundle pins `searchProvider: deepseek-official`, whose search is an auxiliary
+#    Search: the shipped base bundle pins `searchProvider: deepseek-official`, whose search is an auxiliary
 #    Messages call against api.deepseek.com. An account with no balance answers that call with HTTP 402,
 #    so `web_search` fails while chat keeps working. The pin is what decides, so registering a second
 #    provider alone changes nothing: this row override is the entry that makes the bundle take effect.
 #
-#    `config` is replaced wholesale, never deep-merged, so the base row's `fetchProvider: http` is
-#    restated here — dropping it would send `web_fetch` back to auto-selection.
+#    Fetch: the shipped `http` provider returns a page's markup, chrome and all — measured at 61 % chrome
+#    and 1.4 % prose on five real pages. This bundle's `article` provider reads the page itself and hands
+#    over its text (docs/adr/0010-the-other-half-of-the-result.md).
+#
+#    `config` is replaced wholesale, never deep-merged, so both fields are restated here — dropping one
+#    would send that half back to auto-selection.
 - id: web
   config:
     searchProvider: bing-html
-    fetchProvider: http
+    fetchProvider: article
 
 # 2. Insert this bundle's own provider row. The id follows the package name, which is how the rest of the
 #    family reads (`dsh-memory` inserts `memory`, `dsh-cleaner` inserts `cleaner`), and it is the id a

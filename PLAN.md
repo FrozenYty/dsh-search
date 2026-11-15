@@ -110,12 +110,13 @@ and refused eight other upgrades by name with the number that refuses each.
 - **Measured, and stated in the README because a user meets it: query operators are hints.**
   `site:github.com` alone was honoured on all ten results; `site:github.com dsh` on one,
   `site:github.com dsh plugin` on two; `intitle:` and quotation marks changed nothing measurable.
-- **Settled: the fetch half stays the shipped provider.** `web_fetch` is reused, not reimplemented, and the
-  patch restates `fetchProvider: http` so overriding the `web` row cannot drop it (`scripts/check.mjs`
-  guards the line). The one knob that provider exposes — `userAgent` — was measured on six real result
-  pages: a browser disguise does not change Zhihu's 403 and turns CSDN's 200 into 521, so the honest
-  product default stays. A second fetch provider would add an address-pinning and redirect policy of its
-  own to re-earn what the shipped one already does.
+- **Superseded: the fetch half is this bundle's own provider now.** ADR 0004 kept the shipped `http` provider
+  on the argument that a second one would re-earn address pinning and redirect policy — an argument about
+  policy that never measured content. It was measured in the 2026-11-15 survey: 61 % of what the model
+  received was chrome by a lower bound, prose inside `<p>` was 1.4 % of it, and on three of five pages the
+  100 000-character body cap was reached before the article began, so delegating could not recover the tail
+  whatever it did with what arrived. ADR 0010 records the decision, the shipped numbers it borrows (its
+  User-Agent, same-origin redirects only, a 5 MB read cap, the declared charset) and what it refuses to build.
 - **Settled: no second backend, measured twice.** ADR 0001 measured the engines available when the endpoint
   was chosen; ADR 0004 measured them again when "add Google" was asked and found the same answer with more
   detail: Google, DuckDuckGo, Brave and a SearXNG instance are unreachable on this path, Mojeek answers

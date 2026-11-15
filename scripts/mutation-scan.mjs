@@ -31,6 +31,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const MUTATION_DIR = join(root, '.mutation')
 const SOURCES = new Map([
   ['bing.js', readFileSync(join(root, 'bing.js'), 'utf8')],
+  ['article.js', readFileSync(join(root, 'article.js'), 'utf8')],
   ['index.js', readFileSync(join(root, 'index.js'), 'utf8')],
 ])
 
@@ -235,9 +236,44 @@ const MUTATIONS = [
     from: '  } catch {\n    return new TextDecoder(\'utf-8\').decode(bytes)\n  }',
     to: "  } catch {\n    return ''\n  }",
   },
+  {
+    name: 'fetch-follows-another-origin',
+    file: 'article.js',
+    claim: 'a redirect that changes origin is reported instead of followed',
+    from: '      if (target.origin !== origin) {',
+    to: '      if (false) {',
+  },
+  {
+    name: 'fetch-cap-unmarked',
+    file: 'article.js',
+    claim: 'a capped extraction says so instead of looking complete',
+    from: '  return `${text.slice(0, MAX_CHARS).trimEnd()}\\n\\n[Truncated at ${MAX_CHARS} characters: the page continues.]`',
+    to: '  return text',
+  },
+  {
+    name: 'extract-keeps-a-half-tag',
+    file: 'article.js',
+    claim: 'an unterminated tag at a page cut does not reach the model',
+    from: '  text = text.replace(/<[a-z!/][^>]*$/i, \' \')',
+    to: '  text = text',
+  },
+  {
+    name: 'extract-drops-every-list',
+    file: 'article.js',
+    claim: 'a list that carries sentences is content, not navigation',
+    from: '    return linked / all >= 0.7',
+    to: '    return true',
+  },
+  {
+    name: 'extract-keeps-chrome',
+    file: 'article.js',
+    claim: 'the containers that are never prose are removed',
+    from: '  for (const tag of CHROME) text = removeElements(text, tag)',
+    to: '  for (const tag of []) text = removeElements(text, tag)',
+  },
 ]
 
-const TEST_FILES = ['parse.test.mjs', 'request.test.mjs', 'entry.test.mjs', 'routing.test.mjs', 'cache.test.mjs']
+const TEST_FILES = ['parse.test.mjs', 'request.test.mjs', 'entry.test.mjs', 'routing.test.mjs', 'cache.test.mjs', 'article.test.mjs']
 
 const wanted = process.argv[2]
 const selected = wanted === undefined ? MUTATIONS : MUTATIONS.filter((mutation) => mutation.name.includes(wanted))

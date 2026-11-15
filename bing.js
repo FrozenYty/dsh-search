@@ -304,7 +304,7 @@ function declaredCharset(response) {
 }
 
 /**
- * Read a response body as text, in the charset it declares.
+ * Read a response body as text, in the charset it declares, optionally stopping at a byte bound.
  *
  * `Response.text()` always decodes UTF-8, so a page that declares `gbk` would arrive as mojibake while
  * still parsing into the same number of sources — a silent wrong answer rather than a visible failure.
@@ -312,11 +312,15 @@ function declaredCharset(response) {
  * likely to be readable than not, and a decode that throws would lose the whole result set over a
  * header typo.
  *
+ * `limit` exists for the fetch half, which reads pages it did not choose and must bound what one of them
+ * can cost; the search half passes nothing, because a result page was measured at 102 KB.
+ *
  * @param {Response} response - the answered response, body unread.
+ * @param {number} [limit] - the most bytes to read; undefined reads all of it.
  * @returns {Promise<string>} the body as text.
  */
-async function readBody(response) {
-  const bytes = new Uint8Array(await response.arrayBuffer())
+export async function readBody(response, limit) {
+  const bytes = limit === undefined ? new Uint8Array(await response.arrayBuffer()) : await readCapped(response, limit)
   const label = declaredCharset(response)
   if (label === undefined) return new TextDecoder('utf-8').decode(bytes)
   try {
@@ -324,6 +328,39 @@ async function readBody(response) {
   } catch {
     return new TextDecoder('utf-8').decode(bytes)
   }
+}
+
+/**
+ * Read at most `limit` bytes of a response body, cancelling the stream once the bound is reached.
+ *
+ * @param {Response} response - the answered response.
+ * @param {number} limit - the byte bound.
+ * @returns {Promise<Uint8Array>} the bytes read, never more than `limit`.
+ */
+async function readCapped(response, limit) {
+  const reader = response.body?.getReader()
+  if (reader === undefined) return new Uint8Array(await response.arrayBuffer()).subarray(0, limit)
+  const chunks = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done === true) break
+    chunks.push(value)
+    total += value.length
+    if (total >= limit) {
+      await reader.cancel()
+      break
+    }
+  }
+  const kept = new Uint8Array(Math.min(total, limit))
+  let at = 0
+  for (const chunk of chunks) {
+    if (at === kept.length) break
+    const take = Math.min(chunk.length, kept.length - at)
+    kept.set(chunk.subarray(0, take), at)
+    at += take
+  }
+  return kept
 }
 
 /**

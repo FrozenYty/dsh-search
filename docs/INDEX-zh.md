@@ -36,6 +36,7 @@ README.md  ->  PLAN.md  ->  PROGRESS.md  ->  docs/architecture-en.md  ->  与你
 | 为什么 patch 行 id 是 `search`，改名要付出什么？ | `docs/adr/0007-row-id-follows-the-package-name.md` | 英文 |
 | 为什么页面会复用五分钟，为什么失败从不复用？ | `docs/adr/0008-reusing-a-recent-page.md` | 英文 |
 | 对 Claude Code、Codex、PI 与各家抓取器的调研得出了什么，又拒绝了哪些改进？ | `docs/adr/0009-the-survey-and-its-refusals.md` | 英文 |
+| 为什么本 bundle 自己拥有 `web_fetch` 而不再复用随附 provider？ | `docs/adr/0010-the-other-half-of-the-result.md` | 英文 |
 | 分支、提交、合并怎么做？ | `CONTRIBUTING.md` | 英文 |
 | 助手在这里要守什么规矩？ | `AGENTS.md` | 英文 |
 

@@ -17,7 +17,7 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.3.0.
+- Current version: v0.4.0.
 - **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
@@ -136,17 +136,28 @@ line; the difference is whether you want the fallback.
 
 ## The other half: `web_fetch`
 
-The seam has two halves, search and fetch, and this bundle owns only the first. `web_fetch` keeps the
-shipped anonymous HTTP provider — and the patch **restates `fetchProvider: http`** while overriding the
-`web` row, because the seam replaces a row's config wholesale: without that line, installing this bundle
-would silently take `web_fetch` away. `scripts/check.mjs` fails if the line disappears.
+The seam has two halves, and this bundle owns both: `bing-html` searches, `article` fetches. The patch pins
+`fetchProvider: article` while it overrides the `web` row — the seam replaces a row's config wholesale, so
+without that line the fetch half would fall back to auto-selection.
 
-That is the whole "support" for fetching: reuse the official provider rather than growing a second one. It
-pins the resolved address, follows same-origin redirects up to a hop cap, enforces byte and time limits,
-and reports a non-2xx response as a result instead of a throw.
+Why a provider of its own: the shipped `http` provider hands over a page's markup, chrome and all. Measured
+on five real pages, **61 % of the characters were chrome by a lower bound** (`script`, `style`, `nav`,
+`header`, `footer`, `aside`, comments) and prose inside `<p>` was **1.4 %** of what arrived; on three of the
+five the shipped provider's 100 000-character body cap was reached **before the article began**, so the tail
+was never read and no transformation of what arrived could recover it. The `article` provider therefore
+reads the page itself, with the shipped provider's own numbers (its User-Agent, same-origin redirects only,
+a 5 MB read cap, the charset the response declares), extracts the prose, and hands over `text` — which the
+tool passes through instead of running its own markdown pass
+(`docs/adr/0010-the-other-half-of-the-result.md`).
 
-Its one knob is `userAgent`, and it defaults to an honest product agent (`deepseek-harness/0.0.1`) rather
-than a browser disguise. Measured across six real result pages, the disguise is not an improvement:
+It is a rule, not a readability engine: remove the containers that are never prose, drop navigation lists
+whose words are the anchors' words, keep headings, paragraphs, quotations, code and tables in document order,
+and **say so when it caps at 24 000 characters** — a truncated page that looks complete is worse than one
+that says it was cut. A redirect that changes origin is reported instead of followed, naming the target; a
+non-2xx answer is a result, not a throw.
+
+The User-Agent is one decision for the whole bundle, and it is the honest one. Measured across six real
+pages, a desktop Chrome disguise was not an improvement:
 
 | Host | Product UA (shipped) | Desktop Chrome UA |
 |---|---|---|
@@ -161,9 +172,9 @@ be. `web_fetch` reports the status it actually got, which is the honest answer t
 ## The one composition change
 
 Registering a provider is not enough to be selected. The shipped base bundle pins the seam's
-`searchProvider` to `deepseek-official`, so this bundle's patch moves that pin to `bing-html` and
-restates the row's other field — the seam replaces a row's `config` wholesale, never merges it, so
-`fetchProvider: http` has to be written out again or `web_fetch` would lose its backend.
+`searchProvider` to `deepseek-official` and its `fetchProvider` to `http`, so this bundle's patch moves both
+pins and restates the row's every field — the seam replaces a row's `config` wholesale, never merges it, so
+both lines have to be written out again or that half would lose its backend.
 
 That is the whole footprint: one row override and one inserted row. It changes the profile the bundle is
 installed into, for every session in it, which is why it is stated here rather than buried in the patch.
@@ -224,9 +235,10 @@ installed into, for every session in it, which is why it is stated here rather t
   provider cannot receive `allowed_domains`/`blocked_domains`-style filters — that is a limit of where this
   sits, not of the engine. Writing `site:` into the query works only when the query is nothing but the
   operator (measured; see above).
-- **No `web_fetch` half of its own.** Fetching one URL is a different operation with a different trust
-  problem, and the shipped anonymous provider owns it; the section above says why reusing it is the
-  right call rather than a shortcut.
+- **The fetch half is a rule, not a readability engine.** It removes containers that are never prose and
+  navigation lists, keeps the rest in document order, and caps at 24 000 characters with a marker. A page it
+  reads badly is a bug report with a fixture, not a tuning session; `docs/adr/0010-the-other-half-of-the-result.md`
+  says what was deliberately not built.
 - **No settings, no timers, no background work.** There is nothing to configure and nothing running when
   a search is not in flight.
 
@@ -308,6 +320,7 @@ session check needs the plugin enabled.
 | Why is the patch row id `search`, and what does a rename cost? | `docs/adr/0007-row-id-follows-the-package-name.md` |
 | Why is a page reused for five minutes, and why is a failure never reused? | `docs/adr/0008-reusing-a-recent-page.md` |
 | What did the survey of Claude Code, Codex, PI and the scrapers find — and what did it refuse to build? | `docs/adr/0009-the-survey-and-its-refusals.md` |
+| Why does the bundle own `web_fetch` instead of reusing the shipped provider? | `docs/adr/0010-the-other-half-of-the-result.md` |
 | What was verified, with what output | `PROGRESS.md` |
 | What is still unproven | `PLAN.md` |
 
