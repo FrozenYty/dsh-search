@@ -197,6 +197,11 @@ installed into, for every session in it, which is why it is stated here rather t
   `set-cookie` values from the first response sent back **and** a `Referer`), Bing's RSS form
   (`&format=rss`) carries ten items and ignores `count` and `first` alike, and the runs used broad queries
   (`python tutorial`, `中国 历史`) so a small result set could not be mistaken for a paging failure.
+  **The fetch half does not retry either**, and that was measured the day after two unexplained transport
+  failures: 50 requests across five hosts returned **0 transport failures**, and retrying a failure nobody
+  can reproduce would be code nothing protects. The same run did find that `blog.csdn.net` answers non-2xx
+  9 times out of 10 when requested in a loop — an anti-bot behaving normally, and the reason a non-2xx
+  answer comes back as a result instead of a throw.
 - **What widens a call is the tool's own caps — when the layer that owns the row lets you set them.** One
   `web_search` merges up to `searchMaxQueries` queries (default 4) into at most `searchMaxResults` sources
   (default 8). Both live on the base bundle's `tool-web` row, and a profile can raise them — restating the

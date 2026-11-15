@@ -4,6 +4,34 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-15 — the retry that the number refused
+
+A live demonstration turned up two `Fetching https://github.com/FrozenYty/dsh-search failed: TypeError:
+fetch failed` answers in one minute, while three other hosts answered in the same session. That is the
+transport-failure class a retry policy exists for, so it was measured rather than argued: five hosts, ten
+attempts each, through the same request shape the provider builds.
+
+```
+github.com             | transport 0/10 | non-2xx 0 | p50 227 ms | max 1741 ms
+nodejs.org             | transport 0/10 | non-2xx 0 | p50  82 ms | max  366 ms
+developer.mozilla.org  | transport 0/10 | non-2xx 0 | p50 125 ms | max  393 ms
+blog.csdn.net          | transport 0/10 | non-2xx 9 | p50  56 ms | max 1977 ms
+www.runoob.com         | transport 0/10 | non-2xx 0 | p50  33 ms | max  363 ms
+
+totals: 50 requests, 41 ok, 0 transport failures, 9 non-2xx
+```
+
+**Zero.** So the retry proposed for the fetch half was refused by the measurement that would have justified
+it, which is the rule this repository has applied to URL normalisation, snippet caps and the `ck/a` wrapper
+before: code for a failure nobody can reproduce is code nothing protects. The two Host-side failures remain
+unexplained rather than denied — they are why the question was asked, and this table is what a future
+argument starts from.
+
+The one finding worth acting on was a side effect of the measurement's own impatience: `blog.csdn.net`
+answered non-2xx **9 times out of 10** when requested in a loop at 40 ms intervals, which is an anti-bot
+behaving normally. It is also why a non-2xx answer is returned as a *result* rather than thrown: the model
+gets "HTTP 403" and can decide, instead of losing the whole fetch to an exception.
+
 ## 2026-11-15 — the file tree was a table
 
 The owner fetched a repository page in a live session and the answer carried its file list as prose: the

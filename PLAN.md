@@ -74,7 +74,14 @@ and refused eight other upgrades by name with the number that refuses each.
 - **Settled by the survey: no retry.** Twenty-five sequential live searches: 0 failures, p50 151 ms, p90
   213 ms, max 220 ms. The one implementation that retries by default does so because "on each retry, SearXNG
   uses a different proxy and source ip" — a client with one egress gets the same answer from the same
-  server, which is the documented anti-pattern rather than the cure.
+  server, which is the documented anti-pattern rather than the cure. **Re-measured on the fetch half on
+  2026-11-15**, after two unexplained `Fetching … failed: TypeError: fetch failed` answers from the Host in
+  one minute: 50 requests across five hosts returned **0 transport failures** (`github.com` 10/10, with
+  p50 227 ms), so the retry that had been proposed for the fetch path was refused by the number that would
+  have justified it. The same run found the one non-2xx cluster worth knowing about: `blog.csdn.net`
+  answered non-2xx **9 times out of 10** when hammered in a loop at 40 ms intervals, which is what an
+  anti-bot looks like from the outside and is why the provider returns a status as a result rather than
+  throwing.
 - **Settled by the survey: no URL normalisation before dedupe.** Ninety parsed results across nine pages
   held 0 exact duplicates and 0 duplicates modulo a tracking parameter, a trailing slash or `www.`; and no
   implementation in the corpus actually normalises — the practice is asserted far more often than it is
