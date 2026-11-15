@@ -64,7 +64,7 @@ always a test; a mutation is removed only when the line it breaks is gone.
 - `bing.js` imports nothing, and `index.js`'s only bare import is the seam;
 - `locale/en.json` and `locale/zh.json` carry the same keys, the titles `Search` and `搜索`, and a
   two-character Chinese title;
-- `cordis.patch.yml` pins `searchProvider: bing-html` and restates `fetchProvider: http`;
+- `cordis.patch.yml` pins `searchProvider: bing-html` and `fetchProvider: article`;
 - the bilingual document pairs exist, every document reference resolves, and no shared document carries
   an absolute machine path;
 - **one search sends exactly one request, to `cn.bing.com`, and never to `www.bing.com` or

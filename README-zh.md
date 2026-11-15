@@ -16,7 +16,7 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 
 ## 状态
 
-- 当前版本：v0.3.0。
+- 当前版本：v0.4.0。
 - **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
@@ -119,15 +119,22 @@ profile 也可以用更直接的方式把本 bundle 整条移出这条路径—�
 
 ## 另一半：`web_fetch`
 
-能力缝有两半——搜索和抓取——本 bundle 只拥有前一半。`web_fetch` 保持随附的匿名 HTTP provider；而 patch 在
-覆盖 `web` 那一行时**把 `fetchProvider: http` 重写了一遍**，因为能力缝会整段替换一行的 config：少了这一行，
-装本 bundle 就等于悄悄把 `web_fetch` 拿掉。删掉它，`scripts/check.mjs` 会失败。
+能力缝有两半，而本 bundle 两半都拥有：`bing-html` 负责搜索，`article` 负责抓取。patch 在覆盖 `web` 那一行时
+把 `fetchProvider: article` 一并钉住——能力缝会整段替换一行的 config，少了这一行，抓取那一半就会退回自动选择。
 
-这就是对抓取的"支持"：**复用官方 provider**，而不是再长出一个。它会钉住解析出的地址、只跟随同源重定向且
-有跳数上限、强制字节与时间上限，并把非 2xx 响应当作结果返回而不是抛出。
+为什么自己写一个：随附的 `http` provider 把页面的**标记**直接交出来，杂质一并带上。在五个真实页面上实测，
+**61% 的字符是杂质**（`script`、`style`、`nav`、`header`、`footer`、`aside`、注释——这还只是下界），而 `<p>` 里
+的正文只占到达字符的 **1.4%**；五个页面里有三个在**正文开始之前**就撞上了随附 provider 那条 10 万字符的正文上限，
+尾巴根本没被读到——所以对"到达的内容"做任何变换都救不回来。`article` 因此自己读页面，沿用随附 provider 的
+数字（同一个 User-Agent、只跟随同源重定向、5 MB 读取上限、按响应声明的字符集解码），抽出正文，以 `text` 交出
+——工具对 `text` 直接透传，不再跑它自己的 markdown 转换
+（`docs/adr/0010-the-other-half-of-the-result.md`）。
 
-它唯一的旋钮是 `userAgent`，默认是一个诚实的产物标识（`deepseek-harness/0.0.1`），而不是浏览器伪装。在六个
-真实结果页上实测，伪装并不是改进：
+它是**一条规则，不是可读性引擎**：移除永远不是正文的容器，丢掉"字词就是锚文本"的导航列表，按文档顺序保留
+标题、段落、引用、代码与表格，并在**截到 24000 字符时明确说出来**——一个"看起来完整"的截断页比一个说自己被截断
+的页更糟。改变 origin 的重定向会被点名报告而不是跟随；非 2xx 是结果，不是抛出。
+
+User-Agent 是整 bundle 的一个决定，而且是诚实的那一个。在六个真实页面上实测，桌面 Chrome 伪装并非改进：
 
 | 主机 | 产物 UA（默认） | 桌面 Chrome UA |
 |---|---|---|
@@ -141,9 +148,8 @@ profile 也可以用更直接的方式把本 bundle 整条移出这条路径—�
 ## 唯一的那处组合改动
 
 只注册 provider 并不足以被选中。随附的 base bundle 把能力缝的 `searchProvider` 钉在
-`deepseek-official` 上，所以本 bundle 的 patch 把这个钉子挪到 `bing-html`，并把该行另一个字段原样重写
-——能力缝对行的 `config` 是整体替换、从不合并，所以 `fetchProvider: http` 必须再写一遍，否则
-`web_fetch` 会失去它的后端。
+`deepseek-official`、`fetchProvider` 钉在 `http` 上，所以本 bundle 的 patch 把两个钉子都挪走，并把这一行的每个
+字段都原样重写——能力缝对行的 `config` 是整体替换、从不合并，两条都必须再写一遍，否则那一半会失去它的后端。
 
 这就是全部足迹：一次行覆盖，一次行插入。它改的是安装它的那个 profile，且对该 profile 里所有会话生效，
 所以写在这里，而不是埋在 patch 里。
@@ -195,8 +201,9 @@ profile 也可以用更直接的方式把本 bundle 整条移出这条路径—�
 - **没有域名过滤。** 能力缝的搜索请求只带查询词和结果上限，别的一概没有，所以 provider 收不到
   `allowed_domains`/`blocked_domains` 这类过滤——这是"它坐在哪一层"的限制，不是引擎的限制。把 `site:` 写进
   查询只在"整条查询就是这个操作符"时有效（实测，见上文）。
-- **自己不拥有 `web_fetch` 那一半。** 抓取单个 URL 是另一种操作，有另一套信任问题，由随附的匿名 provider
-  负责；上面那一节说明了为什么"复用它"是正确判断，而不是图省事。
+- **抓取那一半是一条规则，不是可读性引擎。** 它移除永远不是正文的容器与导航列表，其余按文档顺序保留，并在 24000
+  字符处截断且明确标注。它读得不好的页面是一个带 fixture 的 bug 报告，而不是一次调参会话；
+  `docs/adr/0010-the-other-half-of-the-result.md` 写明了刻意没有做什么。
 - **没有设置项、没有定时器、没有后台工作。** 没有可配置的东西，没有搜索在飞时就什么都不跑。
 
 ## 它坏掉的时候
@@ -268,6 +275,7 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 | 为什么 patch 行 id 是 `search`，改名要付出什么 | `docs/adr/0007-row-id-follows-the-package-name.md` |
 | 为什么页面会复用五分钟，为什么失败从不复用 | `docs/adr/0008-reusing-a-recent-page.md` |
 | 对 Claude Code、Codex、PI 与各家抓取器的调研得出了什么，又拒绝了哪些改进 | `docs/adr/0009-the-survey-and-its-refusals.md` |
+| 为什么本 bundle 自己拥有 `web_fetch` 而不再复用随附 provider | `docs/adr/0010-the-other-half-of-the-result.md` |
 | 验证了什么，输出是什么 | `PROGRESS.md` |
 | 还有什么没被证明 | `PLAN.md` |
 

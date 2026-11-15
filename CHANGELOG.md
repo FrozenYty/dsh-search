@@ -7,6 +7,24 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.4.0] - 2026-11-15
+
+- **The bundle now owns the fetch half.** `web_fetch` runs through `article`, a provider that reads the page
+  itself and hands over its prose instead of its markup. The measurement that forced it: on five real pages,
+  **61 % of the characters the model received were chrome** by a lower bound and prose inside `<p>` was
+  **1.4 %**; on three of the five, the shipped provider's 100 000-character body cap was reached **before the
+  article began**, so a delegating provider could not recover the tail whatever it did with what arrived.
+  `docs/adr/0010-the-other-half-of-the-result.md` supersedes ADR 0004's fetch clause, borrows that provider's
+  policy numbers (User-Agent, same-origin redirects only, a 5 MB read cap, the declared charset) and records
+  what it refuses to build: no readability engine, no per-site rules, no model summarising.
+- The extraction is one rule: remove the containers that are never prose, drop navigation lists whose words
+  are the anchors' words, keep headings, paragraphs, quotations, code and tables in document order, cap at
+  24 000 characters **with a marker**, and never paste a half-open tag at a page cut into the text.
+- A redirect that changes origin is reported with the target instead of followed; a non-2xx answer is a
+  result, not a throw; an unusable URL is named rather than attempted.
+- Eleven tests for the fetch half, three new page fixtures with their provenance, and five new mutations —
+  the scan grows to 35, all killed.
+
 ## [0.3.0] - 2026-11-15
 
 - **A page parsed in the last five minutes answers the same query again**, up to 32 entries, least recently

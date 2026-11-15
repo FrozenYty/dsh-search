@@ -4,6 +4,62 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-15 — the fetch half, and what a page actually costs
+
+The survey audited the search half exhaustively and never looked at what happens *after* the model fetches a
+source it was given. Measured on five real pages, through the shipped provider's own request shape:
+
+```
+github.com/<repo>      returned 100000 | chrome strip leaves 24327 | prose in <p>    0 | chrome 75.7%
+nodejs.org/api/url     returned 100000 | chrome strip leaves 83686 | prose in <p>    0 | chrome 16.3%
+blog.csdn.net/<post>   returned 100000 | chrome strip leaves 31623 | prose in <p> 3111 | chrome 68.4%
+developer.mozilla.org  returned 100000 | chrome strip leaves 15279 | prose in <p> 2408 | chrome 84.7%
+                       totals: 61.3% chrome by that lower bound; prose inside <p> is 1.4% of what arrives
+```
+
+The second finding decided the design: the shipped provider's 100 000-character body cap is applied to the
+**raw body**, and three of the five pages reached it — on the repository page, before the README had begun.
+A provider that delegates to it inherits that cut, so ADR 0004's argument ("reuse it rather than re-earn its
+policy") cannot reach the content. **ADR 0010** supersedes that clause: this bundle reads the page itself,
+borrowing the shipped provider's numbers (its User-Agent, same-origin redirects only, a 5 MB read cap, the
+declared charset), extracts the prose, and hands over `text` — which the tool passes through instead of
+running its own markdown pass, so what the provider extracted is what the model reads.
+
+What `article.js` does, in one sentence: remove the containers that are never prose, drop navigation lists
+whose words are the anchors' words, keep headings, paragraphs, quotations, code and tables in document order,
+cap at 24 000 characters **with a marker**, and never paste a half-open tag into the text.
+
+Two bugs the fixtures found, both worth the fixture:
+
+- my first link-list rule was "a list with no `<p>`", which deleted **99.7 %** of a GitHub page — modern pages
+  are built out of lists. The rule is now a ratio: drop a list only when its words are the anchors' words.
+- a page cut mid-attribute delivered `<a data-component="Button" …` to the model as prose. An unterminated
+  tag at the end of the text is now dropped, and a comparison like `x < 5` still survives.
+
+Verified:
+
+```
+$ node --test --test-isolation=none tests/*.test.mjs   → ℹ tests 51   ℹ pass 51   ℹ fail 0   ℹ skipped 0
+$ node scripts/mutation-scan.mjs                       → 35 mutation(s): 35 killed, 0 not
+$ node scripts/check.mjs                               → check passed
+```
+
+And the fetch half's own acceptance run, live, through the provider rather than a fixture:
+
+```
+developer.mozilla.org/en-US/docs/Web/API/Fetch_API   HTTP 200 | text  2749 chars | truncated false | 379 ms
+blog.csdn.net/<post>                               HTTP 200 | text 20051 chars | truncated false | 758 ms
+nodejs.org/api/url.html                            HTTP 200 | text 24054 chars | truncated true  | 206 ms
+```
+
+The third is over the 24 000-character cap and says so; the first two were read whole. That run also caught a
+semantic bug the tests had not: `truncated` was computed as "the text is shorter than the markup", which is
+what *extraction* is for — every page reported truncation until the flag was tied to the cap it means.
+
+The registration change also taught the entry tests something they were missing: the fake context had to grow
+the seam's second registration method, and the "one provider" assertion became "one per half" — the test had
+encoded the bundle's old shape rather than the seam's.
+
 ## 2026-11-15 — the survey, and what it changed
 
 Asked to survey the field — the high-star GitHub plugins, Claude Code, Codex, PI — and then improve on it.

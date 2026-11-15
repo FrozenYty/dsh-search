@@ -30,6 +30,10 @@ const skip = unavailable === undefined ? {} : { skip: unavailable }
 /**
  * Run `apply` against a context that records what it registers.
  *
+ * The context stands in for the seam's service, which owns both registration methods — the search half and
+ * the fetch half — so a test that omitted one would fail on the entry's own registration rather than on the
+ * behaviour it is testing.
+ *
  * @returns {Array<object>} the providers the entry registered.
  */
 function register() {
@@ -40,27 +44,36 @@ function register() {
         registered.push(provider)
         return () => {}
       },
+      registerFetchProvider(provider) {
+        registered.push(provider)
+        return () => {}
+      },
     },
   })
   return registered
 }
 
-test('the entry registers exactly one usable provider under the frozen id', skip, () => {
+test('the entry registers one usable provider per half, under the frozen id', skip, () => {
   assert.equal(entry.name, 'dsh-search')
   assert.deepEqual(entry.inject, ['web'])
   const registered = register()
-  assert.equal(registered.length, 1, 'apply registers one provider and no more')
-  const [provider] = registered
-  assert.equal(provider.id, 'bing-html', 'the id a profile pins (ADR 0003)')
+  const searches = registered.filter((provider) => provider.id === 'bing-html')
+  const fetches = registered.filter((provider) => provider.id === 'article')
+  assert.equal(registered.length, 2, 'apply registers one provider per half and no more')
+  assert.equal(searches.length, 1, 'the search half is registered once')
+  assert.equal(fetches.length, 1, 'the fetch half is registered once')
+  const [provider] = searches
   assert.equal(provider.available(), true, 'a keyless provider is always locally available')
   assert.equal(typeof provider.search, 'function')
   // The seam reads an absent `ready()` as ready. That is what keeps web_search offered on a route
   // whose credential-backed provider cannot authenticate, so it is asserted rather than assumed.
   assert.equal(provider.ready, undefined)
+  assert.equal(fetches[0].available(), true, 'fetching needs no credential either')
+  assert.equal(typeof fetches[0].fetch, 'function')
 })
 
 test('the registered provider searches through the request layer', skip, async () => {
-  const [provider] = register()
+  const [provider] = register().filter((candidate) => candidate.id === 'bing-html').filter((candidate) => candidate.id === 'bing-html')
   const requested = []
   const original = globalThis.fetch
   globalThis.fetch = async (url) => {
@@ -79,7 +92,7 @@ test('the registered provider searches through the request layer', skip, async (
 })
 
 test('a provider failure reaches the seam as a real WebError carrying its code', skip, async () => {
-  const [provider] = register()
+  const [provider] = register().filter((candidate) => candidate.id === 'bing-html')
   await assert.rejects(
     () => provider.search({ query: '   ' }),
     (error) => {
@@ -92,7 +105,7 @@ test('a provider failure reaches the seam as a real WebError carrying its code',
 })
 
 test('a cancelled search carries WEB_ABORTED through the same translation', skip, async () => {
-  const [provider] = register()
+  const [provider] = register().filter((candidate) => candidate.id === 'bing-html')
   await assert.rejects(
     () => provider.search({ query: 'deepseek harness' }, AbortSignal.abort('caller gave up')),
     (error) => error instanceof seam.WebError && error.code === 'WEB_ABORTED',
