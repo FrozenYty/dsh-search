@@ -208,6 +208,9 @@ User-Agent 是整 bundle 的一个决定，而且是诚实的那一个。在六�
 - **抓取那一半是一条规则，不是可读性引擎。** 它移除永远不是正文的容器与导航列表，其余按文档顺序保留，并在 24000
   字符处截断且明确标注。它读得不好的页面是一个带 fixture 的 bug 报告，而不是一次调参会话；
   `docs/adr/0010-the-other-half-of-the-result.md` 写明了刻意没有做什么。
+- **没有数据目录。** 本 bundle 什么都不写：没有磁盘缓存、没有索引、没有会随仓库或 profile 搬家的状态。
+  `node scripts/check.mjs` 每次运行都会打印这个答案，`docs/adr/0011-no-data-directory.md` 写明了将来若确实需要
+  落盘，路径只能是 `~/.agents/search`，且每次使用现算、绝不在加载时绑定。
 - **没有设置项、没有定时器、没有后台工作。** 没有可配置的东西，没有搜索在飞时就什么都不跑。
 
 ## 它坏掉的时候
@@ -280,6 +283,7 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 | 为什么页面会复用五分钟，为什么失败从不复用 | `docs/adr/0008-reusing-a-recent-page.md` |
 | 对 Claude Code、Codex、PI 与各家抓取器的调研得出了什么，又拒绝了哪些改进 | `docs/adr/0009-the-survey-and-its-refusals.md` |
 | 为什么本 bundle 自己拥有 `web_fetch` 而不再复用随附 provider | `docs/adr/0010-the-other-half-of-the-result.md` |
+| 这个插件把我的数据放在哪里？ | `docs/adr/0011-no-data-directory.md`——它不存任何数据，`node scripts/check.mjs` 会把这句话打出来 |
 | 验证了什么，输出是什么 | `PROGRESS.md` |
 | 还有什么没被证明 | `PLAN.md` |
 

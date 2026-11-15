@@ -245,6 +245,10 @@ installed into, for every session in it, which is why it is stated here rather t
   navigation lists, keeps the rest in document order, and caps at 24 000 characters with a marker. A page it
   reads badly is a bug report with a fixture, not a tuning session; `docs/adr/0010-the-other-half-of-the-result.md`
   says what was deliberately not built.
+- **No data directory.** This bundle writes nothing: no cache on disk, no index, no state that could move
+  when the repository or the profile does. `node scripts/check.mjs` prints that answer on every run, and
+  `docs/adr/0011-no-data-directory.md` says where a future one would have to go —
+  `~/.agents/search`, resolved per use, never at load.
 - **No settings, no timers, no background work.** There is nothing to configure and nothing running when
   a search is not in flight.
 
@@ -327,6 +331,7 @@ session check needs the plugin enabled.
 | Why is a page reused for five minutes, and why is a failure never reused? | `docs/adr/0008-reusing-a-recent-page.md` |
 | What did the survey of Claude Code, Codex, PI and the scrapers find — and what did it refuse to build? | `docs/adr/0009-the-survey-and-its-refusals.md` |
 | Why does the bundle own `web_fetch` instead of reusing the shipped provider? | `docs/adr/0010-the-other-half-of-the-result.md` |
+| Where does this plugin keep my data? | `docs/adr/0011-no-data-directory.md` — it keeps none, and `node scripts/check.mjs` prints that |
 | What was verified, with what output | `PROGRESS.md` |
 | What is still unproven | `PLAN.md` |
 
