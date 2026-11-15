@@ -58,11 +58,10 @@ translation.
 ## How this ships
 
 Owner and a few friends, not a release channel. `main` is the distribution: a profile links this working
-tree, and `git pull` is the update. Nothing is published — no npm package, no release, no tag as a step
-owed to a change — so the `release` workflow and the packing script that used to serve that have been
-removed (`CONTRIBUTING.md` §5). A friend is handed the repository, or the ZIP GitHub serves from it, and
-installs the folder with either local route. The four tags that exist (v0.1.2–v0.1.5) are history from
-before this was decided; they stay, and no fifth is planned.
+tree, and `git pull` is the update. Nothing is published — no npm package, no release, and no tag at all —
+so the `release` workflow and the packing script that used to serve that have been removed, and the four
+tags that once existed were deleted (`CONTRIBUTING.md` §5). A friend is handed the repository, or the ZIP
+GitHub serves from it, and installs the folder with either local route.
 
 ## Next
 
