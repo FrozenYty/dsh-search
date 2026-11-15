@@ -4,6 +4,28 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-15 — the tags and their release pages are gone
+
+"We don't publish, no tags; delete them all." Four tags (v0.1.2–v0.1.5) and the four release pages they
+carried were deleted from the repository, and the rule now says so in one place instead of leaving four
+artifacts that the documents had to explain away:
+
+```
+release v0.1.5 (id 443927534): 204        tag v0.1.2: 204 deleted
+release v0.1.4 (id 443811089): 204        tag v0.1.3: 204 deleted
+release v0.1.3 (id 443801711): 204        tag v0.1.4: 204 deleted
+release v0.1.2 (id 443799725): 204        tag v0.1.5: 204 deleted
+releases left: 0 | tag refs left: (none)
+```
+
+The local clone's tags were deleted too, so `git tag` and the remote agree, and `git ls-remote --tags`
+returns nothing. `CONTRIBUTING.md` §5 now carries the rule — "no tag and no release exists in this
+repository" — and `PLAN.md`'s shipping paragraph points at it rather than explaining the four that used to
+be there; the rule lives in one file, which is what this repository asks for.
+
+Nothing a profile loads changed, so the version stays 0.2.0: a version is a label, and this is the change
+that makes that literally true rather than nearly true.
+
 ## 2026-11-15 — the row id reads like the bundle, not like the slot
 
 The Settings panel shows the row id beside the package name, and the two did not look related: `dsh-search`

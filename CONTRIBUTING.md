@@ -87,6 +87,11 @@ fails when the install step disappears: a silently skipped entry is the one file
 release either: this bundle is for its owner and a few friends, so `main` is the distribution, a profile
 links the working tree, and `git pull` is the update.
 
+**No tag and no release exists in this repository**, and the four that did (v0.1.2–v0.1.5, with their
+release pages) were deleted on 2026-11-15 rather than kept as history: a version number is a label on the
+working tree, not the name of a published artifact. `CHANGELOG.md` and `PROGRESS.md` are where a version's
+story lives, and neither needs a tag to be readable.
+
 Two things stay worth keeping straight:
 
 - **`package.json`'s version** moves when a file **a profile loads** changes — `index.js`, `bing.js`,
