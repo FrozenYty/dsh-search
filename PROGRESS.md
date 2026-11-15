@@ -15,8 +15,7 @@ What was checked, because this repository depends on something the other three d
 Host resolves for a profile-linked bundle (ADR 0002):
 
 - **The junction resolves and reads through**: `profiles\desktop\node_modules\dsh-search` is a Junction whose
-  target is `D:\MYPROJS\DSH_PLUGINS\dsh-search`, and `package.json` read through it reports
-  `"version": "0.4.1"`.
+  target is this working tree, and `package.json` read through it reports `"version": "0.4.1"`.
 - **The seam import resolves from the junction path**, walking up into the profile:
   `import('@deepseek-ai/dsh-web')` → `resolved: WebError, WebRuntime, default`.
 - **The same import also resolves from the real path**, because the working tree's own `node_modules`
@@ -25,7 +24,7 @@ Host resolves for a profile-linked bundle (ADR 0002):
 - **The suite ran without a skip**: 51 tests, 51 pass, **0 skipped**. That last number is the one that
   matters here: AGENTS.md §5 says a missing seam makes the entry tests *skip*, so a skip would mean the move
   had been "verified" by not testing the thing the move put at risk.
-- **The old path is gone**: `Test-Path D:\MYPROJS\DSH_FILES\dsh-search` → `False`.
+- **The old path is gone**: `Test-Path` against `DSH_FILES\dsh-search` → `False`.
 - **No document names either root**: searching the repository for `DSH_FILES` and `DSH_PLUGINS` returns
   nothing, so there was no stale absolute path to repair — the move cost the repository no edit but this
   entry.
