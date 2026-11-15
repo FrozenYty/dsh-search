@@ -4,6 +4,37 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-15 — the row id reads like the bundle, not like the slot
+
+The Settings panel shows the row id beside the package name, and the two did not look related: `dsh-search`
+inserted `web-search-bing-html`, which names the slot it fills (`web` + `search`), while the family names
+the bundle — `dsh-memory` inserts `memory`, `dsh-cleaner` inserts `cleaner`. ADR 0003 had frozen the old id
+for a stated reason ("frozen as long as the package is `dsh-search`"), so this was a supersession, not an
+edit: **ADR 0007** records the new id, the cost of a rename and who pays it.
+
+Nothing in this profile pays it: `cordis.patch.yml` was read rather than assumed, and it does not override
+the row at all. The version moves to 0.2.0 because the row id is part of the contract, so a rename is a
+breaking change even when the one profile in front of us is unaffected.
+
+The check now derives the row id from the package name — `pluginName.replace(/^dsh-/, '')` — instead of
+comparing against a second literal, so a future rename of either one fails by name rather than drifting, and
+that is what was verified:
+
+```
+$ node scripts/check.mjs                 → check passed
+$ (rename the inserted row to search-old)
+$ node scripts/check.mjs                 → check failed: 1 problem(s)
+                                           cordis.patch.yml: the inserted row must be id: search,
+                                           derived from the package name dsh-search (ADR 0007)
+$ (restore, re-run)                      → check passed
+```
+
+The seven places that name the row were found by searching the whole repository rather than by memory: the
+patch file and its comment, `check.mjs`, both READMEs' override snippet, both READMEs' question table, both
+indexes, and ADR 0006's example — which now carries `# \`search\` from 0.2.0 (ADR 0007)` instead of a
+snippet that would have failed. ADR 0003 and the older `PROGRESS.md` entries keep the old id: one is the
+decision being superseded, the other is history that is never rewritten.
+
 ## 2026-11-14 — the drift job, dispatched twice, and what a runner actually sees
 
 The weekly job was dispatched on `main` before anyone believed it, and it failed — with the answer, not with

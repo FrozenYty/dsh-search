@@ -29,7 +29,7 @@ What the seam allows was measured before designing anything:
 **This bundle's row carries one field, `provider`, and its three values are the owner's choice:**
 
 ```yaml
-- id: web-search-bing-html
+- id: web-search-bing-html   # `search` from 0.2.0 (ADR 0007)
   config:
     provider: keyless   # keyless (default) | official | auto
 ```

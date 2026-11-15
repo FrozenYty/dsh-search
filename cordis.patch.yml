@@ -14,8 +14,10 @@
     searchProvider: bing-html
     fetchProvider: http
 
-# 2. Insert this bundle's own provider row. The id is the target a profile addresses when it overrides
-#    this bundle's config, so it is frozen at `web-search-bing-html` (ADR 0003).
+# 2. Insert this bundle's own provider row. The id follows the package name, which is how the rest of the
+#    family reads (`dsh-memory` inserts `memory`, `dsh-cleaner` inserts `cleaner`), and it is the id a
+#    profile addresses when it overrides this bundle's config (ADR 0007; it was `web-search-bing-html`
+#    before 0.2.0).
 #
 #    `provider` is the owner's choice, and the three values are the whole of this bundle's configuration
 #    (docs/adr/0006-choosing-the-search-provider.md):
@@ -26,11 +28,11 @@
 #
 #    A profile changes it by overriding this row in its own cordis.patch.yml:
 #
-#      - id: web-search-bing-html
+#      - id: search
 #        config:
 #          provider: official
 - insert:
-    - id: web-search-bing-html
+    - id: search
       name: 'dsh-search'
       config:
         provider: keyless

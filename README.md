@@ -17,7 +17,7 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.1.9.
+- Current version: v0.2.0.
 - **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
@@ -104,7 +104,7 @@ A profile with this bundle has two searches available: the keyless one it regist
 one field on this bundle's row:
 
 ```yaml
-- id: web-search-bing-html
+- id: search   # `web-search-bing-html` before 0.2.0 (ADR 0007)
   config:
     provider: keyless   # keyless (default) | official | auto
 ```
@@ -301,6 +301,7 @@ session check needs the plugin enabled.
 | Why there is only one backend — couldn't we add Google, Baidu or 360? | `docs/adr/0004-one-backend-measured.md`, and `node scripts/probe-backends.mjs` for the current answer |
 | How does Claude Code implement `web_search`, and why is ours different? | `docs/adr/0005-local-search-vs-server-side.md` |
 | Who decides whether the keyless search or the shipped DeepSeek one runs, and how is that switched? | `docs/adr/0006-choosing-the-search-provider.md`, `cordis.patch.yml` |
+| Why is the patch row id `search`, and what does a rename cost? | `docs/adr/0007-row-id-follows-the-package-name.md` |
 | What was verified, with what output | `PROGRESS.md` |
 | What is still unproven | `PLAN.md` |
 

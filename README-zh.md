@@ -16,7 +16,7 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 
 ## 状态
 
-- 当前版本：v0.1.9。
+- 当前版本：v0.2.0。
 - **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
@@ -90,7 +90,7 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 可能还留着它的凭据）。**选哪个由你决定**，它在本 bundle 这一行的一个字段上：
 
 ```yaml
-- id: web-search-bing-html
+- id: search   # 0.2.0 之前是 `web-search-bing-html`（ADR 0007）
   config:
     provider: keyless   # keyless（默认）| official | auto
 ```
@@ -262,6 +262,7 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 | 为什么只有一个后端——不能加 Google、百度或 360 吗 | `docs/adr/0004-one-backend-measured.md`；当前的答案用 `node scripts/probe-backends.mjs` 问 |
 | Claude Code 的 `web_search` 是怎么做的，为什么我们不一样 | `docs/adr/0005-local-search-vs-server-side.md` |
 | 由谁决定跑免 key 搜索还是随附的 DeepSeek 搜索，怎么切 | `docs/adr/0006-choosing-the-search-provider.md`、`cordis.patch.yml` |
+| 为什么 patch 行 id 是 `search`，改名要付出什么 | `docs/adr/0007-row-id-follows-the-package-name.md` |
 | 验证了什么，输出是什么 | `PROGRESS.md` |
 | 还有什么没被证明 | `PLAN.md` |
 
