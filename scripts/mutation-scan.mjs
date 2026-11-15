@@ -265,6 +265,13 @@ const MUTATIONS = [
     to: '    return true',
   },
   {
+    name: 'extract-keeps-navigation-tables',
+    file: 'article.js',
+    claim: 'a table whose cells are links is navigation, not content',
+    from: '    const next = current.replace(/<(ul|ol|table)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi, (block) => (linkOnly(block) ? \' \' : block))',
+    to: '    const next = current.replace(/<(ul|ol)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi, (block) => (linkOnly(block) ? \' \' : block))',
+  },
+  {
     name: 'extract-keeps-chrome',
     file: 'article.js',
     claim: 'the containers that are never prose are removed',

@@ -70,16 +70,29 @@ test('a blog post keeps its sentences and loses the banner furniture', () => {
   assert.ok(text.length > 3000, `an article-length page keeps thousands of characters; got ${text.length}`)
 })
 
-test('a navigation list goes and a list that carries sentences stays', () => {
+test('a navigation list or table goes, and one that carries sentences stays', () => {
   const html = [
     '<div><ul><li><a href="/a">Alpha</a></li><li><a href="/b">Beta</a></li><li><a href="/c">Gamma</a></li></ul>',
     '<ul><li>Retries are refused because nothing failed in twenty-five searches.</li>',
-    '<li>The cache never keeps a challenge page.</li></ul></div>',
+    '<li>The cache never keeps a challenge page.</li></ul>',
+    // A repository's file tree: a table whose cells are links. It is navigation by the same ratio.
+    '<table><tr><td><a href="/f/a.js">article.js</a></td><td><a href="/c/1">last commit</a></td></tr>',
+    '<tr><td><a href="/f/b.js">bing.js</a></td><td><a href="/c/2">last commit</a></td></tr></table>',
+    // A table of results: cells carry sentences, so it is content.
+    '<table><tr><td>Chrome, lower bound</td><td>61.3% of what arrived</td></tr>',
+    '<tr><td>Prose inside p</td><td>1.4% of what arrived</td></tr></table>',
+    // A link-dense block that carries a paragraph: GitHub's About sidebar. The paragraph is the reason to
+    // keep the block, whatever its link density says.
+    '<table><tr><td><p>A keyless web-search provider for DeepSeek Harness, with no account behind it.</p>',
+    '<a href="/stars">0 stars</a> <a href="/forks">0 forks</a></td></tr></table></div>',
   ].join('')
   const text = extractArticle(html)
   assert.ok(!text.includes('Alpha'), 'the link list was navigation')
+  assert.ok(!text.includes('article.js'), 'the file tree was navigation too, and it is a table')
   assert.match(text, /Retries are refused/, 'the list that carries sentences is content')
   assert.match(text, /challenge page/)
+  assert.match(text, /61\.3% of what arrived/, 'a table whose cells are sentences is content')
+  assert.match(text, /keyless web-search provider/, 'a paragraph is a reason to keep a block')
 })
 
 test('a capped extraction says so instead of looking complete', () => {

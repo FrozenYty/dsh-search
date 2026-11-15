@@ -4,6 +4,30 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-15 — the file tree was a table
+
+The owner fetched a repository page in a live session and the answer carried its file list as prose: the
+extraction rule covered `<ul>`/`<ol>` and a repository's file tree is a `<table>` whose cells are links. The
+rule now covers both containers, with one guard the tables made necessary: **a block that carries a paragraph
+is content whatever its link density**, because GitHub's "About" sidebar is a table of links with a
+description paragraph inside it.
+
+The fixtures say the same thing the live page did, and one of them says something else worth writing down:
+`article-github-repo.html` is 200 000 characters **cut before its article**, so its only long paragraph lives
+in an `<aside>` and is removed as chrome — a false alarm for anyone reading the extraction audit, and the
+reason the fixture's test asserts structure rather than prose.
+
+Verified:
+
+```
+$ node --test --test-isolation=none tests/article.test.mjs   → ℹ tests 11   ℹ pass 11   ℹ fail 0
+$ node scripts/check.mjs                                     → check passed
+```
+
+and the same audit run over the three saved pages afterwards: MDN unchanged at 2 749 characters with 15 of 18
+prose paragraphs kept, CSDN at 21 547 with 30 of 64, the cut repository fixture at 268 with its one paragraph
+inside an `<aside>` by design.
+
 ## 2026-11-15 — the fetch half, and what a page actually costs
 
 The survey audited the search half exhaustively and never looked at what happens *after* the model fetches a
