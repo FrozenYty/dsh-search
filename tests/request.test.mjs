@@ -144,6 +144,36 @@ test('an already-cancelled search is WEB_ABORTED and never dispatches', async ()
   })
 })
 
+test('the body is decoded with the charset the response declares', async () => {
+  // 中文 / 内容 in GBK, which is not UTF-8 and would arrive as replacement characters if the header were
+  // ignored. The markup around them is ASCII, so the only non-ASCII bytes are the ones under test.
+  const body = Buffer.concat([
+    Buffer.from('<li class="b_algo"><h2><a href="https://example.com/zh">'),
+    Buffer.from([0xd6, 0xd0, 0xce, 0xc4]),
+    Buffer.from('</a></h2><p class="b_lineclamp">'),
+    Buffer.from([0xc4, 0xda, 0xc8, 0xdd]),
+    Buffer.from('</p></li>'),
+  ])
+  const stub = async () => new Response(body, { status: 200, headers: { 'content-type': 'text/html; charset=gbk' } })
+  await withFetch(stub, async () => {
+    const result = await new BingSearchProvider().search({ query: 'gbk page' })
+    assert.equal(result.sources.length, 1)
+    assert.equal(result.sources[0].title, '中文')
+    assert.equal(result.sources[0].snippet, '内容')
+  })
+})
+
+test('an unusable charset label falls back to UTF-8 rather than losing the search', async () => {
+  const stub = async () => new Response(FIXTURE, {
+    status: 200,
+    headers: { 'content-type': 'text/html; charset=not-a-charset' },
+  })
+  await withFetch(stub, async () => {
+    const result = await new BingSearchProvider().search({ query: 'deepseek harness' })
+    assert.ok(result.sources.length >= 5, 'a header typo is not a reason to lose the result set')
+  })
+})
+
 test('a cancellation during the request is WEB_ABORTED, not a transport failure', async () => {
   const controller = new AbortController()
   const stub = async () => {

@@ -67,7 +67,27 @@ GitHub serves from it, and installs the folder with either local route.
 
 Candidates, not commitments. Each one costs a request shape or a parsing rule, so each is a decision to
 make with a measurement in hand rather than a gap to close. Everything that was open has now been
-measured, and none of it turned into code — the measurements are the answer.
+measured, and almost none of it turned into code — the measurements are the answer. The 2026-11-15 survey of
+comparable implementations (ADR 0009) is the one exception: it produced a reuse window and a charset fix,
+and refused eight other upgrades by name with the number that refuses each.
+
+- **Settled by the survey: no retry.** Twenty-five sequential live searches: 0 failures, p50 151 ms, p90
+  213 ms, max 220 ms. The one implementation that retries by default does so because "on each retry, SearXNG
+  uses a different proxy and source ip" — a client with one egress gets the same answer from the same
+  server, which is the documented anti-pattern rather than the cure.
+- **Settled by the survey: no URL normalisation before dedupe.** Ninety parsed results across nine pages
+  held 0 exact duplicates and 0 duplicates modulo a tracking parameter, a trailing slash or `www.`; and no
+  implementation in the corpus actually normalises — the practice is asserted far more often than it is
+  evidenced.
+- **Settled by the survey: no snippet cap.** Seventy snippets: min 35, p50 78, p90 126, max 132 characters.
+  The 5 000-character cap in the survey belongs to a fetch tool reading whole pages, not to a SERP.
+- **Settled by the survey: no off-topic guard.** The one implementation that rejects navigational results has
+  a second engine to hand off to; this bundle does not (ADR 0004), so the guard could only turn a plausible
+  but wrong answer into an error.
+- **Settled by the survey: no body cap, no provider-side timeout, no error taxonomy.** Bodies measured
+  101 757–104 021 bytes over nine pages — a 2 % spread — against a caller's 60 s deadline and a 220 ms worst
+  case; and the seam carries exactly two codes to the model, so a richer taxonomy would have nowhere to be
+  published.
 
 - **Not pursued: listing this in `awesome-dsh-plugin`.** The owner deleted the fork and settled the
   project as private use, so the community index is out of scope. The facts that would matter if that ever

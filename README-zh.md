@@ -16,7 +16,7 @@ provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊�
 
 ## 状态
 
-- 当前版本：v0.2.0。
+- 当前版本：v0.3.0。
 - **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
@@ -158,7 +158,7 @@ profile 也可以用更直接的方式把本 bundle 整条移出这条路径—�
 - **标记变化是真实风险。** 解析器读的是网页而不是 API。页面不再匹配时会以 `no parseable result block`
   失败，而不是悄悄返回空；`tests/fixtures/` 下保存的页面，就是让这件事表现为一个失败的测试而不是一桩
   悬案。
-- **只有一页，大约十条，这就是这个端点的上限。** 不翻页、不重试、不缓存——不是没试过，而是三种方式都量过：任何
+- **只有一页，大约十条，这就是这个端点的上限。** 不翻页、不重试——不是没试过，而是三种方式都量过：任何
   offset 与 count 都返回第一页那十条（`count=20/30/50`、`first=11/21/31`、页面自己给出的"下一页"链接及其
   `FPIG` 哈希、以及把第一次响应的 `set-cookie` 原样带回并附上 `Referer` 的同一请求）；Bing 的 RSS 形式
   （`&format=rss`）同样只有十条，`count` 与 `first` 一概无视；而这些请求用的都是宽查询（`python tutorial`、
@@ -180,6 +180,9 @@ profile 也可以用更直接的方式把本 bundle 整条移出这条路径—�
   如此：应用自带的 preset patch 用 `fetch` 和 `searchTimeoutMs` 重述了 `tool-web`，所以上面这段配置能正确合成
   ——用加载器自己的 `composeEntries` 跑这个 profile 的各层，解析出来就是 24——而工具实测仍是 8。这种情况下
   管用的是问法而不是上限：一次调用里问两三个子问题才真正撒开网，想看得更多就再调一次 `web_search`。
+- **五分钟内解析过的页面会再次作答。** 五分钟、最多 32 个页面、最先淘汰最久没被问到的那个，失败则从不记住——
+  验证码页要的是重试，不是"被封过"的记忆（`docs/adr/0008-reusing-a-recent-page.md`）。这是唯一一种不花请求
+  的搜索；这一节其余每一条依然成立。
 
   profile 在**加载时**读它的 patch，所以运行中的 Host 会一直用旧数字，直到重启——除非它的 `package.json` 里
   设了 `dsh.profile.patchReload: live`（那样文件会被监听）。想判断现在是哪个上限在生效：工具**只在能力缝截断
@@ -263,6 +266,8 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 | Claude Code 的 `web_search` 是怎么做的，为什么我们不一样 | `docs/adr/0005-local-search-vs-server-side.md` |
 | 由谁决定跑免 key 搜索还是随附的 DeepSeek 搜索，怎么切 | `docs/adr/0006-choosing-the-search-provider.md`、`cordis.patch.yml` |
 | 为什么 patch 行 id 是 `search`，改名要付出什么 | `docs/adr/0007-row-id-follows-the-package-name.md` |
+| 为什么页面会复用五分钟，为什么失败从不复用 | `docs/adr/0008-reusing-a-recent-page.md` |
+| 对 Claude Code、Codex、PI 与各家抓取器的调研得出了什么，又拒绝了哪些改进 | `docs/adr/0009-the-survey-and-its-refusals.md` |
 | 验证了什么，输出是什么 | `PROGRESS.md` |
 | 还有什么没被证明 | `PLAN.md` |
 

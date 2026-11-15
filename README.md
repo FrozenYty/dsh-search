@@ -17,7 +17,7 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.2.0.
+- Current version: v0.3.0.
 - **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
@@ -179,8 +179,8 @@ installed into, for every session in it, which is why it is stated here rather t
 - **A markup change is a real risk.** The parser reads a page, not an API. A page that stops matching it
   fails with `no parseable result block` instead of quietly returning nothing, and the saved fixtures
   under `tests/fixtures/` are how that shows up as a failing test rather than as a mystery.
-- **One page, about ten results, and that is this endpoint's ceiling.** No paging, no retries, no caching —
-  and not for lack of trying. Measured three ways: every offset and count returns page one's ten results
+- **One page, about ten results, and that is this endpoint's ceiling.** No paging, no retries — and not for
+  lack of trying. Measured three ways: every offset and count returns page one's ten results
   (`count=20/30/50`, `first=11/21/31`, the page's own "next" link with its `FPIG` hash, the same with the
   `set-cookie` values from the first response sent back **and** a `Referer`), Bing's RSS form
   (`&format=rss`) carries ten items and ignores `count` and `first` alike, and the runs used broad queries
@@ -204,6 +204,10 @@ installed into, for every session in it, which is why it is stated here rather t
   own `composeEntries` over that profile's layers resolves it to 24 — and the tool still measures 8. What
   works in that situation is the question rather than the cap: two or three sub-queries in one call are what
   widen the net, and a second `web_search` call is how to see more.
+- **A page parsed in the last five minutes answers again.** Five minutes, at most 32 pages, the
+  least-recently-used one evicted first, and a failure never kept — a challenge page wants a retry, not a
+  memory of being blocked (`docs/adr/0008-reusing-a-recent-page.md`). It is the one case where a search costs
+  no request; every other clause in this list still holds.
 
   A profile reads its patch when it loads, so a running Host keeps the old number until it restarts —
   unless its `package.json` sets `dsh.profile.patchReload: live`, in which case the file is watched. How to
@@ -302,6 +306,8 @@ session check needs the plugin enabled.
 | How does Claude Code implement `web_search`, and why is ours different? | `docs/adr/0005-local-search-vs-server-side.md` |
 | Who decides whether the keyless search or the shipped DeepSeek one runs, and how is that switched? | `docs/adr/0006-choosing-the-search-provider.md`, `cordis.patch.yml` |
 | Why is the patch row id `search`, and what does a rename cost? | `docs/adr/0007-row-id-follows-the-package-name.md` |
+| Why is a page reused for five minutes, and why is a failure never reused? | `docs/adr/0008-reusing-a-recent-page.md` |
+| What did the survey of Claude Code, Codex, PI and the scrapers find — and what did it refuse to build? | `docs/adr/0009-the-survey-and-its-refusals.md` |
 | What was verified, with what output | `PROGRESS.md` |
 | What is still unproven | `PLAN.md` |
 

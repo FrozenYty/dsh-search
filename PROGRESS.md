@@ -4,6 +4,55 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-15 — the survey, and what it changed
+
+Asked to survey the field — the high-star GitHub plugins, Claude Code, Codex, PI — and then improve on it.
+Three surveys ran in parallel, each required to cite a file, a line or a fetched document rather than a
+reputation. Their reports live in the session's scratch directory; the findings that will still matter next
+month are in ADR 0009, and what they refused is in `PLAN.md` with the numbers.
+
+What came back:
+
+- **The DSH family has no high-star reference.** The search plugins found carry 0, 4, 10 and 26 stars, so the
+  real comparison points are the mature scrapers and the official MCP servers: `searxng/searxng` 39.5k,
+  `deedy5/ddgs` 3.1k (release four weeks ago), `Nv7-GitHub/googlesearch` 787, `exa-mcp-server` 5.2k,
+  `brave-search-mcp-server` 1.6k. At least five independent DSH plugins already scrape Bing HTML, so "also
+  scrapes Bing" differentiates nothing.
+- **Claude Code's `WebSearch` is a client tool**, not a server tool declared in the conversation: calling it
+  issues a nested model request that declares `web_search_20250305` (`max_uses: 8`, `allowed_domains`,
+  `blocked_domains`) as an extra tool schema, and only titles and URLs reach the main conversation. Its
+  `WebFetch` does not use the `web_fetch_*` server tool at all — it fetches client-side with Turndown, a 10 MB
+  body cap, a 60 s timeout, `maxRedirects: 0`, a 15-minute page cache, and then a small fast model applies the
+  caller's prompt, capped at 125 characters of quotation. ADR 0005's description of the shape was wrong; its
+  decision was not.
+- **Codex has two wirings, both remote**: a hosted `web_search` (`filters.allowed_domains`, `user_location`,
+  modes `disabled|cached|indexed|live`, **`cached` by default**, enabled by `--search`) and a standalone
+  `web.run` that is client-executed but posts to the provider's search endpoint.
+- **PI has no search at all.** `earendil-works/pi` is an agent toolkit whose coding agent's tools are
+  read/bash/powershell/edit/write/grep/find/ls; the one `web_search` in that repository is registered by a
+  test. DSH's `dsh-llm-pi-ai` adapts its provider layer, so it should stay ignorant of search.
+
+**Adopted**: a five-minute reuse window, 32 entries, least recently used first, failing never reused
+(ADR 0008) — the best-evidenced item in the corpus, present in four scrapers, in Claude Code's page cache and
+as Codex's default mode — and decoding the charset a response declares, which no ranked list mentioned and
+which reading our own code found (ADR 0009).
+
+**Refused**, each with the measurement that refuses it: retry (0 failures in 25 sequential live searches, and
+SearXNG retries only because each attempt uses a different proxy), URL normalisation before dedupe (0
+duplicates, exact or normalised, across 90 results — and no implementation in the corpus does it), a snippet
+cap (70 snippets, max 132 characters), an off-topic guard (no second engine to hand off to), a body cap
+(101 757–104 021 bytes over nine pages, a 2 % spread), a provider-side timeout (220 ms worst case against the
+tool's 60 s), an internal error taxonomy (two codes reach the model and there is no logging surface), and UA
+rotation (measured worse earlier: the disguise turns CSDN's 200 into 521).
+
+Verified, on this tree:
+
+```
+$ node --test --test-isolation=none tests/*.test.mjs   → ℹ tests 40   ℹ pass 40   ℹ fail 0   ℹ skipped 0
+$ node scripts/mutation-scan.mjs                       → 30 mutation(s): 30 killed, 0 not
+$ node scripts/check.mjs                               → check passed
+```
+
 ## 2026-11-15 — the tags and their release pages are gone
 
 "We don't publish, no tags; delete them all." Four tags (v0.1.2–v0.1.5) and the four release pages they

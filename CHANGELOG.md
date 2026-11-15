@@ -7,6 +7,23 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.3.0] - 2026-11-15
+
+- **A page parsed in the last five minutes answers the same query again**, up to 32 entries, least recently
+  used first, and **a failure is never reused** — a challenge page wants a retry, not a memory of being
+  blocked. Results are copied in and out, so a caller that truncates or annotates what it received cannot
+  edit the cache. `docs/adr/0008-reusing-a-recent-page.md` supersedes ADR 0004's "no cache" clause; the one
+  request-per-search property becomes one request per *miss*, which is what acceptance item 3 already runs.
+- **The response body is decoded with the charset it declares**, falling back to UTF-8 for an unusable label.
+  `Response.text()` decodes UTF-8 whatever the header says, so a mis-declared page used to arrive as
+  correct-looking mojibake with an unchanged source count — the one failure mode the fixture-drift job cannot
+  see.
+- `docs/adr/0009-the-survey-and-its-refusals.md` records the survey of Claude Code, Codex, PI and the mature
+  scrapers, corrects ADR 0005's account of how Claude Code's search and fetch are actually wired, and refuses
+  eight well-argued upgrades by name with the measurement that refuses each (retry, URL normalisation, snippet
+  cap, off-topic guard, body cap, provider timeout, error taxonomy, and what ADR 0004 already refused).
+- Six tests for the reuse window and two for decoding; the mutation scan grows to 30, all killed.
+
 ## [0.2.0] - 2026-11-15
 
 - **The patch row id is `search`**, the package name without its `dsh-` prefix — matching `dsh-memory`

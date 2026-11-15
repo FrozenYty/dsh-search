@@ -193,9 +193,51 @@ const MUTATIONS = [
     from: "    if (mode === 'auto' && !officialFailed) {",
     to: "    if (mode === 'auto') {",
   },
+  {
+    name: 'reuse-window-never-closes',
+    file: 'bing.js',
+    claim: 'a page older than the window is fetched again',
+    from: '    if (this.#now() - entry.at >= CACHE_TTL_MS) {',
+    to: '    if (this.#now() - entry.at > CACHE_TTL_MS) {',
+  },
+  {
+    name: 'reuse-unbounded',
+    file: 'bing.js',
+    claim: 'the cache is bounded, and the oldest entry is the one that goes',
+    from: '    while (this.#pages.size > CACHE_MAX_ENTRIES) this.#pages.delete(this.#pages.keys().next().value)',
+    to: '    while (false) this.#pages.delete(this.#pages.keys().next().value)',
+  },
+  {
+    name: 'reuse-hands-out-its-entry',
+    file: 'bing.js',
+    claim: 'a reused page is a copy, so a caller cannot edit the cache',
+    from: '    return cloneResult(entry.result)',
+    to: '    return entry.result',
+  },
+  {
+    name: 'reuse-keeps-the-callers-object',
+    file: 'bing.js',
+    claim: 'the cache holds its own copy, so a caller cannot edit it after the fact',
+    from: '    this.#pages.set(query, { at: this.#now(), result: cloneResult(result) })',
+    to: '    this.#pages.set(query, { at: this.#now(), result })',
+  },
+  {
+    name: 'declared-charset-ignored',
+    file: 'bing.js',
+    claim: 'the body is decoded with the charset the response declares',
+    from: '  return match?.[1]',
+    to: '  return undefined',
+  },
+  {
+    name: 'unusable-charset-loses-the-page',
+    file: 'bing.js',
+    claim: 'an unusable charset label falls back to UTF-8 instead of failing the search',
+    from: '  } catch {\n    return new TextDecoder(\'utf-8\').decode(bytes)\n  }',
+    to: "  } catch {\n    return ''\n  }",
+  },
 ]
 
-const TEST_FILES = ['parse.test.mjs', 'request.test.mjs', 'entry.test.mjs', 'routing.test.mjs']
+const TEST_FILES = ['parse.test.mjs', 'request.test.mjs', 'entry.test.mjs', 'routing.test.mjs', 'cache.test.mjs']
 
 const wanted = process.argv[2]
 const selected = wanted === undefined ? MUTATIONS : MUTATIONS.filter((mutation) => mutation.name.includes(wanted))
