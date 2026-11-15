@@ -119,6 +119,22 @@ if (articleSource !== undefined) {
     }
   }
 }
+
+// 2b. No runtime module may import a Node built-in.
+//
+// This bundle stores nothing (ADR 0011), and a bundle that cannot open a file cannot grow a data directory by
+// accident — which is the failure the workspace's data-directory rule exists to prevent: dsh-cleaner resolved
+// its directory once at load from a chain whose middle leg was not yet mounted, so a profile default answered
+// instead and a repository move took the trash can with it. If something here ever needs to persist, the
+// import lands in this check by name, and the decision that follows it is the one ADR 0011 describes.
+for (const runtimeFile of ['index.js', 'bing.js', 'article.js']) {
+  const source = read(runtimeFile)
+  if (source === undefined) continue
+  const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  for (const match of code.matchAll(/(?:from\s*|import\s*\(\s*|require\s*\(\s*)['"](node:[^'"]+)['"]/g)) {
+    fail(`${runtimeFile}: imports ${match[1]}; no runtime module may touch a built-in, because this bundle stores nothing (ADR 0011)`)
+  }
+}
 const entrySource = read('index.js')
 if (entrySource !== undefined) {
   const bareImports = [...entrySource.matchAll(/^\s*import\s+[^'"]*['"]([^'"]+)['"]/gm)].map((match) => match[1])
@@ -379,3 +395,6 @@ if (failures.length > 0) {
   process.exit(1)
 }
 console.log('check passed')
+// The one place a human looks to ask "where does this plugin keep my data?" — and the honest answer is the
+// point of ADR 0011: nowhere. Printed on every run so it can never drift into a claim nobody made.
+console.log('data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/dsh-search (docs/adr/0011-no-data-directory.md)')

@@ -4,6 +4,43 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the data directory this bundle does not have
+
+The workspace settled one rule for plugin data: `~/.agents/<plugin>`, resolved config → `DSH_<PLUGIN>_DATA_DIR`
+→ that path, computed at every use, with a workspace, a profile default, the repository location and
+`import.meta.url` all out of the decision. It exists because a sibling plugin's directory was resolved once at
+load through a registry that was usually not yet mounted, so the profile default answered instead — and a
+repository move took its trash can with it, leaving the old deletions in a directory nobody looked at again.
+
+**This bundle has nothing to migrate: it persists nothing.** The search cache is memory (ADR 0008), the fetch
+half returns text, and the three shipped modules import nothing from the platform at all: `bing.js` imports
+nothing, `article.js` imports only its sibling, `index.js` imports only the seam. A grep of those files for
+`node:`, `homedir`, `writeFile`, `mkdir` and `.agents` returns nothing.
+
+So the rule's cost here is one guard and one page, not a copy step:
+
+- `scripts/check.mjs` §2b: no runtime module may import a Node built-in. A bundle that cannot open a file
+  cannot grow a data directory without a decision passing through the check by name.
+- ADR 0011 records the decision, the resolution order a future on-disk cache must use, and the incident that
+  produced the rule.
+- `check.mjs` now prints the effective answer on every run, so "where is my data?" is answered by the tool
+  rather than by a document that may have aged:
+  `data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/dsh-search`.
+
+The guard was proven by breaking it, as every rule here is:
+
+```
+$ node scripts/check.mjs                     → check passed
+$ (prepend `import { readFileSync } from 'node:fs'` to article.js)
+$ node scripts/check.mjs                     → check failed: 2 problem(s)
+                                               article.js: may import only this bundle's own modules; found "node:fs"
+                                               article.js: imports node:fs; no runtime module may touch a built-in,
+                                               because this bundle stores nothing (ADR 0011)
+$ (restore, re-run)                          → check passed
+```
+
+No version moved: nothing a profile loads changed.
+
 ## 2026-11-16 — the rule file catches up with 0.4.0
 
 The migration entry above ends by noting that `AGENTS.md` §5 parsed `index.js bing.js` and not `article.js`.
