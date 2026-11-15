@@ -44,10 +44,11 @@ article`.** It reads the page itself and hands over its prose.
   else.
 - **A non-2xx answer is a result, not a throw**, as the seam documents: the caller reads the status.
 - **The extraction is a rule, not a readability engine**: remove the containers that are never prose, drop
-  navigation lists whose words are the anchors' words, keep headings, paragraphs, quotations, code and tables
-  in document order, collapse whitespace, and **say so when the cap is reached**. That last clause is the
-  survey's own finding, taken from both products: a truncated page that looks complete is worse than one that
-  says it was cut.
+  **navigation lists and tables** whose words are the anchors' words — a block that carries a paragraph is
+  content whatever its link density, which is what protects a sidebar's description — keep headings,
+  paragraphs, quotations, code and tables in document order, collapse whitespace, and **say so when the cap is
+  reached**. That last clause is the survey's own finding, taken from both products: a truncated page that
+  looks complete is worse than one that says it was cut.
 - **`kind: 'text'`**, because the tool converts an `html` body with its own markdown pass and passes a `text`
   body through — so what this provider extracts is what the model reads, without a second pass over markup
   that no longer exists.

@@ -17,7 +17,7 @@ out — the failure that makes chat work and every search fail.
 
 ## Status
 
-- Current version: v0.4.0.
+- Current version: v0.4.1.
 - **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
@@ -151,10 +151,11 @@ tool passes through instead of running its own markdown pass
 (`docs/adr/0010-the-other-half-of-the-result.md`).
 
 It is a rule, not a readability engine: remove the containers that are never prose, drop navigation lists
-whose words are the anchors' words, keep headings, paragraphs, quotations, code and tables in document order,
-and **say so when it caps at 24 000 characters** — a truncated page that looks complete is worse than one
-that says it was cut. A redirect that changes origin is reported instead of followed, naming the target; a
-non-2xx answer is a result, not a throw.
+**and tables** whose words are the anchors' words — unless the block carries a paragraph, which is content
+whatever its link density — keep headings, paragraphs, quotations, code and tables in document order, and
+**say so when it caps at 24 000 characters** — a truncated page that looks complete is worse than one that
+says it was cut. A redirect that changes origin is reported instead of followed, naming the target; a non-2xx
+answer is a result, not a throw.
 
 The User-Agent is one decision for the whole bundle, and it is the honest one. Measured across six real
 pages, a desktop Chrome disguise was not an improvement:

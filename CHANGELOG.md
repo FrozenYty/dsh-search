@@ -7,6 +7,15 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.4.1] - 2026-11-15
+
+- **The navigation rule reaches tables too.** A repository's file tree is a table whose cells are links, and it
+  arrived as prose on a live fetch of a repository page. The same link-ratio test now applies to `<ul>`,
+  `<ol>` and `<table>`, and a block that carries a paragraph is kept whatever its density — GitHub's "About"
+  sidebar is a table of links with a description in it, and that description is the reason to keep the block.
+- One test grew the pair it already had (a link-dense table goes, a table of sentences stays, a
+  paragraph-bearing table stays), and one mutation covers the new container.
+
 ## [0.4.0] - 2026-11-15
 
 - **The bundle now owns the fetch half.** `web_fetch` runs through `article`, a provider that reads the page

@@ -93,19 +93,23 @@ function removeElements(html, tag) {
 }
 
 /**
- * Remove a `<ul>`/`<ol>` whose text is almost entirely link text: a menu, a breadcrumb, a tag cloud, a
- * table of contents, a repository's file tree.
+ * Remove a `<ul>`, `<ol>` or `<table>` whose text is almost entirely link text: a menu, a breadcrumb, a tag
+ * cloud, a table of contents, a repository's file tree.
  *
- * The test is a ratio rather than a tag: a list whose words are the anchors' words is navigation, because a
- * reader cannot read a link — and the model cannot follow one from here either. A list that carries
- * sentences is content and stays, which is what keeps a numbered explanation or a bulleted argument intact.
- * Removal repeats, because a nested list can hide one level deeper.
+ * The test is a ratio rather than a tag: a block whose words are the anchors' words is navigation, because a
+ * reader cannot read a link — and the model cannot follow one from here either. A list or table that carries
+ * sentences is content and stays, which is what keeps a numbered explanation, a bulleted argument or a table
+ * of results intact. A table needs the rule as much as a list does: a repository's file tree is one, and its
+ * cells are links. Removal repeats, because a nested block can hide one level deeper.
  *
  * @param {string} html - the markup.
- * @returns {string} the markup without its navigation lists.
+ * @returns {string} the markup without its navigation blocks.
  */
-function removeLinkLists(html) {
+function removeNavigationBlocks(html) {
   const linkOnly = (block) => {
+    // A block that carries a paragraph is content whatever its link density: GitHub's "About" sidebar is a
+    // table of links with a description paragraph in it, and dropping it would lose the description.
+    if (/<p\b/i.test(block)) return false
     const all = block.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().length
     if (all === 0) return true
     let linked = 0
@@ -116,7 +120,7 @@ function removeLinkLists(html) {
   }
   let current = html
   for (let pass = 0; pass < 3; pass += 1) {
-    const next = current.replace(/<(ul|ol)\b[^>]*>[\s\S]*?<\/\1>/gi, (block) => (linkOnly(block) ? ' ' : block))
+    const next = current.replace(/<(ul|ol|table)\b[^>]*>[\s\S]*?<\/\1>/gi, (block) => (linkOnly(block) ? ' ' : block))
     if (next === current) break
     current = next
   }
@@ -132,7 +136,7 @@ function removeLinkLists(html) {
 export function extractArticle(html) {
   let text = html.replace(/<!--[\s\S]*?-->/g, ' ')
   for (const tag of CHROME) text = removeElements(text, tag)
-  text = removeLinkLists(text)
+  text = removeNavigationBlocks(text)
   text = text.replace(BLOCKS, '\n').replace(/<[^>]*>/g, ' ')
   // A page can end mid-tag — cut by a byte cap, or by the server — and an unterminated tag is the one
   // fragment no `<…>` strip can remove. Only something shaped like a tag is dropped, so prose that merely
