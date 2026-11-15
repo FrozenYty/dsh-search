@@ -210,7 +210,7 @@ User-Agent 是整 bundle 的一个决定，而且是诚实的那一个。在六�
   `docs/adr/0010-the-other-half-of-the-result.md` 写明了刻意没有做什么。
 - **没有数据目录。** 本 bundle 什么都不写：没有磁盘缓存、没有索引、没有会随仓库或 profile 搬家的状态。
   `node scripts/check.mjs` 每次运行都会打印这个答案，`docs/adr/0011-no-data-directory.md` 写明了将来若确实需要
-  落盘，路径只能是 `~/.agents/dsh-search`，且每次使用现算、绝不在加载时绑定。
+  落盘，路径只能是 `~/.agents/search`，且每次使用现算、绝不在加载时绑定。
 - **没有设置项、没有定时器、没有后台工作。** 没有可配置的东西，没有搜索在飞时就什么都不跑。
 
 ## 它坏掉的时候

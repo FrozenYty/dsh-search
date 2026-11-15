@@ -397,4 +397,4 @@ if (failures.length > 0) {
 console.log('check passed')
 // The one place a human looks to ask "where does this plugin keep my data?" — and the honest answer is the
 // point of ADR 0011: nowhere. Printed on every run so it can never drift into a claim nobody made.
-console.log('data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/dsh-search (docs/adr/0011-no-data-directory.md)')
+console.log('data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/search (docs/adr/0011-no-data-directory.md)')

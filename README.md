@@ -248,7 +248,7 @@ installed into, for every session in it, which is why it is stated here rather t
 - **No data directory.** This bundle writes nothing: no cache on disk, no index, no state that could move
   when the repository or the profile does. `node scripts/check.mjs` prints that answer on every run, and
   `docs/adr/0011-no-data-directory.md` says where a future one would have to go —
-  `~/.agents/dsh-search`, resolved per use, never at load.
+  `~/.agents/search`, resolved per use, never at load.
 - **No settings, no timers, no background work.** There is nothing to configure and nothing running when
   a search is not in flight.
 

@@ -25,7 +25,7 @@ So the rule's cost here is one guard and one page, not a copy step:
   produced the rule.
 - `check.mjs` now prints the effective answer on every run, so "where is my data?" is answered by the tool
   rather than by a document that may have aged:
-  `data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/dsh-search`.
+  `data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/search`.
 
 The guard was proven by breaking it, as every rule here is:
 
@@ -38,6 +38,12 @@ $ node scripts/check.mjs                     → check failed: 2 problem(s)
                                                because this bundle stores nothing (ADR 0011)
 $ (restore, re-run)                          → check passed
 ```
+
+The folder's name was settled by the owner while this change was in review: **`search`**, the plugin's short
+name and the same word as its row id (ADR 0007), not the package name — one name for one thing. Checked on
+this machine: the directory does not exist yet, which is the honest state of a bundle that writes nothing; a
+future feature creates it on its first write, and the ADR's order applies from there. ADR 0011, both READMEs
+and the line `check.mjs` prints were corrected before this landed, so no document ever claimed the other name.
 
 No version moved: nothing a profile loads changed.
 

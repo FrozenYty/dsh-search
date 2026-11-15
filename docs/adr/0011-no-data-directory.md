@@ -28,9 +28,12 @@ looked at again. From the outside, those deletions had never happened.
    `node:os`, `node:path` or anything else from `node:`. A bundle that cannot open a file cannot grow a data
    directory without a decision passing through that check.
 3. **When something does need to persist**, it resolves exactly as the workspace rule says: a config field,
-   else `DSH_SEARCH_DATA_DIR`, else `join(homedir(), '.agents', 'dsh-search')` — recomputed at each use, with
-   any cwd-like argument accepted and deliberately ignored. That resolution belongs in one function, so a test
-   can call it with a decoy workspace and assert the answer is unchanged. Supersede this ADR when it lands.
+   else `DSH_SEARCH_DATA_DIR`, else `join(homedir(), '.agents', 'search')` — recomputed at each use, with
+   any cwd-like argument accepted and deliberately ignored. The folder is **`search`, the plugin's short
+   name** — the same word as its patch row id (ADR 0007) — and not the package name `dsh-search`: the owner
+   settled that, and it is one name for one thing across this repository. That resolution belongs in one
+   function, so a test can call it with a decoy workspace and assert the answer is unchanged. Supersede this
+   ADR when it lands.
 4. **Nothing to migrate.** There is no old location, because there was never a new one: the honest report for
    this change is "no data directory exists", not a copy step.
 
