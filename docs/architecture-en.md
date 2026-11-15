@@ -124,7 +124,7 @@ https://cn.bing.com/search?q=<query>
   string; the saved fixtures were captured with these headers, so the parser is tested against the same
   page shape.
 - **The query is `q`, URL-encoded** by `URLSearchParams`, and an empty query fails before any request.
-- **One page.** No paging, no retry, no cache, no timer. Bing's first page carries about ten organic
+- **One page.** No paging, no retry, no timer. Bing's first page carries about ten organic
   results, which is more than the tool's default `maxResults`; asking for a second page would add a
   request shape nobody asked for.
 
@@ -155,7 +155,9 @@ which of the two it suspects — a challenge page, or markup that no longer pars
   shipped anonymous HTTP provider owns it, and this bundle leaves that half of the seam alone.
 - **No settings section and no `Config` schema.** Nothing is tunable. A settings row needs schemastery,
   and a field nobody measured is a way to break the parser without touching the repository.
-- **No timers, retries, caches or background work.** One call, one request, one answer.
+- **No timers, retries or background work.** One call, one request, one answer — except that a page parsed
+  in the last five minutes answers again instead of being fetched, and a failure is never kept
+  (`docs/adr/0008-reusing-a-recent-page.md`).
 - **No paging and no result cap of its own.** See §2 and §4.
 - **No second engine as a fallback.** Every alternative was measured and none answered; a fallback that
   is never reachable is dead code (`docs/adr/0001-cn-bing-html-endpoint.md`).

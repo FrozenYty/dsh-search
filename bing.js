@@ -20,6 +20,14 @@
  * what one page holds; the seam owns `maxResults` and truncates after the provider returns, so this
  * module never trims to a request limit.
  *
+ * A parsed page is reused for a few minutes, and a failure never is: the request count is the one
+ * resource that can get this client challenged, and asking the same question twice in a session is
+ * ordinary rather than exceptional (docs/adr/0008-reusing-a-recent-page.md).
+ *
+ * The body is decoded with the charset the response declares, not with an assumption: `Response.text()`
+ * decodes as UTF-8 whatever the header says, and a mis-declared page would arrive as correct-looking
+ * mojibake that the fixture-drift job cannot see, because the source count would not change.
+ *
  * The result page is markup, not an API: every field is parsed from today's shape, and a page that
  * stops matching it fails loudly instead of returning an empty list (docs/architecture-en.md).
  */
@@ -75,8 +83,7 @@ const SNIPPET_DATE = /^(?:(\d{4})年(\d{1,2})月(\d{1,2})日|([A-Z][a-z]{2}) (\d
 /** The three-letter English month names, in the order `Date` indexes them. */
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
 
-/** The named entities Bing emits inside result text. Numeric forms are decoded separately. */
-const NAMED_ENTITIES = new Map([
+/** The named entities Bing emits inside result text. Numeric forms are decoded separately. */const NAMED_ENTITIES = new Map([
   ['amp', '&'],
   ['lt', '<'],
   ['gt', '>'],
@@ -285,6 +292,41 @@ export function parseBingHtml(html) {
 }
 
 /**
+ * The charset label a response declares, or undefined when it declares none.
+ *
+ * @param {Response} response - the answered response.
+ * @returns {string | undefined} the label as written, for `TextDecoder` to validate.
+ */
+function declaredCharset(response) {
+  const header = response.headers.get('content-type') ?? ''
+  const match = /charset\s*=\s*"?([A-Za-z0-9_-]+)"?/i.exec(header)
+  return match?.[1]
+}
+
+/**
+ * Read a response body as text, in the charset it declares.
+ *
+ * `Response.text()` always decodes UTF-8, so a page that declares `gbk` would arrive as mojibake while
+ * still parsing into the same number of sources — a silent wrong answer rather than a visible failure.
+ * An unknown or unusable label falls back to UTF-8 rather than failing the search: the page is more
+ * likely to be readable than not, and a decode that throws would lose the whole result set over a
+ * header typo.
+ *
+ * @param {Response} response - the answered response, body unread.
+ * @returns {Promise<string>} the body as text.
+ */
+async function readBody(response) {
+  const bytes = new Uint8Array(await response.arrayBuffer())
+  const label = declaredCharset(response)
+  if (label === undefined) return new TextDecoder('utf-8').decode(bytes)
+  try {
+    return new TextDecoder(label).decode(bytes)
+  } catch {
+    return new TextDecoder('utf-8').decode(bytes)
+  }
+}
+
+/**
  * True when a page carrying no parsed results is a bot gate rather than a page of no results.
  *
  * It is consulted only when nothing parsed, so a challenge word appearing in a normal result's snippet
@@ -295,6 +337,32 @@ export function parseBingHtml(html) {
  */
 function looksBlocked(html) {
   return /captcha|verify you are human|are you a robot|unusual traffic/i.test(html.slice(0, 20000))
+}
+
+/**
+ * How long a parsed page is reused, and how many are kept.
+ *
+ * The same question arrives twice in a session more often than it looks — a follow-up, a re-check, a
+ * second call for the same fact — and every one of those was a fresh request. The request count is the
+ * one resource that can get this client challenged, so this is not about speed: five minutes is shorter
+ * than the time it takes a result set to matter, and 32 entries bound the memory to a few hundred
+ * kilobytes. A failure is never cached, because a challenge page wants a retry rather than a memory
+ * (docs/adr/0008-reusing-a-recent-page.md).
+ */
+const CACHE_TTL_MS = 5 * 60 * 1000
+const CACHE_MAX_ENTRIES = 32
+
+/**
+ * A source list neither side can mutate through the other.
+ *
+ * The seam truncates what it receives, and a caller may sort or annotate the sources it got; without a
+ * copy, either of those would edit the cached entry and the next caller would read the edited one.
+ *
+ * @param {{sources: Array<object>, truncated: boolean}} result - a search result.
+ * @returns {{sources: Array<object>, truncated: boolean}} an independent copy.
+ */
+function cloneResult(result) {
+  return { ...result, sources: result.sources.map((source) => ({ ...source })) }
 }
 
 /**
@@ -309,9 +377,53 @@ export class BingSearchProvider {
   /** @type {string} */
   id = PROVIDER_ID
 
+  /** Parsed pages by query, least recently used first; never holds a failure. */
+  #pages = new Map()
+
+  /** @type {() => number} */
+  #now
+
+  /**
+   * @param {{now?: () => number}} [options] - `now` exists so the reuse window can be tested across its
+   *   boundary in milliseconds rather than by sleeping; production passes nothing.
+   */
+  constructor(options = {}) {
+    this.#now = options.now ?? Date.now
+  }
+
   /** Whether this provider can run now; it can, without a key. */
   available() {
     return true
+  }
+
+  /**
+   * A reused parse of this exact query, or undefined when there is none or it has aged out.
+   *
+   * @param {string} query - the trimmed query.
+   * @returns {{sources: Array<object>, truncated: boolean} | undefined} a copy, or undefined.
+   */
+  #reuse(query) {
+    const entry = this.#pages.get(query)
+    if (entry === undefined) return undefined
+    if (this.#now() - entry.at >= CACHE_TTL_MS) {
+      this.#pages.delete(query)
+      return undefined
+    }
+    // A hit is a use: re-inserting keeps the oldest key the least recently used one.
+    this.#pages.delete(query)
+    this.#pages.set(query, entry)
+    return cloneResult(entry.result)
+  }
+
+  /**
+   * Keep a successful parse, dropping the oldest entry when the bound is reached.
+   *
+   * @param {string} query - the trimmed query.
+   * @param {{sources: Array<object>, truncated: boolean}} result - what was parsed.
+   */
+  #keep(query, result) {
+    this.#pages.set(query, { at: this.#now(), result: cloneResult(result) })
+    while (this.#pages.size > CACHE_MAX_ENTRIES) this.#pages.delete(this.#pages.keys().next().value)
   }
 
   /**
@@ -329,6 +441,9 @@ export class BingSearchProvider {
       throw new BingSearchError('Bing search requires a non-empty query', 'WEB_PROVIDER_ERROR')
     }
     if (signal?.aborted === true) throw aborted(signal)
+
+    const reused = this.#reuse(query)
+    if (reused !== undefined) return reused
 
     const url = `${SEARCH_ENDPOINT}?${new URLSearchParams({ q: query }).toString()}`
     let response
@@ -366,7 +481,7 @@ export class BingSearchProvider {
 
     let html
     try {
-      html = await response.text()
+      html = await readBody(response)
     } catch (error) {
       if (signal?.aborted === true || isAbortError(error)) throw aborted(signal, error)
       throw new BingSearchError(
@@ -385,6 +500,8 @@ export class BingSearchProvider {
         'WEB_PROVIDER_ERROR',
       )
     }
-    return { sources, truncated: false }
+    const result = { sources, truncated: false }
+    this.#keep(query, result)
+    return result
   }
 }
