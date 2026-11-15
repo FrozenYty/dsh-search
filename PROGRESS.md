@@ -4,6 +4,47 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the repository moved, and the peer still resolves
+
+The working tree moved from `DSH_FILES\dsh-search` to `DSH_PLUGINS\dsh-search`, the workspace's own
+plugin-source root. The profile's four `link:` entries were repointed and the junction rebuilt. **No provider
+logic changed and no version moved**: this is a move, and `CONTRIBUTING.md` §5 ties the number to a file a
+profile *loads*, not to where that file sits.
+
+What was checked, because this repository depends on something the other three do not — a **peer** import the
+Host resolves for a profile-linked bundle (ADR 0002):
+
+- **The junction resolves and reads through**: `profiles\desktop\node_modules\dsh-search` is a Junction whose
+  target is this working tree, and `package.json` read through it reports `"version": "0.4.1"`.
+- **The seam import resolves from the junction path**, walking up into the profile:
+  `import('@deepseek-ai/dsh-web')` → `resolved: WebError, WebRuntime, default`.
+- **The same import also resolves from the real path**, because the working tree's own `node_modules`
+  travelled with it — which is what the tests need, and what makes them run rather than stand down.
+- **The entry loads and registers**: `entry exports: apply, inject, name`.
+- **The suite ran without a skip**: 51 tests, 51 pass, **0 skipped**. That last number is the one that
+  matters here: AGENTS.md §5 says a missing seam makes the entry tests *skip*, so a skip would mean the move
+  had been "verified" by not testing the thing the move put at risk.
+- **The old path is gone**: `Test-Path` against `DSH_FILES\dsh-search` → `False`.
+- **No document names either root**: searching the repository for `DSH_FILES` and `DSH_PLUGINS` returns
+  nothing, so there was no stale absolute path to repair — the move cost the repository no edit but this
+  entry.
+
+The three commands AGENTS.md §5 lists, plus the parse of the module it does not name, run from the new path:
+
+```
+$ node --check index.js bing.js     → exit 0
+$ node --check article.js           → exit 0   (not in the §5 list; see below)
+$ node --test --test-isolation=none tests/*.test.mjs
+                                    → ℹ tests 51   ℹ pass 51   ℹ fail 0   ℹ cancelled 0   ℹ skipped 0
+$ node scripts/mutation-scan.mjs    → 36 mutation(s): 36 killed, 0 not   → mutation scan passed
+$ node scripts/check.mjs            → check passed → exit 0
+```
+
+Noticed and **not** fixed here, because this change is a move: AGENTS.md §5's parse line names
+`index.js bing.js` and not `article.js`, which joined the bundle in 0.4.0. The command passes without it —
+`article.js` is parsed as a side effect of any test that imports it — but the list is one file short and the
+next edit to that section should add it.
+
 ## 2026-11-15 — the retry that the number refused
 
 A live demonstration turned up two `Fetching https://github.com/FrozenYty/dsh-search failed: TypeError:
