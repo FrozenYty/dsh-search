@@ -45,7 +45,7 @@ contributor.
 
 | Job | Command | Fix |
 |---|---|---|
-| Modules parse | `node --check index.js bing.js` | repair the syntax error |
+| Modules parse | `node --check index.js bing.js article.js` | repair the syntax error |
 | Unit tests | `node --test --test-isolation=none tests/*.test.mjs` | fix the behaviour, not the assertion |
 | Mutation scan | `node scripts/mutation-scan.mjs` | strengthen the test that should have failed; never delete the mutation |
 | Repository checks | `node scripts/check.mjs` | read the reported file and key |
@@ -69,7 +69,13 @@ always a test; a mutation is removed only when the line it breaks is gone.
   an absolute machine path;
 - **one search sends exactly one request, to `cn.bing.com`, and never to `www.bing.com` or
   `api.deepseek.com`** — asserted at the request layer with a stubbed `fetch`, which is acceptance item 3
-  in its offline form.
+  in its offline form;
+- every `node --check` line in these documents and in the workflows names exactly the modules `files`
+  publishes, because a published module nothing parses is a published module nothing reads;
+- each README's introduction names both provider ids, read out of `bing.js` and `article.js` rather than
+  written into the check;
+- `package.json`'s version is the one both READMEs state and the one the newest changelog section names;
+- both README layout tables carry a row for every non-glob entry in `files`.
 
 It cannot prove that the plugin activates in a profile, or that the live endpoint answers. Those are
 manual steps: the first needs an install, the second the network.
