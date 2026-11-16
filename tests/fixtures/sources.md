@@ -58,3 +58,8 @@ headers cannot drift from the ones the bundle uses. Compare mode exits non-zero 
 fewer sources than its stored fixture; a page that parses to more is reported, not failed. `--write` is the
 step after you have read the page: a fixture that no longer parses is the alarm, and editing the parser to
 suit a fresh page without saying so in the commit message is how the alarm gets silenced.
+
+`--via` is the runner's flag, not a local one. A GitHub runner is answered `cn.bing.com → www.bing.com` and
+needs `--via www.bing.com`; a network answered the other way (`www.bing.com → cn.bing.com`) turns every
+fixture into a redirect the provider refuses by design (`docs/adr/0001-cn-bing-html-endpoint.md`), so the
+plain run is the one that checks them.

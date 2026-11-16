@@ -4,6 +4,81 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — a redirected `--via` run is not a regression
+
+`--via` was added for a GitHub runner, which is answered `cn.bing.com → www.bing.com` (2026-11-14, below).
+This network is answered the other way, so the same flag has every fixture's request redirected back to the
+endpoint — and the provider refuses a redirect by design (ADR 0001). The tool read that refusal as a parse
+failure, which is an accusation the parser had not earned:
+
+```
+$ node scripts/fixture-refresh.mjs --via www.bing.com
+endpoint: the provider's own request, rewritten in transit to www.bing.com, one per fixture
+  bing-deepseek-harness.html
+    query: deepseek harness
+    live: FAILED — Bing answered HTTP 302 for https://cn.bing.com/search?q=deepseek+harness; it redirects to https://cn.bing.com/search?q=deepseek+harness, and this provider follows no redirect (ADR 0001).
+  bing-node-fetch-redirect.html
+    query: node fetch redirect manual
+    live: FAILED — Bing answered HTTP 302 for https://cn.bing.com/search?q=node+fetch+redirect+manual; it redirects to https://cn.bing.com/search?q=node+fetch+redirect+manual, and this provider follows no redirect (ADR 0001).
+  bing-dated-snippets.html
+    query: DeepSeek Harness 插件
+    live: FAILED — Bing answered HTTP 302 for https://cn.bing.com/search?q=DeepSeek+Harness+%E6%8F%92%E4%BB%B6; it redirects to https://cn.bing.com/search?q=DeepSeek+Harness+%E6%8F%92%E4%BB%B6, and this provider follows no redirect (ADR 0001).
+
+fixture refresh found a regression:
+  - bing-deepseek-harness.html: the live search threw BingSearchError: Bing answered HTTP 302 for https://cn.bing.com/search?q=deepseek+harness; it redirects to https://cn.bing.com/search?q=deepseek+harness, and this provider follows no redirect (ADR 0001).
+  - bing-node-fetch-redirect.html: the live search threw BingSearchError: Bing answered HTTP 302 for https://cn.bing.com/search?q=node+fetch+redirect+manual; it redirects to https://cn.bing.com/search?q=node+fetch+redirect+manual, and this provider follows no redirect (ADR 0001).
+  - bing-dated-snippets.html: the live search threw BingSearchError: Bing answered HTTP 302 for https://cn.bing.com/search?q=DeepSeek+Harness+%E6%8F%92%E4%BB%B6; it redirects to https://cn.bing.com/search?q=DeepSeek+Harness+%E6%8F%92%E4%BB%B6, and this provider follows no redirect (ADR 0001).
+Re-run with --write once you have read the page and know the parser is right.
+```
+
+The run exited 1, as a regression does.
+
+Nothing had regressed. The plain run — the endpoint this bundle actually uses — was healthy, and it is the
+one the refusal says to repeat:
+
+```
+$ node scripts/fixture-refresh.mjs
+endpoint: the provider's own request, one per fixture
+  bing-deepseek-harness.html
+    query: deepseek harness
+    stored fixture: 10 sources | live page: 10 sources, 3 with a date
+  bing-node-fetch-redirect.html
+    query: node fetch redirect manual
+    stored fixture: 10 sources | live page: 10 sources, 7 with a date
+  bing-dated-snippets.html
+    query: DeepSeek Harness 插件
+    stored fixture: 10 sources | live page: 10 sources, 8 with a date
+every fixture still parses to at least what it held
+```
+
+`scripts/fixture-refresh.mjs` now keeps the redirect its wrapped `fetch` saw. When `--via` is in effect and
+a fixture's live search throws with a redirect behind it, that fixture is reported as **not checked**: the
+line names the status and the target, says the provider follows none by design (ADR 0001), and says to run
+the plain command where the rewrite is redirected back. The verdict is now three counts — parsed enough /
+parsed too few or failed / could not be checked because the rewrite was redirected — and only a genuine
+shortfall keeps the non-zero exit, so the same command is honest on both networks:
+
+```
+$ node scripts/fixture-refresh.mjs --via www.bing.com
+endpoint: the provider's own request, rewritten in transit to www.bing.com, one per fixture
+  bing-deepseek-harness.html
+    query: deepseek harness
+    live: NOT CHECKED — the rewrite to www.bing.com was answered with HTTP 302 → https://cn.bing.com/search?q=deepseek+harness, and this provider follows no redirect by design (ADR 0001).
+    instead: run again without --via — where the rewrite is redirected back to the endpoint, the plain run is the one that checks the parser.
+  (… the other two fixtures, the same refusal …)
+fixture refresh via www.bing.com: 0 parsed enough, 0 parsed too few or failed, 3 could not be checked because the rewrite was redirected
+```
+
+That run exits 0: nothing was checked, and nothing failed either.
+
+The failure path was re-proved rather than assumed: with one extra `b_algo` block appended to a stored
+fixture, the plain run still exits non-zero and names both counts, and the sentence about every fixture
+parsing to at least what it held is gone from that run (the fixture was restored from git afterwards).
+
+The direction asymmetry is written where a person reads before running the tool: `tests/fixtures/sources.md`
+and the bullet that names the command in both READMEs. No version moves: `scripts/`, the fixtures'
+provenance and the READMEs are not files a profile loads (`CONTRIBUTING.md` §5).
+
 ## 2026-11-16 — the peer range, checked against every version instead of three
 
 The audit closed every claim it could reach except one: "the seam never passes more than `query` and

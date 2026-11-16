@@ -311,7 +311,10 @@ than answering with nothing, and its message names the failure, so the first ste
   `node scripts/fixture-refresh.mjs`: it re-fetches the pages the fixtures came from **through this
   provider's own request**, reports what each one parses to now, and exits non-zero when a page yields
   fewer sources than its stored fixture. Once you have read the page and know the parser is right,
-  `--write` saves it and re-dates the provenance table.
+  `--write` saves it and re-dates the provenance table. The weekly `drift.yml` job runs it with
+  `--via www.bing.com`, because a GitHub runner is answered `cn.bing.com → www.bing.com`; this machine is
+  answered `www.bing.com → cn.bing.com`, so the flag turns the check into a redirect refusal here and the
+  plain run is the correct one ([ADR 0001](docs/adr/0001-cn-bing-html-endpoint.md)).
 - `challenge page instead of results` — Bing decided this client looked automated. Retry later, or open the
   same query in a browser once; the provider keeps no session and no cookie.
 - `No results found.` — this is not a failure. Bing's page carried its own no-results marker, so the query

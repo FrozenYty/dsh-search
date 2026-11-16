@@ -27,6 +27,12 @@
  * (measured: 10 / 7 / 8 sources from `www.bing.com` against 10 / 10 / 10 here), so it fails only under a
  * structural floor rather than on a count that was never comparable.
  *
+ * A `--via` run answered by a redirect is neither a regression nor a check. The flag exists for one
+ * direction (`cn → www` on a runner); a network where the answer comes back the other way gets the rewrite
+ * redirected and the provider refuses it by design (ADR 0001), which says nothing about the parser. Those
+ * fixtures are counted apart from a page that parsed too few, so the verdict names what actually happened
+ * instead of blaming the parse for a routing direction.
+ *
  * A regression is a page that now parses to fewer sources than the stored fixture (default mode), one that
  * parses under the floor (`--via`), or one whose parse throws at all. A page that parses to *more* is
  * reported but not a failure.
@@ -55,15 +61,22 @@ const CAPTURES = [
 
 const realFetch = globalThis.fetch
 let captured
+/** The redirect a request was answered with, when it was answered with one: `{ status, location }`. */
+let redirect
 globalThis.fetch = async (url, init) => {
   const requested = String(url)
   const target = via === undefined ? requested : requested.replace(new URL(requested).host, via)
   const response = await realFetch(target, init)
   captured = await response.clone().text()
+  redirect = response.status >= 300 && response.status < 400
+    ? { status: response.status, location: response.headers.get('location') ?? 'a location it did not name' }
+    : undefined
   return response
 }
 
 const problems = []
+const unchecked = []
+let enough = 0
 console.log(
   via === undefined
     ? 'endpoint: the provider\'s own request, one per fixture'
@@ -73,6 +86,7 @@ for (const capture of CAPTURES) {
   const stored = readFileSync(join(fixtures, capture.file), 'utf8')
   const before = parseBingHtml(stored).length
   captured = undefined
+  redirect = undefined
   let after
   let fetched
   try {
@@ -80,6 +94,20 @@ for (const capture of CAPTURES) {
     after = result.sources.length
     fetched = captured
   } catch (error) {
+    if (via !== undefined && redirect !== undefined) {
+      unchecked.push(capture.file)
+      console.log(`  ${capture.file}`)
+      console.log(`    query: ${capture.query}`)
+      console.log(
+        `    live: NOT CHECKED — the rewrite to ${via} was answered with HTTP ${redirect.status} → `
+        + `${redirect.location}, and this provider follows no redirect by design (ADR 0001).`,
+      )
+      console.log(
+        '    instead: run again without --via — where the rewrite is redirected back to the endpoint, '
+        + 'the plain run is the one that checks the parser.',
+      )
+      continue
+    }
     problems.push(`${capture.file}: the live search threw ${error.name}: ${error.message}`)
     console.log(`  ${capture.file}\n    query: ${capture.query}\n    live: FAILED — ${error.message}`)
     continue
@@ -89,14 +117,17 @@ for (const capture of CAPTURES) {
   console.log(`  ${capture.file}`)
   console.log(`    query: ${capture.query}`)
   console.log(`    stored fixture: ${before} sources | live page: ${after} sources, ${dated} with a date`)
+  let shortfall = ''
   if (via === undefined) {
-    if (after < before) problems.push(`${capture.file}: the live page parses to ${after} sources, the stored one to ${before}`)
+    if (after < before) {
+      shortfall = `${capture.file}: the live page parses to ${after} sources, the stored one to ${before}`
+    }
   } else if (after < STRUCTURAL_FLOOR) {
-    problems.push(
-      `${capture.file}: ${after} sources from ${via} is under the structural floor of ${STRUCTURAL_FLOOR}; `
-      + 'the parser, not the region, is the suspect',
-    )
+    shortfall = `${capture.file}: ${after} sources from ${via} is under the structural floor of `
+      + `${STRUCTURAL_FLOOR}; the parser, not the region, is the suspect`
   }
+  if (shortfall === '') enough += 1
+  else problems.push(shortfall)
   if (shouldWrite && fetched !== undefined) {
     writeFileSync(join(fixtures, capture.file), fetched)
     console.log(`    written over the stored fixture`)
@@ -119,12 +150,18 @@ if (shouldWrite) {
   console.log(`sources.md: capture dates set to ${today}`)
 }
 
+if (!shouldWrite) {
+  if (via === undefined) {
+    if (problems.length === 0) console.log('every fixture still parses to at least what it held')
+  } else {
+    console.log(`fixture refresh via ${via}: ${enough} parsed enough, ${problems.length} parsed too few or failed, `
+      + `${unchecked.length} could not be checked because the rewrite was redirected`)
+  }
+}
 if (problems.length > 0) {
   console.error('fixture refresh found a regression:')
   for (const problem of problems) console.error(`  - ${problem}`)
   console.error('Re-run with --write once you have read the page and know the parser is right.')
   process.exit(1)
 }
-console.log(shouldWrite ? 'fixtures refreshed' : via === undefined
-  ? 'every fixture still parses to at least what it held'
-  : `every fixture from ${via} still parses structurally, at least ${STRUCTURAL_FLOOR} sources each`)
+if (shouldWrite) console.log('fixtures refreshed')
