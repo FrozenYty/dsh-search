@@ -1,6 +1,6 @@
 # dsh-search
 
-[中文](README-zh.md)
+[Chinese](README-zh.md)
 
 [![ci](https://github.com/FrozenYty/dsh-search/actions/workflows/ci.yml/badge.svg)](https://github.com/FrozenYty/dsh-search/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -54,7 +54,8 @@ dsh plugin --profile <profile> add <absolute path to this repository>
 Nothing is published, and a linked working tree picks up a `git pull` on the next load — that is the whole
 update story. To hand it to a friend, send them the repository: `git clone`, or **Code → Download ZIP**,
 which is already installable because nothing here needs a build. They install that folder with either route
-above, restart the app, and the plugin list shows 搜索.
+above, restart the app, and the plugin list shows the bundle under the title **Search** in an English UI (its
+own two-character Chinese title in a Chinese one).
 
 That this package is not on npm is deliberate: the name `dsh-search` there belongs to an unrelated
 package, and this one is `private` — it is linked or installed from a file, never published
@@ -67,7 +68,7 @@ session in it — see below.
 Verification afterwards is live calls, not check output:
 
 - the patch applies with no warning about the rows it targets, and the plugin inventory lists this
-  bundle with the title **搜索** (or **Search** in an English UI);
+  bundle under the title **Search** in an English UI (a Chinese UI shows its Chinese title);
 - ask a question that needs the web in a session whose chat goes through a relay while the DeepSeek
   account balance is still zero. `web_search` should return sources with absolute URLs, where it used to
   fail with an HTTP 402 from `api.deepseek.com`;
@@ -226,7 +227,7 @@ uninstalling it cannot silently change what something else does. That is a gate 
   (`count=20/30/50`, `first=11/21/31`, the page's own "next" link with its `FPIG` hash, the same with the
   `set-cookie` values from the first response sent back **and** a `Referer`), Bing's RSS form
   (`&format=rss`) carries ten items and ignores `count` and `first` alike, and the runs used broad queries
-  (`python tutorial`, `中国 历史`) so a small result set could not be mistaken for a paging failure.
+  (`python tutorial` and a Chinese query) so a small result set could not be mistaken for a paging failure.
   **The fetch half does not retry either**, and that was measured the day after two unexplained transport
   failures: 50 requests across five hosts returned **0 transport failures**, and retrying a failure nobody
   can reproduce would be code nothing protects. The same run did find that `blog.csdn.net` answers non-2xx

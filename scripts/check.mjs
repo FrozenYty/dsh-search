@@ -18,6 +18,8 @@
  *      publishes;
  *   9. each README's introduction — everything before its first section heading — names both provider ids,
  *      read out of the modules themselves;
+ *   9b. `README.md` carries no CJK character at all: the pair is deliberate, and each half reads in its own
+ *      language;
  *  10. `package.json`'s version is the one both READMEs state and the one the newest changelog section names;
  *  11. both README layout tables carry a row for every non-glob entry in `files`.
  *
@@ -37,6 +39,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const failures = []
 const fail = (message) => failures.push(message)
+
+// What makes a document read as Chinese: CJK ideographs and the full-width punctuation that belongs to
+// them. The pair scan reads a hit as "this document carries Chinese"; the README rule reads one in the
+// English half as a mixture of two languages.
+const CJK = /[\u3000-\u303f\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]/
 
 const read = (relative) => {
   const absolute = join(root, relative)
@@ -257,7 +264,6 @@ if (patchText !== undefined) {
 // is out of scope because a decision is English-only and numbered. Every other file at the top level of
 // docs/ fails by name, so a new unpaired document cannot slip in by not being added to a list.
 const SINGLE_LANGUAGE_DOCS = new Map()
-const CJK = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/
 const LATIN_WORD = /[A-Za-z]{4,}/
 const docsDir = join(root, 'docs')
 const docNames = readdirSync(docsDir).filter((name) => name.endsWith('.md'))
@@ -448,6 +454,20 @@ for (const document of ['README.md', 'README-zh.md']) {
     if (id !== undefined && !introduction.includes(id)) {
       fail(`${document}: the introduction, everything before the first "## " heading, never names ${id} — the provider ${module} registers`)
     }
+  }
+}
+
+// 9b. The English half of the pair is monolingual.
+//
+// The two READMEs are a deliberate pair: this half is English prose and `README-zh.md` is Chinese prose, so
+// a Chinese character left in the English one — a language-link label, a UI title, a captured query — makes
+// it read as a mixture of two languages. A name stays a name, but a title the product prints in a Chinese UI
+// is described in English here and printed in `README-zh.md`, which is where that reader looks for it.
+const englishReadme = read('README.md') ?? ''
+for (const [index, line] of englishReadme.split(/\r?\n/).entries()) {
+  const found = CJK.exec(line)
+  if (found !== null) {
+    fail(`README.md:${index + 1}: carries ${JSON.stringify(found[0])}, which is not English; the English half of the pair stays monolingual — ${JSON.stringify(line.trim())}`)
   }
 }
 
