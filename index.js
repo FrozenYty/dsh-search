@@ -157,8 +157,8 @@ export function apply(ctx, config) {
     id: provider.id,
     title: 'Bing Search',
     description: {
-      en: 'No account: Bing’s result page.',
-      zh: '免账户，直读 Bing 结果页。',
+      en: 'No account, reads the page.',
+      zh: '无需账户，直读网页。',
     },
     available: () => provider.available(),
     search,

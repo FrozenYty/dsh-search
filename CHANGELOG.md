@@ -7,6 +7,14 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.5.4] - 2026-11-16
+
+- **The search half's description is a four-character couplet.** `无需账户，直读网页。` — the form asked for,
+  and it removes the one Latin word the previous wording carried (`Bing`), which the title already says. The
+  fetch half was already in that measure and is unchanged: `只交正文，不交标记。` The English stays as short as
+  it can be without turning into a riddle: `No account, reads the page.` / `Prose, not markup.`
+- No behaviour moved. The test pins both titles exactly and both descriptions non-empty in both locales.
+
 ## [0.5.3] - 2026-11-16
 
 - **The two provider descriptions say the same thing in fewer words.** The picker shows a description under
