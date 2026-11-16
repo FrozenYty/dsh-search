@@ -81,6 +81,50 @@ const CHROME = [
 const BLOCKS = /<\/?(?:p|div|section|article|main|h[1-6]|li|tr|blockquote|pre|figure|table|ul|ol|dl|dt|dd)\b[^>]*>/gi
 
 /**
+ * An element a page has marked as not to be shown: a bare `hidden`, `aria-hidden="true"`, or an inline
+ * `display:none` / `visibility:hidden`.
+ *
+ * The attribute string this is tested against stops at the tag's `>`, so `$` here is that `>`: `hidden`
+ * followed by whitespace, `/` or the end of the attributes is the attribute, while `hidden-summary` is not.
+ */
+const HIDDEN_ELEMENT = /(?:\shidden(?=[\s/>]|$)|aria-hidden\s*=\s*["']?true|style\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden))/i
+
+/** The words a page uses in an id or a class to name its own content. */
+const CONTAINER_TOKEN = /(?:^|[^a-z])(?:content|article|post|entry|story)(?:[^a-z]|$)/i
+
+/**
+ * The floor a container candidate clears before it replaces the page.
+ *
+ * The rule's risk is an index page whose `<article>` wraps a teaser: the tag is right about where one item
+ * is and wrong about the page. A candidate under a thousand characters, or carrying fewer than three
+ * paragraphs, is not an article, and the page is left exactly as it was.
+ */
+const MIN_CONTAINER_CHARS = 1000
+const MIN_CONTAINER_PARAGRAPHS = 3
+
+/** Every open tag with its attributes, skipping the quoted regions that may carry a `>`. */
+const ELEMENT_OPEN = /<([a-z][a-z0-9]*)\b((?:[^>"']|"[^"]*"|'[^']*')*)>/gi
+
+/** Tags that open and close in one tag, so nothing follows one to remove. */
+const VOID_ELEMENTS = new Set([
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr',
+])
+
+/**
+ * Whole lines that are a page's furniture wherever they appear.
+ *
+ * After the chrome is gone these are what is left of a page's own interface: a skip link, the stale-session
+ * notices, a dismiss control and a repository's file-tree heading. A line goes only when the whole of it
+ * matches, so a sentence that merely opens with "Skip to" survives.
+ */
+const DROP_LINES = [
+  /^Skip to [\w ]{0,40}$/i,
+  /^You (?:signed in|signed out|switched accounts) (?:with|on) (?:another|the) .{0,40}(?:tab or window).*$/i,
+  /^Dismiss alert$/i,
+  /^Folders and files$/i,
+]
+
+/**
  * Remove one tag's elements, contents included.
  *
  * @param {string} html - the markup.
@@ -90,6 +134,142 @@ const BLOCKS = /<\/?(?:p|div|section|article|main|h[1-6]|li|tr|blockquote|pre|fi
 function removeElements(html, tag) {
   const pattern = new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}>|<${tag}\\b[^>]*\\/>`, 'gi')
   return html.replace(pattern, ' ')
+}
+
+/**
+ * The offset just past the element that opens at `start`, or undefined when it never closes.
+ *
+ * A non-greedy same-tag match stops at the first closing tag of that name, which is exact for the elements
+ * that do not nest — but a wrapper that does would be cut short, and a page cut mid-element has no closing
+ * tag at all. Counting the tag's own opens and closes keeps both cases honest: the caller gets a whole
+ * element, or nothing to use.
+ *
+ * @param {string} html - the markup.
+ * @param {number} start - the offset of the element's open tag.
+ * @param {string} tag - the lower-case tag name.
+ * @returns {number|undefined} the offset just past the element, or undefined.
+ */
+function elementEnd(html, start, tag) {
+  const open = html.indexOf('>', start)
+  if (open === -1) return undefined
+  if (VOID_ELEMENTS.has(tag) || /\/\s*>$/.test(html.slice(start, open + 1))) return open + 1
+  const pattern = new RegExp(`<${tag}\\b[^>]*>|</${tag}\\s*>`, 'gi')
+  pattern.lastIndex = start
+  let depth = 0
+  let match
+  while ((match = pattern.exec(html)) !== null) {
+    if (match[0][1] === '/') {
+      depth -= 1
+      if (depth === 0) return match.index + match[0].length
+    } else if (!/\/\s*>$/.test(match[0])) {
+      depth += 1
+    }
+  }
+  return undefined
+}
+
+/**
+ * Every element in a page whose open tag `accept` approves, in document order.
+ *
+ * @param {string} html - the markup.
+ * @param {(tag: string, attributes: string) => boolean} accept - whether an open tag is a candidate.
+ * @returns {{start: number, end: number}[]} the spans of the elements that close.
+ */
+function elements(html, accept) {
+  const found = []
+  ELEMENT_OPEN.lastIndex = 0
+  let match
+  while ((match = ELEMENT_OPEN.exec(html)) !== null) {
+    const tag = match[1].toLowerCase()
+    if (!accept(tag, match[2])) continue
+    const end = elementEnd(html, match.index, tag)
+    if (end !== undefined) found.push({ start: match.index, end })
+  }
+  return found
+}
+
+/** True when an open tag's own id or class names it as content. */
+function namesContent(attributes) {
+  for (const match of attributes.matchAll(/(?:\sid|\sclass)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) {
+    if (CONTAINER_TOKEN.test(match[1] ?? match[2])) return true
+  }
+  return false
+}
+
+/** How many `<p>` elements a fragment carries. */
+function paragraphCount(fragment) {
+  return (fragment.match(/<p\b/gi) ?? []).length
+}
+
+/** The characters a fragment's `<p>` elements carry, markup and whitespace aside. */
+function paragraphChars(fragment) {
+  let total = 0
+  for (const match of fragment.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
+    total += match[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().length
+  }
+  return total
+}
+
+/**
+ * The one element a page names as its article, or undefined when it names none worth keeping.
+ *
+ * A page that says where its article is answers the question the chrome list only guesses at. Measured on
+ * the saved pages: CSDN's `<article>` is 3 407 characters of a 21 547-character delivery with 20 of the
+ * post's 20 sentences kept, the live repository page's `<article>` is 20 465 of 21 325, and MDN's `<main>`
+ * is 2 711 of 2 749 — the rail, the banner, the sidebar and the header are what the page's own markup
+ * identified as not the article.
+ *
+ * `<article>` is tried before `<main>`: the first is the page's own claim about which element is the
+ * article, while the second is a layout region that can still carry a sidebar — measured on the live
+ * repository page, where `<main>` keeps About, Stars and Contributors and `<article>` does not.
+ *
+ * A `<p>`-rich element whose id or class carries `content`, `article`, `post`, `entry` or `story` is the
+ * same claim in words, and is tried only when the tags are absent or refused by the floor.
+ *
+ * @param {string} html - the markup.
+ * @returns {string|undefined} the container's markup, or undefined when the page keeps its shape.
+ */
+function selectContainer(html) {
+  for (const tag of ['article', 'main']) {
+    const candidate = elements(html, (name) => name === tag)
+      .map(({ start, end }) => html.slice(start, end))
+      .map((fragment) => ({ fragment, chars: renderText(fragment).length }))
+      .sort((a, b) => b.chars - a.chars)[0]
+    if (candidate !== undefined && candidate.chars >= MIN_CONTAINER_CHARS
+      && paragraphCount(candidate.fragment) >= MIN_CONTAINER_PARAGRAPHS) {
+      return candidate.fragment
+    }
+  }
+  const named = elements(html, (_tag, attributes) => namesContent(attributes))
+    .map(({ start, end }) => {
+      const fragment = html.slice(start, end)
+      return { fragment, chars: renderText(fragment).length, paragraphs: paragraphChars(fragment) }
+    })
+    .filter(({ fragment, chars }) => chars >= MIN_CONTAINER_CHARS
+      && paragraphCount(fragment) >= MIN_CONTAINER_PARAGRAPHS)
+    .sort((a, b) => b.paragraphs - a.paragraphs)[0]
+  return named?.fragment
+}
+
+/**
+ * Remove, contents included, the elements a page marks as not shown.
+ *
+ * Measured: the truncated repository fixture delivers 268 characters, and 40 once the hidden stale-session
+ * notices are gone — they are the page's own statement that a reader should not be looking at them.
+ *
+ * @param {string} html - the markup.
+ * @returns {string} the markup without its hidden elements.
+ */
+function removeHiddenElements(html) {
+  const hidden = elements(html, (_tag, attributes) => HIDDEN_ELEMENT.test(attributes))
+  // An element inside another goes with it. Keeping only the outermost leaves spans that cannot overlap,
+  // which is what makes one removal pass, from the end of the page backwards, correct.
+  const outer = hidden.filter((span) => !hidden.some((other) => other.start < span.start && other.end >= span.end))
+  let text = html
+  for (const { start, end } of outer.reverse()) {
+    text = text.slice(0, start) + ' ' + text.slice(end)
+  }
+  return text
 }
 
 /**
@@ -113,7 +293,7 @@ function removeNavigationBlocks(html) {
     const all = block.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().length
     if (all === 0) return true
     let linked = 0
-    for (const match of block.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)) {
+    for (const match of block.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a\s*>/gi)) {
       linked += match[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().length
     }
     return linked / all >= 0.7
@@ -130,11 +310,30 @@ function removeNavigationBlocks(html) {
 /**
  * Extract the readable text of a page.
  *
+ * The order is the rule: the container the page itself names is chosen first, then the elements it marks as
+ * hidden go, then the containers that are never prose, then the navigation blocks, then the markup is
+ * flattened, and last the lines that are a page's furniture on their own are dropped.
+ *
  * @param {string} html - a full page.
  * @returns {string} the page's prose, in document order, capped and marked.
  */
 export function extractArticle(html) {
+  return renderText(selectContainer(html) ?? html)
+}
+
+/**
+ * The readable text of one page's markup, with the container already chosen.
+ *
+ * Separate from `extractArticle` because choosing a container needs the extraction length of each
+ * candidate, and a candidate can contain a nested one: a rule that called itself to score its own choices
+ * would not terminate.
+ *
+ * @param {string} html - the markup to read.
+ * @returns {string} the page's prose, in document order, capped and marked.
+ */
+function renderText(html) {
   let text = html.replace(/<!--[\s\S]*?-->/g, ' ')
+  text = removeHiddenElements(text)
   for (const tag of CHROME) text = removeElements(text, tag)
   text = removeNavigationBlocks(text)
   text = text.replace(BLOCKS, '\n').replace(/<[^>]*>/g, ' ')
@@ -146,6 +345,7 @@ export function extractArticle(html) {
   text = text
     .split('\n')
     .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .filter((line) => !DROP_LINES.some((pattern) => pattern.test(line)))
     .filter((line, index, lines) => line !== '' || (index > 0 && lines[index - 1] !== ''))
     .join('\n')
     .trim()
@@ -257,7 +457,8 @@ async function readPage(url, signal) {
     } catch (error) {
       if (signal?.aborted === true || isAbortError(error)) throw aborted(signal, error)
       throw new ArticleFetchError(
-        `Fetching ${current.href} failed: ${String(error)}`,
+        `Fetching ${current.href} failed: ${String(error)}. The failure was at the transport layer, `
+          + 'before the page answered, so re-issuing the call may succeed.',
         'WEB_PROVIDER_ERROR',
         { cause: error },
       )

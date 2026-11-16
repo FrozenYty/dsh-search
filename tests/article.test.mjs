@@ -1,7 +1,7 @@
 /**
  * The fetch half: what reaches the model when it fetches a page.
  *
- * The extraction tests run on three saved pages (`tests/fixtures/sources.md` records where each came from),
+ * The extraction tests run on four saved pages (`tests/fixtures/sources.md` records where each came from),
  * and they assert structure rather than exact prose: chrome gone, markup gone, the page's own sentences kept,
  * the cap marked. The request tests stub `fetch`, so the redirect policy, the non-2xx outcome and the byte
  * bound are all exercised without the network.
@@ -95,6 +95,109 @@ test('a navigation list or table goes, and one that carries sentences stays', ()
   assert.match(text, /keyless web-search provider/, 'a paragraph is a reason to keep a block')
 })
 
+test('the page itself says where its article is, and the rail around it is not read', () => {
+  const text = extractArticle(fixture('article-csdn-post.html'))
+  assert.match(text, /一句话总结/, 'the post is kept')
+  assert.ok(!text.includes('相关推荐'), 'the related rail is not the article')
+  assert.ok(!text.includes('墨衍会员'), 'the promotion banner is not the article')
+  assert.ok(text.length < 5000, `the page's own container is what is handed over; got ${text.length} characters`)
+})
+
+test('a live repository page hands over its article, not the header and the sidebar around it', () => {
+  const text = extractArticle(fixture('article-github-repo-live.html'))
+  assert.match(text, /A real result page, not an account balance/, 'the README survives')
+  assert.ok(!text.includes('Open more actions menu'), 'the header is outside the article')
+  assert.ok(!text.includes('Contributors'), 'the sidebar is outside the article')
+  assert.ok(text.length < 21000, `the article is 20 465 of that page's 21 325 characters; got ${text.length}`)
+})
+
+test('a container under the floor is a teaser, so the page keeps its shape', () => {
+  const body = `<p>${'A body sentence outside whatever the tag calls an article. '.repeat(30)}</p>`
+  const pages = [
+    `<article><p>One.</p><p>Two.</p></article>${body}`,
+    `<article><p>One.</p><p>Two.</p><p>Three.</p><p>Four.</p></article>${body}`,
+    `<div id="content"><p>One.</p><p>Two.</p></div>${body}`,
+  ]
+  for (const html of pages) {
+    const text = extractArticle(html)
+    assert.match(text, /A body sentence outside/, 'a candidate the floor refuses leaves the page alone')
+    assert.match(text, /One\./)
+  }
+})
+
+test('an element whose id names it content is the article when no tag says so', () => {
+  const prose = 'The paragraph the page named as its content is kept in full. '.repeat(20)
+  const html = `<div id="content"><p>${prose}</p><p>${prose}</p><p>${prose}</p></div>`
+    + '<div class="rail"><p>The rail prose the page did not name.</p>'
+    + '<ul><li><a href="/a">One</a></li><li><a href="/b">Two</a></li></ul></div>'
+  const text = extractArticle(html)
+  assert.match(text, /The paragraph the page named as its content/)
+  assert.ok(!text.includes('The rail prose'), 'the element outside the named container is not read')
+  assert.ok(text.length >= 1000, `the named container clears the floor; got ${text.length}`)
+})
+
+test('a nested wrapper is kept whole rather than truncated at the inner close', () => {
+  const prose = 'A sentence the article carries, long enough to clear the floor by itself. '.repeat(6)
+  const inner = `<div id="content"><p>${prose}</p><p>${prose}</p><p>${prose}</p></div>`
+  const html = `<div id="content">${inner}<p>The tail after the nested wrapper survives.</p></div>`
+    + '<div class="rail"><p>The rail the page did not name.</p></div>'
+  const text = extractArticle(html)
+  assert.match(text, /The tail after the nested wrapper survives/, 'the whole wrapper, not its first close')
+  assert.ok(!text.includes('The rail the page did not name'), 'the outer wrapper is the one chosen')
+})
+
+test('an XHTML-style anchor closer still measures the anchor text', () => {
+  const html = '<ul><li><a href="/a">Alpha</a ></li><li><a href="/b">Beta</a ></li>'
+    + '<li><a href="/c">Gamma</a ></li></ul><p>The body the page carries.</p>'
+  const text = extractArticle(html)
+  assert.ok(!text.includes('Alpha'), 'the link list is navigation, whether its closer carries a space or not')
+  assert.match(text, /The body the page carries/)
+})
+
+test('an element a page hides is not read, and an attribute that merely starts with hidden is', () => {
+  const text = extractArticle(fixture('article-github-repo.html'))
+  assert.ok(!text.includes('You signed in'), 'the stale-session notice is hidden')
+  assert.ok(!text.includes('You switched accounts'), 'and so are its two siblings')
+  assert.ok(text.length < 100, `what is left of that page is small; got ${text.length} characters`)
+
+  const inline = [
+    '<div hidden>bare hidden</div>',
+    '<div aria-hidden="true">aria hidden</div>',
+    '<div style="display: none">display none</div>',
+    '<div style="visibility:hidden">visibility hidden</div>',
+    '<div class="hidden-summary"><p>A class that merely starts with hidden stays.</p></div>',
+  ].join('')
+  const kept = extractArticle(inline)
+  assert.ok(!kept.includes('bare hidden'), 'a bare hidden attribute')
+  assert.ok(!kept.includes('aria hidden'), 'aria-hidden="true"')
+  assert.ok(!kept.includes('display none'), 'display:none')
+  assert.ok(!kept.includes('visibility hidden'), 'visibility:hidden')
+  assert.match(kept, /A class that merely starts with hidden stays/)
+})
+
+test("a line that is the page's own furniture goes, and a sentence is not touched", () => {
+  const html = [
+    '<p>Skip to content</p>',
+    '<p>You signed in with another tab or window. Reload to refresh your session.</p>',
+    '<p>Dismiss alert</p>',
+    '<p>Folders and files</p>',
+    '<p>Skip to the end of the argument, which is a sentence and not a skip link.</p>',
+  ].join('')
+  const text = extractArticle(html)
+  assert.ok(!text.includes('Skip to content'), 'a bare skip link is furniture')
+  assert.ok(!text.includes('You signed in with another tab'), 'the stale-session line is furniture')
+  assert.ok(!text.includes('Dismiss alert'))
+  assert.ok(!text.includes('Folders and files'))
+  assert.match(text, /Skip to the end of the argument/, 'a line the whole-line patterns do not cover stays')
+
+  // The same rule on the saved page: the container rule leaves 40 characters there, and the two lines it
+  // still owes are the page's furniture.
+  const leftover = extractArticle(fixture('article-github-repo.html'))
+  assert.ok(!leftover.includes('Skip to content'))
+  assert.ok(!leftover.includes('Dismiss alert'))
+  assert.ok(leftover.length < 40, `the last lines of that page are furniture; got ${leftover.length} characters`)
+})
+
 test('a capped extraction says so instead of looking complete', () => {
   const sentence = 'A page that loses its tail says so, which is what keeps it from looking complete. '
   const html = `<p>${sentence.repeat(400)}</p>`
@@ -184,4 +287,23 @@ test('a URL this provider cannot fetch is named rather than attempted', async ()
   await assert.rejects(() => provider.fetch({ url: '   ' }), /A fetch needs a URL/)
   await assert.rejects(() => provider.fetch({ url: 'not a url' }), /is not a URL/)
   await assert.rejects(() => provider.fetch({ url: 'ftp://example.com/file' }), /only http\(s\) destinations/)
+})
+
+test('a transport failure says where it failed, offers the re-issue, and keeps its cause', async () => {
+  const cause = new TypeError('fetch failed')
+  const { calls, stub } = queuedFetch([() => { throw cause }])
+  await withFetch(stub, async () => {
+    await assert.rejects(
+      () => new ArticleFetchProvider().fetch({ url: 'https://example.com/unreachable' }),
+      (error) => {
+        assert.ok(error instanceof ArticleFetchError)
+        assert.equal(error.code, 'WEB_PROVIDER_ERROR')
+        assert.equal(error.cause, cause, 'the transport failure is preserved as the cause')
+        assert.match(error.message, /transport layer/, 'the message names the layer that failed')
+        assert.match(error.message, /re-issuing the call may succeed/, 'and says what the caller can do')
+        return true
+      },
+    )
+    assert.equal(calls.length, 1, 'a re-issue is the caller\'s decision: the provider does not retry')
+  })
 })

@@ -4,6 +4,101 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — four extraction rules, and the retry that stayed refused
+
+`article.js` was handing a page's chrome over with its prose, and an investigation measured what was left:
+as much as 82 % of one delivery was anchor text, and markup a page marks as hidden arrived anyway. It
+proposed four rules that are each one sentence long rather than a readability engine, and all four are in —
+no new dependency, no new import: `article.js` still imports `./bing.js` and nothing else. Each rule has a
+test that fails without it and a mutation that proves the test notices; the mutation scan grows from 36 to
+41 (the four rules and the transport message), all killed.
+
+**What each page delivers now.** "Before" is 0.4.1's extractor on the saved fixture, "after" is the whole
+pipeline, and the last column is the rule that acts, measured from the same before.
+
+| Fixture | Before | After | The rule that acts |
+|---|---:|---:|---|
+| `article-csdn-post.html` | 21 547 | 3 407 | the container: `<article>` |
+| `article-github-repo.html` | 268 | 8 | hidden elements 268 → 40, then whole lines 40 → 8 |
+| `article-mdn-fetch.html` | 2 749 | 2 650 | the container: `<main>` 2 749 → 2 711, then the anchor closer → 2 650 |
+| `article-github-repo-live.html` | 21 325 | 20 465 | the container: `<article>` |
+
+Rule 1, the container: 3 407 of the CSDN page's 21 547 characters with **20 of the post's 20 sentences
+kept** — the rail, the promotion banner and the sidebar are outside the `<article>`; the live repository
+page 20 465 of 21 325, with the README intact and About/Stars/Contributors gone; MDN 2 711 of 2 749 through
+its `<main>`. The floors are the guard, and a page with neither a container tag nor a token match is left
+alone — the truncated repository fixture is such a page.
+
+Rule 2, `</a\s*>` in the link-density measurement: the MDN fixture 2 749 → 2 650 on its own, no body
+sentence lost. Its menu writes `</a >` 118 times against 80 `</a>`, which is why the menu measured as zero
+anchor text and stayed.
+
+Rule 3, visibility: the truncated repository fixture 268 → 40 characters, the three stale-session notices
+gone. On CSDN it moves 21 547 → 21 525 and on the live page 21 325 → 21 016 on its own; the investigation's
+table said −978 and −192 for those two, and this rule as specified does not reproduce those numbers: it
+removes an element only when its *own* open tag carries the marker, and most of CSDN's 31
+`aria-hidden="true"` attributes sit on `<svg>` icons the chrome stage already removes. The fixture's
+268 → 40 reproduces exactly, and a synthetic test covers all three attribute forms plus a class that merely
+starts with `hidden`.
+
+Rule 4, whole lines: five lines off the live GitHub page on its own (21 325 → 21 120) — `Skip to content`,
+two stale-session notices, `Dismiss alert`, `Folders and files`; four lines off the truncated fixture
+(268 → 82) and two off MDN (2 749 → 2 711). In the composed pipeline the container has already excluded
+those lines on the live page and MDN, so the rule's delivered effect there is 0; it earns its place on
+pages with no container at all, where the truncated fixture goes 40 → 8.
+
+**One adjustment against the brief.** Choosing the longest of `<article>` and `<main>` gave the live
+repository page 21 020 characters, because its `<main>` is longer than its `<article>` — but that `<main>`
+still carries About, Stars, Watchers and Contributors, while the `<article>` does not. The tags are tried
+`<article>` first and `<main>` as the fallback, which reproduces the measured 20 465 and is what the code
+comment records. The wording was "the candidate whose extraction is longest"; the measurement is the better
+authority here, and 20 465 is the investigation's own number.
+
+**The transport message.** The failure branch in `readPage` now appends one sentence: the failure was at the
+transport layer, before the page answered, so re-issuing the call may succeed. **No retry was added**: 50
+requests across five hosts produced 0 transport failures, and this bundle has no logging surface, so a
+retry's frequency would be unobservable — a feature nobody could ever confirm was helping. A caller that
+wants one re-issues the call, which the seam already allows. That branch had no test at all before this;
+one now makes `fetch` reject and requires `WEB_PROVIDER_ERROR`, the cause preserved, and the sentence.
+
+A fourth page fixture is in `tests/fixtures/`: `article-github-repo-live.html`, 332 612 characters captured
+on 2026-11-16 — the same repository page uncut, header, sidebar and the whole README — with its provenance
+in `tests/fixtures/sources.md`. The container rule is measured on it rather than argued about.
+
+The gates, run from the repository root:
+
+```
+$ node --check index.js bing.js article.js
+(no output; exit 0)
+
+$ node --test --test-isolation=none tests/*.test.mjs
+ℹ tests 60
+ℹ suites 0
+ℹ pass 60
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+
+$ node scripts/mutation-scan.mjs
+killed    container-rule-disabled               the page itself says where its article is, and the rail around it is not read
+killed    anchor-closer-loses-the-space         an XHTML-style anchor closer still measures the anchor text
+killed    hidden-elements-are-kept              an element a page hides is not read, and an attribute that merely starts with hi
+killed    ui-lines-are-kept                     a line that is the page's own furniture goes, and a sentence is not touched
+killed    transport-failure-loses-the-offer     a transport failure says where it failed, offers the re-issue, and keeps its cau
+
+41 mutation(s): 41 killed, 0 not
+mutation scan passed
+
+$ node scripts/check.mjs
+check passed
+data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/search (docs/adr/0011-no-data-directory.md)
+```
+
+What is left undone: the extraction is still a rule and the four rules score nothing — a page that names no
+container and carries no hidden markup is read exactly as 0.4.1 read it. No live page was fetched while
+writing this; the numbers above are the saved pages, not a fresh sample.
+
 ## 2026-11-16 — the gates the drift could walk past
 
 Two rounds were lost to one class of failure: a README that kept saying "one provider" after 0.4.0 registered
