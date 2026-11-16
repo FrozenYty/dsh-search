@@ -174,30 +174,46 @@ User-Agent 是整 bundle 的一个决定，而且是诚实的那一个。在六�
   解释的传输失败之后，五个主机共 50 次请求返回了 **0 次传输失败**——重试一个没人能复现的失败，就是没人保护
   的代码。同一次测量还发现：以 40 ms 间隔循环请求 `blog.csdn.net` 时，它十次里有九次回非 2xx——那是反爬在
   正常工作，也正是"非 2xx 当结果返回、而不是抛出"的理由。
-- **真正能扩大一次调用的是工具自己的上限——前提是拥有那一行的层允许你设。** 一次 `web_search` 会把最多
-  `searchMaxQueries` 个查询（默认 4）合并成至多 `searchMaxResults` 条来源（默认 8）。这两个都住在基础 bundle
-  的 `tool-web` 行上，profile 可以提高它们——并且必须把该行的其他字段重写一遍，因为 patch 会整段替换
-  `config`：
+- **上限属于 agent preset，那才是要覆盖的行。** 一次 `web_search` 会把最多 `searchMaxQueries` 个查询（默认 4）
+  合并成至多 `searchMaxResults` 条来源（默认 8）——这两个都是 `@deepseek-ai/dsh-tool-web` 的 schema 默认值。
+  宿主里那条 `tool-web` 行**被 web 应用禁用了**，而会话真正跑的 `web_search` 是会话所属 agent preset 的一个
+  子项，声明里只有 `fetch` 与 `searchTimeoutMs`、没有上限——所以在 profile 里写一行 `- id: tool-web`，合成出来
+  是 24，工具实测仍是 8：preset 的子项不是加载器的树行，patch 根本到不了它。能被寻址的行是 preset 声明本身，
+  覆盖它就必须把它的 `config` **整段**重写（`id`、`order` 以及完整的 `plugins:` 列表），因为 patch 对 `config`
+  是整体替换，而 preset 是整份注册的——只点名一个子项的 config，会把它没写到的子项全部丢掉：
 
   ```yaml
-  - id: tool-web
+  # 照抄应用里 presets/standard.patch.yml 那一行的完整 config，只改一个子项。
+  # 不是可以只粘贴一半的片段：`plugins:` 必须逐条列全，`!!js` 表达式也要
+  # 保留，否则那个工具会从这个 preset 里消失。
+  - id: preset-standard
     config:
-      fetch: true
-      searchTimeoutMs: 60000
-      searchMaxResults: 24
+      id: standard
+      order: 1
+      plugins:
+        # …… 照抄发布列表里的每一个子项，然后只改这一处：……
+        - id: tool-web
+          name: '@deepseek-ai/dsh-tool-web'
+          config:
+            fetch: true
+            searchTimeoutMs: 60000
+            searchMaxResults: 24
+        # …… 以及列表里其余的部分 ……
   ```
 
-  但**更靠后的一层 patch 也会整段替换同一行的 `config`**，于是这个值一声不响地退回默认。桌面 profile 正是
-  如此：应用自带的 preset patch 用 `fetch` 和 `searchTimeoutMs` 重述了 `tool-web`，所以上面这段配置能正确合成
-  ——用加载器自己的 `composeEntries` 跑这个 profile 的各层，解析出来就是 24——而工具实测仍是 8。这种情况下
-  管用的是问法而不是上限：一次调用里问两三个子问题才真正撒开网，想看得更多就再调一次 `web_search`。
+  应用自带的四个 preset 里有三个声明了这个子项——`preset-standard`（`standard`）、`preset-ptc`（`ptc`）与
+  `preset-cordis`（`cordis`）；`preset-minimal` 根本没有 `tool-web`——所以会话若用的是另一个 preset，就要对
+  那一行做同样的覆盖。改动只对**下一个创建的 Agent** 生效，对已经跑着的会话无效。一次调用里问两三个子问题
+  依然是撒开网的办法，想看更多就再调一次 `web_search`。想确认它生效了：工具**只在能力缝截断时**才追加
+  `(Showing the first N sources…)`，所以那行消失就是改动生效了。层序、出处，以及为什么 profile 里那一行够不着
+  这个子项，都写在 `docs/adr/0012-the-cap-lives-in-the-agent-preset.md`。
 - **五分钟内解析过的页面会再次作答。** 五分钟、最多 32 个页面、最先淘汰最久没被问到的那个，失败则从不记住——
   验证码页要的是重试，不是"被封过"的记忆（`docs/adr/0008-reusing-a-recent-page.md`）。这是唯一一种不花请求
   的搜索；这一节其余每一条依然成立。
 
-  profile 在**加载时**读它的 patch，所以运行中的 Host 会一直用旧数字，直到重启——除非它的 `package.json` 里
-  设了 `dsh.profile.patchReload: live`（那样文件会被监听）。想判断现在是哪个上限在生效：工具**只在能力缝截断
-  时**才追加 `(Showing the first N sources…)`，所以那行消失就是改动生效了。
+  改 profile 的 patch 文件不需要重启：已启用的 `hmr` 行在监听这些文件，文件一变就重新合成该 profile。（这个
+  构建根本不读 `dsh.profile.patchReload`。）但重新合成到不了 agent preset：它是在**创建 Agent 时**展开的，
+  所以已经在跑的会话保持它启动时的组合，新组合属于下一个 Agent。
 - **如果某条结果的链接被 Bing 包进自己的跳转**（`cn.bing.com/ck/a?…`），返回的会是那个跳转 URL 而不是
   拆开后的目标。实测的 80 条结果里一次都没出现，所以解析器不做拆解；测量记在 `PLAN.md`。
 - **查询操作符是提示，不是过滤器。** 在这个端点上实测：单独用 `site:github.com` 十条结果全部被遵守；
@@ -285,6 +301,7 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 | 对 Claude Code、Codex、PI 与各家抓取器的调研得出了什么，又拒绝了哪些改进 | `docs/adr/0009-the-survey-and-its-refusals.md` |
 | 为什么本 bundle 自己拥有 `web_fetch` 而不再复用随附 provider | `docs/adr/0010-the-other-half-of-the-result.md` |
 | 这个插件把我的数据放在哪里？ | `docs/adr/0011-no-data-directory.md`——它不存任何数据，`node scripts/check.mjs` 会把这句话打出来 |
+| 为什么抬高搜索上限要改 agent preset，而不是 `tool-web` 行？ | `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` |
 | 验证了什么，输出是什么 | `PROGRESS.md` |
 | 还有什么没被证明 | `PLAN.md` |
 

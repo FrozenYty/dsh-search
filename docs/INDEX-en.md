@@ -39,6 +39,7 @@ README.md  ->  PLAN.md  ->  PROGRESS.md  ->  docs/architecture-en.md  ->  the AD
 | What did the survey of Claude Code, Codex, PI and the scrapers find — and what did it refuse to build? | `docs/adr/0009-the-survey-and-its-refusals.md` | English |
 | Why does the bundle own `web_fetch` instead of reusing the shipped provider? | `docs/adr/0010-the-other-half-of-the-result.md` | English |
 | Where does this plugin keep my data, and where would a future cache go? | `docs/adr/0011-no-data-directory.md` | English |
+| Why can't a profile raise the search cap on the `tool-web` row? | `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` | English |
 | How do we branch, commit and merge? | `CONTRIBUTING.md` | English |
 | What are an assistant's rules here? | `AGENTS.md` | English |
 

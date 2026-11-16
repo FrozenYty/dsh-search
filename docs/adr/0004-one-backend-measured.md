@@ -4,6 +4,10 @@
 - **Supersedes:** the *endpoint alternatives* table in ADR 0001 (the decision itself stands)
 - **Related:** ADR 0001 (endpoint), ADR 0003 (frozen ids)
 
+> Two clauses here have since been superseded, and the argument below is left as it was written: ADR 0008
+> supersedes the no-caching clause, and ADR 0010 supersedes the clause that left the fetch half to the
+> shipped provider. The decision itself — one measured search backend — stands.
+
 ## Context
 
 ADR 0001 chose Bing's HTML result page after measuring the engines available at the time. Since then the
