@@ -263,7 +263,10 @@ Bing 的结果页迟早会变。页面不再匹配时，provider 会**大声失�
 
 - `no parseable result block … shape may have changed` —— 标记结构变了。跑 `node scripts/fixture-refresh.mjs`：
   它会用**这个 provider 自己的请求**重新抓 fixtures 记录的那些页面，报告每个页面现在解析出多少条，并在某页比保存的
-  fixture 少时以非零码退出。读过页面、确认解析器没错之后，用 `--write` 把它存下来并更新来源表的抓取日期。
+  fixture 少时以非零码退出。读过页面、确认解析器没错之后，用 `--write` 把它存下来并更新来源表的抓取日期。每周的
+  `drift.yml` 跑的是带 `--via www.bing.com` 的那一次，因为 GitHub runner 收到的方向是
+  `cn.bing.com → www.bing.com`；这台机器收到的方向相反（`www.bing.com → cn.bing.com`），同一个开关在这里只会
+  换来一次重定向拒绝，所以本机该跑不带开关的那一次（[ADR 0001](docs/adr/0001-cn-bing-html-endpoint.md)）。
 - `challenge page instead of results` —— Bing 认为这个客户端像自动化程序。过一会儿再试，或者用浏览器打开
   同一个查询一次；这个 provider 不保持任何会话和 cookie。
 - `No results found.` —— 这不是失败。Bing 的页面带着它自己的"没有相关结果"标记，所以这个查询以空列表作答，
