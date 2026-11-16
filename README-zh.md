@@ -9,8 +9,9 @@
 > 真正的结果页，不是账户余额。
 
 一个 DeepSeek Harness 的 profile bundle：给 `web_search` 换上一个不需要 API key、不看账户余额、也不发
-模型调用的搜索后端。它向 web 能力缝注册一个 provider，并把能力缝的搜索那一半指向它——于是当随附
-provider 背后的账户余额耗尽时，搜索仍然可用；而那正是"聊天能用、搜索全断"的故障。
+模型调用的搜索后端。它把 web 能力缝的**两半**都接管了：`bing-html` 搜 Bing 的公开结果页，`article` 让
+`web_fetch` 拿到页面的正文而不是它的标记。于是当随附 provider 背后的账户余额耗尽时，搜索仍然可用——那
+正是"聊天能用、搜索全断"的故障——而抓取一个页面花的上下文是它的文章，不是它的导航。
 
 [github.com/FrozenYty/dsh-search](https://github.com/FrozenYty/dsh-search)
 
@@ -61,7 +62,7 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 - 在一个聊天走中转、且 DeepSeek 账户余额仍为 0 的会话里问一个需要联网的问题。`web_search` 应当返回带
   绝对 URL 的来源，而它此前会以 `api.deepseek.com` 的 HTTP 402 失败；
 - 证明"是它而不是随附 provider"的标志：搜索不再提到 `api.deepseek.com`；而用 `web_fetch` 打开返回的
-  链接仍然可用，因为本 bundle 没有碰能力缝的抓取那一半。
+  链接，拿到的是页面正文（本 bundle 的 `article` provider 抽取出来的），不是它的导航。
 
 想停用它，在 profile 自己的 `cordis.patch.yml` 里覆盖同一行即可——那一层在本 bundle 之后应用，优先级
 更高：
@@ -232,7 +233,7 @@ Bing 的结果页迟早会变。provider 会**大声失败**而不是回一个�
 
 ```sh
 npm install                       # 入口测试要加载的能力缝；bundle 本身不装任何东西
-node --check index.js bing.js
+node --check index.js bing.js article.js
 node --test --test-isolation=none tests/*.test.mjs
 node scripts/mutation-scan.mjs
 node scripts/check.mjs
