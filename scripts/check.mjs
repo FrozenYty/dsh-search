@@ -399,11 +399,12 @@ if (!existsSync(fixturePath)) {
 //
 // The incident: 0.4.0 published `article.js`, and `node --check index.js bing.js` stayed in CI and in
 // `CONTRIBUTING.md` — a published module nothing parsed, because nothing compared the command with the
-// manifest. `files` is the inventory, so the modules it publishes are the set a parse line must name.
+// manifest. The pull request template carried the same stale example. `files` is the inventory, so the
+// modules it publishes are the set a parse line must name.
 const runtimeModules = (manifest?.files ?? []).filter((entry) => entry.endsWith('.js') && !entry.includes('*'))
 const workflowDir = join(root, '.github', 'workflows')
 const parseDocuments = [
-  'README.md', 'README-zh.md', 'AGENTS.md', 'CONTRIBUTING.md',
+  'README.md', 'README-zh.md', 'AGENTS.md', 'CONTRIBUTING.md', '.github/PULL_REQUEST_TEMPLATE.md',
   ...(existsSync(workflowDir)
     ? readdirSync(workflowDir).filter((name) => /\.ya?ml$/.test(name)).map((name) => `.github/workflows/${name}`)
     : []),

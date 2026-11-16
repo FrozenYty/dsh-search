@@ -50,6 +50,10 @@ Four of those eight are a miss in the brief this change was written from: it nam
 row as the whole of the red, and both tables were also missing the README pair. Fixed by adding the rows, not
 by narrowing the check to the entries the brief happened to name.
 
+`.github/PULL_REQUEST_TEMPLATE.md` carries the same parse command as example prose and was outside the file
+list this check first scanned; it is scanned now and its line is fixed in a follow-up commit, so its failure
+is not in the output above.
+
 9 was already green on this tree, so it was proved by deleting `article` from `README-zh.md`'s introduction —
 where the id still appears three sections further down, which is why the whole-file version of this check
 would not have noticed — and then restoring it:

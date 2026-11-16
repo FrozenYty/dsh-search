@@ -6,7 +6,7 @@
 
 ## How it was verified
 
-<!-- The commands you ran and their real output. `node --check index.js bing.js`,
+<!-- The commands you ran and their real output. `node --check index.js bing.js article.js`,
      `node --test --test-isolation=none tests/*.test.mjs`, `node scripts/check.mjs`.
      If the change touches the request or the parse, say which acceptance item in PLAN.md it moves and
      what the manual run printed. -->
