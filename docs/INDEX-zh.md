@@ -38,6 +38,7 @@ README.md  ->  PLAN.md  ->  PROGRESS.md  ->  docs/architecture-en.md  ->  与你
 | 对 Claude Code、Codex、PI 与各家抓取器的调研得出了什么，又拒绝了哪些改进？ | `docs/adr/0009-the-survey-and-its-refusals.md` | 英文 |
 | 为什么本 bundle 自己拥有 `web_fetch` 而不再复用随附 provider？ | `docs/adr/0010-the-other-half-of-the-result.md` | 英文 |
 | 这个插件把我的数据放在哪里？将来的磁盘缓存会放在哪里？ | `docs/adr/0011-no-data-directory.md` | 英文 |
+| 为什么在 profile 里改 `tool-web` 行抬不动搜索上限？ | `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` | 英文 |
 | 分支、提交、合并怎么做？ | `CONTRIBUTING.md` | 英文 |
 | 助手在这里要守什么规矩？ | `AGENTS.md` | 英文 |
 

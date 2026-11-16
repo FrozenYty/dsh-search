@@ -4,6 +4,69 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the cap lives in the agent preset, and the READMEs said otherwise
+
+Both READMEs told a reader to raise `searchMaxResults` by overriding the base bundle's `tool-web` row, and the
+2026-11-13 entry below already recorded the symptom: the value composes to 24 and the tool still measures 8.
+What was missing was the reason, and it makes the passage wrong rather than incomplete — the row a profile
+writes is not the row a session runs. A five-stream read of the installed 0.2.2-rc.1 build found it.
+
+Measured from the installed application:
+
+- **The layer order**, at `app.asar/dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:1908-1917`: every
+  bundle patch in `dsh.profile.bundles` order, then the profile's own `cordis.patch.yml`, then
+  `$DSH_HOME/cordis.patch.yml`, then `--patch` overlays.
+- **A non-insert patch replaces the keys it names and merges nothing** (`…/dsh-app-boot/lib/index.js:505-555`):
+  `config` is replaced wholesale, and the row it targets is looked up in a map built from **tree rows only** —
+  `applyPatches` descends into an entry carrying `group: true` whose `config` is an array, and nowhere else. A
+  mismatched `name` makes the patch skip with a warning.
+- **The host `tool-web` row is disabled by the web app** (`…/dsh-web-app/cordis.patch.yml:583-584`; the row is
+  inserted by `…/dsh-base/cordis.patch.yml:486-490`).
+- **The `web_search` a session runs is a child of that session's agent preset**
+  (`…/dsh-web-app/presets/standard.patch.yml:118-122`: `fetch` and `searchTimeoutMs`, no cap), so the plugin's
+  schema default applies — `searchMaxResults: z.number().default(8)` (`…/dsh-tool-web/lib/index.js:877-885`).
+  The same child is declared by `presets/ptc.patch.yml:120-124` and `presets/cordis.patch.yml:117-121`.
+  `presets/minimal.patch.yml` declares no `tool-web` at all — four shipped presets, three with the child, which
+  the brief for this change did not say and the documents now do.
+- **A preset child is not a loader row**, which is the whole failure: a profile `- id: tool-web` finds the
+  disabled host row, composes cleanly to 24, and reaches nothing.
+- `dsh.profile.patchReload` **occurs nowhere in the application**: a plain-text scan of the whole 213 MB
+  `app.asar` finds no occurrence, while the enabled `hmr` row (`…/dsh-base/cordis.patch.yml:27-32`) watches the
+  profile's patch files and recomposes.
+
+What changed, all of it documents:
+
+- `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` — new, accepted: the layer order with citations, the
+  disabled host row, the preset child that really mounts `web_search`, why a profile `tool-web` row composes to
+  24 and cannot change the cap, the supported procedure (override the preset row and restate its complete
+  `config`), which presets declare the child, and that the new cap applies to the next Agent created. It
+  supersedes nothing; it explains a composition this repository documented wrongly.
+- Both READMEs: the "what widens a call" passage and its YAML block are replaced with that explanation and a
+  correct example; the stale `dsh.profile.patchReload: live` claim is replaced by the `hmr` row and the
+  preset-expansion timing. The sub-query advice and the truncation-marker tell are kept, because both are still
+  true.
+- `docs/INDEX-en.md` and `INDEX-zh.md`: a row for 0012, and both README tables carry it too.
+- `docs/adr/0004-one-backend-measured.md`: two lines at the top naming what 0008 and 0010 superseded. Its
+  argument is untouched.
+
+No version moved: nothing a profile loads changed.
+
+```
+$ node scripts/check.mjs
+check passed
+data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/search (docs/adr/0011-no-data-directory.md)
+
+$ node --test --test-isolation=none tests/*.test.mjs
+ℹ tests 51
+ℹ suites 0
+ℹ pass 51
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1873.4423
+```
+
 ## 2026-11-16 — the README was the last stale document, and the plugin found it
 
 After the rule file caught up with 0.4.0, a **live check through this bundle's own fetch provider** — the

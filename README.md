@@ -203,34 +203,53 @@ installed into, for every session in it, which is why it is stated here rather t
   can reproduce would be code nothing protects. The same run did find that `blog.csdn.net` answers non-2xx
   9 times out of 10 when requested in a loop — an anti-bot behaving normally, and the reason a non-2xx
   answer comes back as a result instead of a throw.
-- **What widens a call is the tool's own caps — when the layer that owns the row lets you set them.** One
-  `web_search` merges up to `searchMaxQueries` queries (default 4) into at most `searchMaxResults` sources
-  (default 8). Both live on the base bundle's `tool-web` row, and a profile can raise them — restating the
-  row's other fields, because a patch replaces its `config` wholesale:
+- **The cap belongs to the agent preset, and that is the row to override.** One `web_search` merges up to
+  `searchMaxQueries` queries (default 4) into at most `searchMaxResults` sources (default 8) — the schema
+  defaults of `@deepseek-ai/dsh-tool-web`. The host `tool-web` row is **disabled by the web app**, and the
+  `web_search` a session runs is a child of that session's agent preset, declared with `fetch` and
+  `searchTimeoutMs` and no cap — so a profile row `- id: tool-web` composes to 24 and the tool still
+  measures 8: preset children are not loader rows, and the patch never reaches them. The addressable row is
+  the preset declaration, and overriding it means restating its **complete** `config` (`id`, `order` and the
+  whole `plugins:` list), because a patch replaces `config` wholesale and the preset is registered as a
+  whole — a config that names one child drops every child it leaves out:
 
   ```yaml
-  - id: tool-web
+  # The shipped row's complete config, copied from the app's
+  # presets/standard.patch.yml, with one child changed. Not a snippet to paste in
+  # half: `plugins:` must carry every entry, `!!js` expressions included, or that
+  # tool disappears from the preset.
+  - id: preset-standard
     config:
-      fetch: true
-      searchTimeoutMs: 60000
-      searchMaxResults: 24
+      id: standard
+      order: 1
+      plugins:
+        # … every child of the shipped list, then the one change: …
+        - id: tool-web
+          name: '@deepseek-ai/dsh-tool-web'
+          config:
+            fetch: true
+            searchTimeoutMs: 60000
+            searchMaxResults: 24
+        # … and the rest of the list …
   ```
 
-  A later patch layer that restates the same row replaces its `config` too, and the value falls back to the
-  default without a word. A desktop profile does exactly that: the app's own preset patch restates
-  `tool-web` with `fetch` and `searchTimeoutMs` only, so the snippet above composes correctly — the loader's
-  own `composeEntries` over that profile's layers resolves it to 24 — and the tool still measures 8. What
-  works in that situation is the question rather than the cap: two or three sub-queries in one call are what
-  widen the net, and a second `web_search` call is how to see more.
+  Three of the four shipped presets declare that child — `preset-standard` (`standard`), `preset-ptc`
+  (`ptc`) and `preset-cordis` (`cordis`); `preset-minimal` declares no `tool-web` at all — so a session on
+  another preset needs the same override written against that row. The change applies to the **next Agent
+  created**, not to a session already running. Asking two or three sub-queries in one call is still what
+  widens the net within one call, and a second `web_search` is how to see more. How to tell it is live: the
+  tool appends `(Showing the first N sources…)` **only when the seam truncated**, so that line disappearing
+  is the change taking effect. `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` has the layer order, the
+  citations and the reason a profile row cannot reach the child.
 - **A page parsed in the last five minutes answers again.** Five minutes, at most 32 pages, the
   least-recently-used one evicted first, and a failure never kept — a challenge page wants a retry, not a
   memory of being blocked (`docs/adr/0008-reusing-a-recent-page.md`). It is the one case where a search costs
   no request; every other clause in this list still holds.
 
-  A profile reads its patch when it loads, so a running Host keeps the old number until it restarts —
-  unless its `package.json` sets `dsh.profile.patchReload: live`, in which case the file is watched. How to
-  tell which cap is live: the tool appends `(Showing the first N sources…)` **only when the seam truncated**,
-  so that line disappearing is the change taking effect.
+  A saved edit to the profile's patch file needs no restart: the enabled `hmr` row watches those files, and
+  the profile is recomposed when one changes. (`dsh.profile.patchReload` is not read by this build at all.)
+  What no reload can reach is an agent preset: it is expanded when an Agent is created, so an existing
+  session keeps the composition it started with and the new composition is the next Agent's.
 - **A result link that Bing wraps in its own redirect** (`cn.bing.com/ck/a?…`) would be returned as that
   wrapper URL rather than unwrapped. It has not happened once in 80 measured results, so the parser does
   not unwrap; `PLAN.md` records the measurement.
@@ -334,6 +353,7 @@ session check needs the plugin enabled.
 | What did the survey of Claude Code, Codex, PI and the scrapers find — and what did it refuse to build? | `docs/adr/0009-the-survey-and-its-refusals.md` |
 | Why does the bundle own `web_fetch` instead of reusing the shipped provider? | `docs/adr/0010-the-other-half-of-the-result.md` |
 | Where does this plugin keep my data? | `docs/adr/0011-no-data-directory.md` — it keeps none, and `node scripts/check.mjs` prints that |
+| Why does raising the search cap need the agent preset instead of the `tool-web` row? | `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` |
 | What was verified, with what output | `PROGRESS.md` |
 | What is still unproven | `PLAN.md` |
 
