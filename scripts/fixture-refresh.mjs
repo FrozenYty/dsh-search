@@ -76,6 +76,8 @@ globalThis.fetch = async (url, init) => {
 
 const problems = []
 const unchecked = []
+/** Captured pages, held until every fixture has been captured: `--write` is all or nothing. */
+const refreshed = []
 let enough = 0
 console.log(
   via === undefined
@@ -128,10 +130,7 @@ for (const capture of CAPTURES) {
   }
   if (shortfall === '') enough += 1
   else problems.push(shortfall)
-  if (shouldWrite && fetched !== undefined) {
-    writeFileSync(join(fixtures, capture.file), fetched)
-    console.log(`    written over the stored fixture`)
-  }
+  if (shouldWrite && fetched !== undefined) refreshed.push([capture.file, fetched])
 }
 
 if (shouldWrite) {
@@ -144,6 +143,12 @@ if (shouldWrite) {
     for (const problem of problems) console.error(`  - ${problem}`)
     for (const skipped of unchecked) console.error(`  - ${skipped}`)
     process.exit(1)
+  }
+  // Held-back pages are written now, together with the table, so a run that could not capture everything
+  // leaves no fixture newer than the provenance that describes it.
+  for (const [file, html] of refreshed) {
+    writeFileSync(join(fixtures, file), html)
+    console.log(`  ${file}: written over the stored fixture`)
   }
   const today = new Date().toISOString().slice(0, 10)
   const path = join(fixtures, 'sources.md')
