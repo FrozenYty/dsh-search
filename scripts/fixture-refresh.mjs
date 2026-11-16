@@ -135,6 +135,16 @@ for (const capture of CAPTURES) {
 }
 
 if (shouldWrite) {
+  // A capture date is a claim that a real page was captured on that day, so it is written only when this run
+  // captured every fixture and found nothing wrong. A `--via` run whose rewrite was redirected captured
+  // nothing at all; re-dating `sources.md` there would record evidence that does not exist, which is the one
+  // mistake this repository's fixtures exist to prevent.
+  if (problems.length > 0 || unchecked.length > 0) {
+    console.error('refusing to write: this run did not capture and check every fixture, so nothing was changed')
+    for (const problem of problems) console.error(`  - ${problem}`)
+    for (const skipped of unchecked) console.error(`  - ${skipped}`)
+    process.exit(1)
+  }
   const today = new Date().toISOString().slice(0, 10)
   const path = join(fixtures, 'sources.md')
   let table = readFileSync(path, 'utf8')
