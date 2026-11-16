@@ -33,6 +33,15 @@
  * fixtures are counted apart from a page that parsed too few, so the verdict names what actually happened
  * instead of blaming the parse for a routing direction.
  *
+ * `--write` writes all or nothing, and it keeps two failures apart on purpose. A fixture whose page was
+ * never captured — the `--via` rewrite redirected, the request or the parse threw, no body came back — is a
+ * **blocker**: the whole write is refused and nothing on disk changes, because re-dating a capture that
+ * never happened is the one thing a provenance table must not do, and a partial write is worse than none. A
+ * captured page that parses to fewer sources is **not** a blocker: reading that page and accepting it is
+ * exactly what `--write` is for, so the pages and the table are written, and the exit code stays non-zero to
+ * record that the counts moved. Do not merge the two conditions into one: doing so either re-dates an
+ * uncaptured fixture or makes `--write` unable to accept the page it exists to accept.
+ *
  * A regression is a page that now parses to fewer sources than the stored fixture (default mode), one that
  * parses under the floor (`--via`), or one whose parse throws at all. A page that parses to *more* is
  * reported but not a failure.
@@ -76,6 +85,8 @@ globalThis.fetch = async (url, init) => {
 
 const problems = []
 const unchecked = []
+/** Fixtures `--write` must refuse, with the reason their page was never captured: held apart from problems. */
+const blockers = []
 /** Captured pages, held until every fixture has been captured: `--write` is all or nothing. */
 const refreshed = []
 let enough = 0
@@ -97,25 +108,30 @@ for (const capture of CAPTURES) {
     fetched = captured
   } catch (error) {
     if (via !== undefined && redirect !== undefined) {
+      const reason = `the rewrite to ${via} was answered with HTTP ${redirect.status} → `
+        + `${redirect.location}, and this provider follows no redirect by design (ADR 0001)`
       unchecked.push(capture.file)
+      blockers.push({ file: capture.file, reason })
       console.log(`  ${capture.file}`)
       console.log(`    query: ${capture.query}`)
-      console.log(
-        `    live: NOT CHECKED — the rewrite to ${via} was answered with HTTP ${redirect.status} → `
-        + `${redirect.location}, and this provider follows no redirect by design (ADR 0001).`,
-      )
+      console.log(`    live: NOT CHECKED — ${reason}.`)
       console.log(
         '    instead: run again without --via — where the rewrite is redirected back to the endpoint, '
         + 'the plain run is the one that checks the parser.',
       )
       continue
     }
-    problems.push(`${capture.file}: the live search threw ${error.name}: ${error.message}`)
+    const reason = `the live search threw ${error.name}: ${error.message}`
+    problems.push(`${capture.file}: ${reason}`)
+    blockers.push({ file: capture.file, reason })
     console.log(`  ${capture.file}\n    query: ${capture.query}\n    live: FAILED — ${error.message}`)
     continue
   }
   const dated = parseBingHtml(fetched).filter((source) => source.publishedAt !== undefined).length
-  if (fetched === undefined) problems.push(`${capture.file}: no response body was captured`)
+  if (fetched === undefined) {
+    problems.push(`${capture.file}: no response body was captured`)
+    blockers.push({ file: capture.file, reason: 'no response body was captured for the live page' })
+  }
   console.log(`  ${capture.file}`)
   console.log(`    query: ${capture.query}`)
   console.log(`    stored fixture: ${before} sources | live page: ${after} sources, ${dated} with a date`)
@@ -134,14 +150,14 @@ for (const capture of CAPTURES) {
 }
 
 if (shouldWrite) {
-  // A capture date is a claim that a real page was captured on that day, so it is written only when this run
-  // captured every fixture and found nothing wrong. A `--via` run whose rewrite was redirected captured
-  // nothing at all; re-dating `sources.md` there would record evidence that does not exist, which is the one
-  // mistake this repository's fixtures exist to prevent.
-  if (problems.length > 0 || unchecked.length > 0) {
-    console.error('refusing to write: this run did not capture and check every fixture, so nothing was changed')
-    for (const problem of problems) console.error(`  - ${problem}`)
-    for (const skipped of unchecked) console.error(`  - ${skipped}`)
+  // Two categories, never merged: a fixture whose page was never captured blocks the whole write, while a
+  // captured page that parses to fewer sources is accepted here (that is what --write is for) and only the
+  // exit code below records the shortfall. A capture date is a claim that a real page was captured that day,
+  // so it is written only for pages this run actually read.
+  if (blockers.length > 0) {
+    console.error('refusing to write: a fixture whose page was never captured cannot be accepted')
+    for (const blocker of blockers) console.error(`  - ${blocker.file}: ${blocker.reason}`)
+    console.error('Nothing was written; a partial write is worse than none. Re-run when every fixture can be read.')
     process.exit(1)
   }
   // Held-back pages are written now, together with the table, so a run that could not capture everything
@@ -163,6 +179,7 @@ if (shouldWrite) {
   }
   writeFileSync(path, table)
   console.log(`sources.md: capture dates set to ${today}`)
+  console.log('fixtures refreshed')
 }
 
 if (!shouldWrite) {
@@ -174,9 +191,12 @@ if (!shouldWrite) {
   }
 }
 if (problems.length > 0) {
-  console.error('fixture refresh found a regression:')
+  console.error(shouldWrite
+    ? 'the pages above were written, but they parse under the counts they held:'
+    : 'fixture refresh found a regression:')
   for (const problem of problems) console.error(`  - ${problem}`)
-  console.error('Re-run with --write once you have read the page and know the parser is right.')
+  console.error(shouldWrite
+    ? 'The new pages and their provenance are saved; the counts above are what changed.'
+    : 'Re-run with --write once you have read the page and know the parser is right.')
   process.exit(1)
 }
-if (shouldWrite) console.log('fixtures refreshed')
