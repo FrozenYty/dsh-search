@@ -17,19 +17,22 @@ All three were requested with a desktop Chrome `User-Agent`, `accept-language: z
 this markup. The third exists for one shape the other two happen not to carry enough of: a stated
 publication date in front of the snippet, which the parser lifts into `publishedAt`.
 
-**Pages** are the fetch half's evidence: three real pages whose chrome-to-prose ratio the extractor is
-tested against. They were captured with the bundle's own `User-Agent`
-(`deepseek-harness/0.0.1 (+https://github.com/deepseek-ai)`), `redirect: "manual"`, and cut at 200 000
-characters so a fixture stays a fixture — a page that big is already past the point where a reader would
-find the article, which is itself the finding the extractor exists to answer.
+**Pages** are the fetch half's evidence: real pages whose chrome-to-prose ratio the extractor is tested
+against. They were captured with the bundle's own `User-Agent`
+(`deepseek-harness/0.0.1 (+https://github.com/deepseek-ai)`) and `redirect: "manual"`. Three are cut at
+200 000 characters so a fixture stays a fixture — a page that big is already past the point where a reader
+would find the article, which is itself the finding the extractor exists to answer. The fourth is whole
+(332 612 characters), because the container rule's measurement needs the page's own `<article>` together
+with the header and the sidebar above it.
 
 | File | URL | Captured | Page |
 |---|---|---|---|
 | `article-github-repo.html` | `https://github.com/FrozenYty/dsh-search` | 2026-11-15 | HTTP 200, 200 000 characters of a repository landing page: navigation, file list, README beyond the cut |
+| `article-github-repo-live.html` | `https://github.com/FrozenYty/dsh-search` | 2026-11-16 | HTTP 200, 332 612 characters, the same page uncut: header, sidebar and the whole README — the evidence for the container rule |
 | `article-mdn-fetch.html` | `https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API` | 2026-11-15 | HTTP 200, 153 234 characters of a documentation page: sidebar, breadcrumb, article body |
 | `article-csdn-post.html` | `https://blog.csdn.net/m0_71142057/article/details/163744699` | 2026-11-15 | HTTP 200, 200 000 characters of a blog post: banner, columns, article body |
 
-Those three are not refreshed by `scripts/fixture-refresh.mjs`, which speaks the search provider's request;
+Those four are not refreshed by `scripts/fixture-refresh.mjs`, which speaks the search provider's request;
 they are documentation pages whose markup changes on someone else's schedule, and the extractor's tests
 assert *structure* (chrome gone, prose kept, cap marked), not exact text.
 

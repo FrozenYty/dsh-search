@@ -7,6 +7,39 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.5.0] - 2026-11-16
+
+- **The extraction reads the page's own markup first, and stops reading what a page says is not content.**
+  Four rules, each with a test that fails without it and a mutation that proves the test would notice:
+  1. **The page's own article container is kept.** An `<article>` — or a `<main>` when the page names no
+     article — replaces the page when its extraction is at least 1 000 characters and it carries at least
+     three `<p>`; otherwise an element whose id or class carries `content`, `article`, `post`, `entry` or
+     `story` wins by its `<p>` text under the same floor; otherwise the page is left exactly as it arrived.
+     The floors are the guard against a landing page whose `<article>` wraps a teaser, and the
+     `<article>`-before-`<main>` order is what keeps a layout region's sidebar out of the article.
+     Measured: the CSDN fixture delivers 3 407 of its 21 547 characters with **20 of the post's 20
+     sentences kept**, the live GitHub repository page 20 465 of 21 325, and MDN 2 711 of 2 749.
+  2. **An XHTML-style `</a >` closer counts as anchor text** in the navigation test, so a link list written
+     that way is measured instead of kept. Measured: the MDN fixture 2 749 → 2 650 characters, no body
+     sentence lost.
+  3. **An element a page marks as hidden is not read**, contents included: a bare `hidden`,
+     `aria-hidden="true"`, or an inline `display:none` / `visibility:hidden`. Measured: the truncated
+     repository fixture 268 → 40 characters, the hidden stale-session notices gone.
+  4. **A whole line that is only a page's furniture is dropped** after extraction: `Skip to …`, the
+     stale-session notices, `Dismiss alert`, `Folders and files`. Measured: five such lines off the live
+     GitHub page (`21 325 → 21 120` on their own), and the last 32 characters of the truncated repository
+     fixture once the container rule has run.
+- **A transport failure now says where it failed and what to do.** The provider error names the transport
+  layer — the page never answered — and tells the reader that **re-issuing the call may succeed**. No retry
+  was added, deliberately: 50 requests across five hosts produced 0 transport failures, so a retry's
+  frequency would be unobservable, and the seam's error contract already gives the caller the decision.
+  The failure is still a `WEB_PROVIDER_ERROR` with its cause preserved; the branch had no test and has one
+  now.
+- A fourth page fixture, `article-github-repo-live.html` (332 612 characters, captured 2026-11-16), is the
+  same repository page uncut — the header, the sidebar and the whole README — so the container rule is
+  measured against the page it was proposed on. Its provenance is in `tests/fixtures/sources.md`.
+- The mutation scan grows to 41, all killed: one per rule, and one for the transport message.
+
 ## [0.4.1] - 2026-11-15
 
 - **The navigation rule reaches tables too.** A repository's file tree is a table whose cells are links, and it

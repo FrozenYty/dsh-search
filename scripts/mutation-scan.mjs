@@ -278,6 +278,41 @@ const MUTATIONS = [
     from: '  for (const tag of CHROME) text = removeElements(text, tag)',
     to: '  for (const tag of []) text = removeElements(text, tag)',
   },
+  {
+    name: 'container-rule-disabled',
+    file: 'article.js',
+    claim: 'a page that names its own article container is read through it, not around it',
+    from: '  return renderText(selectContainer(html) ?? html)',
+    to: '  return renderText(html)',
+  },
+  {
+    name: 'anchor-closer-loses-the-space',
+    file: 'article.js',
+    claim: 'an XHTML-style `</a >` closer still counts as anchor text',
+    from: '    for (const match of block.matchAll(/<a\\b[^>]*>([\\s\\S]*?)<\\/a\\s*>/gi)) {',
+    to: '    for (const match of block.matchAll(/<a\\b[^>]*>([\\s\\S]*?)<\\/a>/gi)) {',
+  },
+  {
+    name: 'hidden-elements-are-kept',
+    file: 'article.js',
+    claim: 'an element the page marks as hidden is not read',
+    from: '  const hidden = elements(html, (_tag, attributes) => HIDDEN_ELEMENT.test(attributes))',
+    to: '  const hidden = []',
+  },
+  {
+    name: 'ui-lines-are-kept',
+    file: 'article.js',
+    claim: "a line that is the page's own furniture, and nothing else, is dropped",
+    from: '    .filter((line) => !DROP_LINES.some((pattern) => pattern.test(line)))',
+    to: '    .filter((line) => true)',
+  },
+  {
+    name: 'transport-failure-loses-the-offer',
+    file: 'article.js',
+    claim: 'a transport failure tells the reader the layer that failed and that a re-issue may succeed',
+    from: "          + 'before the page answered, so re-issuing the call may succeed.',",
+    to: "          + '',",
+  },
 ]
 
 const TEST_FILES = ['parse.test.mjs', 'request.test.mjs', 'entry.test.mjs', 'routing.test.mjs', 'cache.test.mjs', 'article.test.mjs']

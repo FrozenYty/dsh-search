@@ -18,7 +18,7 @@ and every search fail — and a fetched page costs the context its article rathe
 
 ## Status
 
-- Current version: v0.4.1.
+- Current version: v0.5.0.
 - **Verified here**: the parser over the saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
@@ -151,12 +151,14 @@ a 5 MB read cap, the charset the response declares), extracts the prose, and han
 tool passes through instead of running its own markdown pass
 (`docs/adr/0010-the-other-half-of-the-result.md`).
 
-It is a rule, not a readability engine: remove the containers that are never prose, drop navigation lists
-**and tables** whose words are the anchors' words — unless the block carries a paragraph, which is content
-whatever its link density — keep headings, paragraphs, quotations, code and tables in document order, and
-**say so when it caps at 24 000 characters** — a truncated page that looks complete is worse than one that
-says it was cut. A redirect that changes origin is reported instead of followed, naming the target; a non-2xx
-answer is a result, not a throw.
+It is a rule, not a readability engine: keep the container the page itself names — its `<article>`, its
+`<main>`, or the `<p>`-richest element whose id or class says content — drop the elements the page marks as
+hidden, remove the containers that are never prose, drop navigation lists **and tables** whose words are
+the anchors' words — unless the block carries a paragraph, which is content whatever its link density —
+keep headings, paragraphs, quotations, code and tables in document order, drop the lines that are only a
+page's own furniture, and **say so when it caps at 24 000 characters** — a truncated page that looks
+complete is worse than one that says it was cut. A redirect that changes origin is reported instead of
+followed, naming the target; a non-2xx answer is a result, not a throw.
 
 The User-Agent is one decision for the whole bundle, and it is the honest one. Measured across six real
 pages, a desktop Chrome disguise was not an improvement:
@@ -279,10 +281,10 @@ uninstalling it cannot silently change what something else does. That is a gate 
   provider cannot receive `allowed_domains`/`blocked_domains`-style filters — that is a limit of where this
   sits, not of the engine. Writing `site:` into the query works only when the query is nothing but the
   operator (measured; see above).
-- **The fetch half is a rule, not a readability engine.** It removes containers that are never prose and
-  navigation lists, keeps the rest in document order, and caps at 24 000 characters with a marker. A page it
-  reads badly is a bug report with a fixture, not a tuning session; `docs/adr/0010-the-other-half-of-the-result.md`
-  says what was deliberately not built.
+- **The fetch half is a rule, not a readability engine.** It keeps the container the page itself names,
+  removes containers that are never prose and navigation lists, keeps the rest in document order, and caps
+  at 24 000 characters with a marker. A page it reads badly is a bug report with a fixture, not a tuning
+  session; `docs/adr/0010-the-other-half-of-the-result.md` says what was deliberately not built.
 - **No data directory.** This bundle writes nothing: no cache on disk, no index, no state that could move
   when the repository or the profile does. `node scripts/check.mjs` prints that answer on every run, and
   `docs/adr/0011-no-data-directory.md` says where a future one would have to go —
