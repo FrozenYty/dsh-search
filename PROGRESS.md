@@ -4,6 +4,84 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — six findings from the audit, and the one that lost a user's other three queries
+
+A three-layer audit of this repository produced six findings. Five are code; one is what the documents
+claim. The first is a bug a user meets: `@deepseek-ai/dsh-tool-web`'s `runSearchQueries`
+(`lib/index.js:218-236`) aborts a whole `web_search` call — and rethrows — on the first provider failure,
+so a four-query call in which one query hit a page with no result blocks lost the three that succeeded.
+The provider threw on any page that parsed to zero sources, because a zero-parse is how a changed result
+page announces itself.
+
+**The two zero-source shapes are now told apart.** Bing's real no-results page carries `<li
+class="b_no">` — captured on 2026-11-16 into `tests/fixtures/bing-no-results.html`, with its provenance in
+`tests/fixtures/sources.md`. The provider returns `{ sources: [], truncated: false }` for that shape and
+still throws the existing `shape may have changed` message for a page that yields nothing without it. The
+marker was found on a real page, not guessed: an ordinary nonsense query still returns ten loosely related
+`b_algo` blocks here, so the page was reached by asking past the end of the result set (`&first=2000`); the
+provider itself sends no `first`, and the fixture records the no-results markup, not a query.
+
+**The other five.** `index.js` no longer treats the seam's private registry map as the only door: presence
+is read from `ctx.web.listProviders()` where the seam has it (0.2.2-rc.3, inside the peer range) and from
+the map otherwise, and the failure distinguishes "no provider registry", "not registered" and "listed but
+no object to call". `article.js` wraps `new URL(location, current)` so a malformed redirect target is a
+`WEB_PROVIDER_ERROR` naming it, with the parse failure as `cause`, instead of a bare `TypeError` with no
+code. The 5 MB read bound now reports itself: `readBody` returns `{ text, capped }`, so a page cut at the
+cap reaches the caller as `truncated: true` instead of the old `html.length > MAX_BYTES`, which was
+unreachable. A non-2xx answer is explained as one — a 3xx with a `Location` still names its target, a 429
+or a 500 no longer blames the redirect policy. And ADR 0014 records what `official`/`auto` can detect:
+presence and the provider's synchronous `available()` self-report, never a credential or a balance, so a
+dead account passes the gate and fails at search time with the provider's own `HTTP 402`.
+
+**One decision against the finding's letter.** The finding said to prefer `listProviders()` over the map.
+The published 0.2.2-rc.3 `listProviders()` returns detached `{ id, title, description }` entries, not the
+providers — there is no public way to reach `available()` or `search()`. The listing is therefore used for
+the presence check (which is what the finding is about: not reading a private field), and the runtime map
+is still where the object comes from; a seam that removes that map too reports that it hands over no
+provider object rather than guessing. All four registry shapes have a routing test, and the detection
+branch has a mutation.
+
+The gates, run from the repository root:
+
+```
+$ node --check index.js bing.js article.js
+(no output; exit 0)
+
+$ node --test --test-isolation=none tests/*.test.mjs
+ℹ tests 69
+ℹ suites 0
+ℹ pass 69
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+
+$ node scripts/mutation-scan.mjs
+killed    no-results-marker-ignored             Bing's own no-results page is a legal empty answer, not a failure
+killed    no-results-page-throws                Bing's own no-results page is a legal empty answer, not a failure
+killed    not-ok-blames-the-redirect-policy     a status that is not ok is explained as one, without blaming the redirect policy
+killed    provider-listing-ignored              an id the seam only lists as absent is "not registered", not "no registry"
+killed    malformed-location-escapes-as-a-typeerror  a redirect whose Location is not a URL is reported, not thrown as a bare TypeError
+killed    read-cap-not-reported                 a page the 5 MB bound cut is reported as truncated, even when its prose is short
+
+47 mutation(s): 47 killed, 0 not
+mutation scan passed
+
+$ node scripts/check.mjs
+check passed
+data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/search (docs/adr/0011-no-data-directory.md)
+```
+
+The suite grew from 60 tests to 69: the empty answer and the drift arm, three registry shapes beyond the
+map, the malformed redirect, the capped read, the not-ok wording, plus the two existing assertions that
+were tightened. The mutation scan grew from 41 to 47, all killed.
+
+What is left undone: the no-results fixture cannot be refreshed by `scripts/fixture-refresh.mjs`, because
+re-asking that query without `first` returns results — its provenance says so. The registry's fourth shape
+(a seam that lists providers and keeps no map) is a fake, not a running seam; no published seam has it
+yet. And no live search was run while writing this: the fixture is a real capture, the run that proves the
+whole batch survives is the tool's, not this repository's.
+
 ## 2026-11-16 — four extraction rules, and the retry that stayed refused
 
 `article.js` was handing a page's chrome over with its prose, and an investigation measured what was left:

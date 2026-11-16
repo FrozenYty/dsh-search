@@ -436,7 +436,8 @@ function aborted(signal, fallback) {
  *
  * @param {string} url - the absolute http(s) URL.
  * @param {AbortSignal} [signal] - the caller's cancellation signal.
- * @returns {Promise<{response: Response, finalUrl: URL, html: string}>} the answered page, decoded.
+ * @returns {Promise<{response: Response, finalUrl: URL, html: string, capped: boolean}>} the answered page,
+ *   decoded, and whether the byte bound stopped the read.
  */
 async function readPage(url, signal) {
   let current = new URL(url)
@@ -465,7 +466,17 @@ async function readPage(url, signal) {
     }
     const location = response.headers.get('location')
     if (response.status >= 300 && response.status < 400 && location !== null) {
-      const target = new URL(location, current)
+      let target
+      try {
+        target = new URL(location, current)
+      } catch (error) {
+        await response.body?.cancel()
+        throw new ArticleFetchError(
+          `${current.href} answered a redirect whose Location "${location}" is not a URL; this provider could not follow it.`,
+          'WEB_PROVIDER_ERROR',
+          { cause: error },
+        )
+      }
       if (target.origin !== origin) {
         await response.body?.cancel()
         throw new ArticleFetchError(
@@ -479,8 +490,11 @@ async function readPage(url, signal) {
       continue
     }
     let html
+    let capped
     try {
-      html = await readBody(response, MAX_BYTES)
+      const body = await readBody(response, MAX_BYTES)
+      html = body.text
+      capped = body.capped
     } catch (error) {
       if (signal?.aborted === true || isAbortError(error)) throw aborted(signal, error)
       throw new ArticleFetchError(
@@ -489,7 +503,7 @@ async function readPage(url, signal) {
         { cause: error },
       )
     }
-    return { response, finalUrl: current, html }
+    return { response, finalUrl: current, html, capped }
   }
   throw new ArticleFetchError(
     `${url} redirects more than ${MAX_REDIRECTS} times; this provider stops following there.`,
@@ -538,20 +552,22 @@ export class ArticleFetchProvider {
     }
     if (signal?.aborted === true) throw aborted(signal)
 
-    const { response, finalUrl, html } = await readPage(parsed.href, signal)
+    const { response, finalUrl, html, capped: readWasCapped } = await readPage(parsed.href, signal)
     // A non-2xx answer is a result, not a failure: the caller reads it and decides.
     const ok = response.status >= 200 && response.status < 300
     const contentType = response.headers.get('content-type') ?? ''
     const isMarkup = /html|xml/i.test(contentType) || html.trimStart().startsWith('<')
     const content = ok && isMarkup ? extractArticle(html) : html.slice(0, MAX_CHARS)
     // `truncated` says a *bound* took something, not that extraction removed chrome — that is what it is
-    // for. A capped extraction is longer than the cap because the marker is appended to it.
+    // for. A capped extraction is longer than the cap because the marker is appended to it; a capped read
+    // is the reader's own report, because a decoded body can never be longer than the bound it was read
+    // under, so re-deriving it from `html.length` would always answer false at the 5 MB cap.
     const capped = (ok && isMarkup) ? content.length > MAX_CHARS : html.length > MAX_CHARS
     return {
       url: finalUrl.href,
       statusCode: response.status,
       body: { kind: 'text', content },
-      truncated: html.length > MAX_BYTES || capped,
+      truncated: readWasCapped || capped,
     }
   }
 }

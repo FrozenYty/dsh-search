@@ -17,7 +17,7 @@
 
 ## 状态
 
-- 当前版本：v0.5.0。
+- 当前版本：v0.5.1。
 - **本仓库验证过的**：解析器在真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
@@ -81,6 +81,11 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 把它当作独立字段、工具把它当元数据展示。能力缝按调用方的 `maxResults` 截断列表。没有任何东西发给账户，
 没有计费，也不涉及模型调用。
 
+Bing 自己在页面上标了"没有相关结果"时，本 provider 返回空列表——这是能力缝合法的答案。这么做是有意的：
+`web_search` 会在第一个 provider 失败时丢掉同一次调用里的全部查询，所以在"这个查询本来就没结果"上抛出，
+会把其他查询已经找到的来源一起丢掉。反过来，页面**没有**这个标记却一条都解析不出来，那仍然是漂移，仍然
+要响亮地失败。
+
 这次请求不会碰任何其他主机。`www.bing.com` 会重定向到 `cn.bing.com`，而本 provider 设置
 `redirect: "manual"`，因此永不跟随重定向——它变成一条点名目标地址的错误。`scripts/check.mjs` 在请求层
 断言：一次搜索只发一次请求、只发给 `cn.bing.com`，绝不发给 `www.bing.com` 或 `api.deepseek.com`。
@@ -97,9 +102,12 @@ dsh plugin --profile <profile> add <本仓库的绝对路径>
 ```
 
 - `keyless` —— Bing 的结果页：不需要账户、不需要 key、不需要余额。默认值，也是此前所有版本的行为。
-- `official` —— 由随附 provider 服务这次搜索，和聊天记在同一份账户上。它没注册、或注册了但跑不起来时，搜索
-  会以能力缝自己的错误码失败（`WEB_PROVIDER_CONFIGURED_MISSING` / `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`），
-  并在消息里点名你要的是哪个 provider：刻意做出的选择，不该悄悄变成另一种。
+- `official` —— 由随附 provider 服务这次搜索，和聊天记在同一份账户上。能力缝的注册表里没有它时，搜索以
+  `WEB_PROVIDER_CONFIGURED_MISSING` 失败；它自己的同步 `available()` 说跑不起来时，以
+  `WEB_PROVIDER_CONFIGURED_UNAVAILABLE` 失败。**这两个错误码都不去看凭据，也看不到余额——本 bundle 看不到。**
+  所以一个已经死掉的账户会通过这道闸，然后在真正搜索时以该 provider 自己的 `HTTP 402` 失败；消息里会点名
+  你要的是哪个 provider：刻意做出的选择，不该悄悄变成另一种
+  （`docs/adr/0014-the-official-mode-can-only-detect-presence.md`）。
 - `auto` —— 随附 provider 能跑就用它，否则走免 key。失败的账户会在本进程内被记住，所以余额为 0 只欠一次
   注定失败的请求，而不是每次搜索都欠一次。
 
@@ -182,7 +190,8 @@ User-Agent 是整 bundle 的一个决定，而且是诚实的那一个。在六�
   `node scripts/probe-backends.mjs` 再问一次。
 - **标记变化是真实风险。** 解析器读的是网页而不是 API。页面不再匹配时会以 `no parseable result block`
   失败，而不是悄悄返回空；`tests/fixtures/` 下保存的页面，就是让这件事表现为一个失败的测试而不是一桩
-  悬案。
+  悬案。Bing 自己的"没有相关结果"页面是本 provider 唯一会返回的空答案，它读的是页面自己的标记，所以不会
+  和"标记结构不再匹配"混为一谈。
 - **只有一页，大约十条，这就是这个端点的上限。** 不翻页、不重试——不是没试过，而是三种方式都量过：任何
   offset 与 count 都返回第一页那十条（`count=20/30/50`、`first=11/21/31`、页面自己给出的"下一页"链接及其
   `FPIG` 哈希、以及把第一次响应的 `set-cookie` 原样带回并附上 `Referer` 的同一请求）；Bing 的 RSS 形式
@@ -249,13 +258,16 @@ User-Agent 是整 bundle 的一个决定，而且是诚实的那一个。在六�
 
 ## 它坏掉的时候
 
-Bing 的结果页迟早会变。provider 会**大声失败**而不是回一个空结果，报错里会写明是哪一种，所以第一步是读它：
+Bing 的结果页迟早会变。页面不再匹配时，provider 会**大声失败**而不是回一个空结果，报错里会写明是哪一种，
+所以第一步是读它：
 
 - `no parseable result block … shape may have changed` —— 标记结构变了。跑 `node scripts/fixture-refresh.mjs`：
   它会用**这个 provider 自己的请求**重新抓 fixtures 记录的那些页面，报告每个页面现在解析出多少条，并在某页比保存的
   fixture 少时以非零码退出。读过页面、确认解析器没错之后，用 `--write` 把它存下来并更新来源表的抓取日期。
 - `challenge page instead of results` —— Bing 认为这个客户端像自动化程序。过一会儿再试，或者用浏览器打开
   同一个查询一次；这个 provider 不保持任何会话和 cookie。
+- `No results found.` —— 这不是失败。Bing 的页面带着它自己的"没有相关结果"标记，所以这个查询以空列表作答，
+  而同一次调用里的其他查询各自保住了自己的来源。
 - `HTTP 302 … redirects to https://www.bing.com/…` —— 路由变了。这是一个决策点而不是 bug：ADR 0001 说
   永远不跟随重定向，所以要写一份取代它的 ADR，而不是把那个开关翻过来。
 - `Bing search request failed:` —— 请求根本没完成。这一种是网络问题，不是解析器。
@@ -280,8 +292,8 @@ node scripts/check.mjs
 就把大版本固定在 Node 24；而默认 runner 会为每个测试文件 spawn 一个进程，这台机器的沙箱拒绝这种
 spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全绿是同一句话。
 
-变异扫描是让测试保持诚实的那一环：它逐条修改 `bing.js` 的承重行，要求至少有一个测试失败。活下来的
-变异就是一条没有任何测试护着的代码行，构建会带着它的名字失败。
+变异扫描是让测试保持诚实的那一环：它逐条修改 `bing.js`、`article.js` 与 `index.js` 的承重行，要求至少
+有一个测试失败。活下来的变异就是一条没有任何测试护着的代码行，构建会带着它的名字失败。
 
 不发布任何东西，所以也没有"发布步骤"：上面这套闸门就是全部交付。版本号只在 bundle 自己的文件（`files`
 列出的那些）变化时才动，具体是哪些写在 `CONTRIBUTING.md` 第 5 节。
@@ -322,6 +334,7 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 | 这个插件把我的数据放在哪里？ | `docs/adr/0011-no-data-directory.md`——它不存任何数据，`node scripts/check.mjs` 会把这句话打出来 |
 | 为什么抬高搜索上限要改 agent preset，而不是 `tool-web` 行？ | `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` |
 | 装上去加上了什么，卸下来又拿走了什么？ | `docs/adr/0013-installing-is-a-patch.md` |
+| `official` 与 `auto` 到底能探知账户的什么？ | `docs/adr/0014-the-official-mode-can-only-detect-presence.md` |
 | 验证了什么，输出是什么 | `PROGRESS.md` |
 | 还有什么没被证明 | `PLAN.md` |
 

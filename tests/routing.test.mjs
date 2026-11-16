@@ -56,6 +56,36 @@ function register(config, official) {
   return searches[0]
 }
 
+/**
+ * Apply the entry against one fake web registry, and return the registered search provider.
+ *
+ * The seam's registry changed shape inside this bundle's peer range: 0.2.2-rc.3 answers registration
+ * through `listProviders()` and keeps `searchProviders` private in its typings. A fake is how each shape
+ * is exercised without the real class, which cannot be several versions at once.
+ *
+ * @param {object} web - the registry fields and methods this fake seam exposes.
+ * @param {{provider?: string}} [config] - this bundle's row config.
+ * @returns {object} the registered search provider.
+ */
+function registerWith(web, config) {
+  const registered = []
+  entry.apply({
+    web: {
+      ...web,
+      registerSearchProvider(provider) {
+        registered.push(provider)
+        return () => {}
+      },
+      registerFetchProvider() {
+        return () => {}
+      },
+    },
+  }, config)
+  const searches = registered.filter((provider) => provider.id === 'bing-html')
+  assert.equal(searches.length, 1, 'apply registers exactly one search provider')
+  return searches[0]
+}
+
 /** Stub `fetch` with one body, and count the requests the keyless path makes. */
 async function withFetch(body, run) {
   const requested = []
@@ -108,11 +138,68 @@ test('provider: official says which provider this profile missed, by the seam\'s
     () => registered[0].search({ query: 'x' }),
     (error) => error instanceof seam.WebError && error.code === 'WEB_PROVIDER_CONFIGURED_MISSING',
   )
-  // Registered, but it cannot run — no credential, or an account that cannot pay.
+  // Registered, and its own synchronous self-report says it cannot run. That report is all this bundle can
+  // see: a dead credential or an empty balance is decided by the provider when it actually searches
+  // (docs/adr/0014-the-official-mode-can-only-detect-presence.md).
   const unavailableOfficial = register({ provider: 'official' }, officialStub({ available: false }))
   await assert.rejects(
     () => unavailableOfficial.search({ query: 'x' }),
     (error) => error instanceof seam.WebError && error.code === 'WEB_PROVIDER_CONFIGURED_UNAVAILABLE',
+  )
+})
+
+test('official reads registration from a seam that lists providers, and still calls the listed one', skip, async () => {
+  // The 0.2.2-rc.3 shape: `listProviders()` is public and returns `{ id, title, description }` entries,
+  // while the provider object itself is still in the runtime map the typings mark private.
+  const official = officialStub()
+  const provider = registerWith({
+    listProviders: () => ({ search: [{ id: 'deepseek-official', title: 'DeepSeek' }], fetch: [] }),
+    searchProviders: new Map([[official.id, official]]),
+  }, { provider: 'official' })
+  const { result, requested } = await withFetch('', () => provider.search({ query: 'deepseek harness' }))
+  assert.deepEqual(official.calls, ['deepseek harness'])
+  assert.deepEqual(result.sources, [{ url: 'https://official.example/one', title: 'From the account' }])
+  assert.deepEqual(requested, [], 'the listed account served the search')
+})
+
+test('an id the seam only lists as absent is "not registered", not "no registry"', skip, async () => {
+  // The listing is authoritative: with `listProviders()` present and the id absent, the answer is the
+  // provider-missing failure even when the map is gone entirely. Reading the map first would say
+  // "no provider registry" here, which is the wrong diagnosis.
+  const provider = registerWith({
+    listProviders: () => ({ search: [{ id: 'some-other-provider' }], fetch: [] }),
+  }, { provider: 'official' })
+  await assert.rejects(
+    () => provider.search({ query: 'x' }),
+    (error) => error instanceof seam.WebError
+      && error.code === 'WEB_PROVIDER_CONFIGURED_MISSING'
+      && /is not registered/.test(error.message)
+      && !/no provider registry/.test(error.message),
+  )
+})
+
+test('a seam with no provider registry says so, rather than calling the provider missing', skip, async () => {
+  const provider = registerWith({}, { provider: 'official' })
+  await assert.rejects(
+    () => provider.search({ query: 'x' }),
+    (error) => error instanceof seam.WebError
+      && error.code === 'WEB_PROVIDER_CONFIGURED_MISSING'
+      && /no provider registry/.test(error.message)
+      && !/is not registered/.test(error.message),
+  )
+})
+
+test('a seam that lists the provider but hands over no object says it cannot reach one', skip, async () => {
+  // `listProviders()` returns picker entries, not providers. If a future seam also removes the runtime
+  // map, this bundle has nothing to call — and says that, instead of the provider being "not registered".
+  const provider = registerWith({
+    listProviders: () => ({ search: [{ id: 'deepseek-official' }], fetch: [] }),
+  }, { provider: 'official' })
+  await assert.rejects(
+    () => provider.search({ query: 'x' }),
+    (error) => error instanceof seam.WebError
+      && error.code === 'WEB_PROVIDER_CONFIGURED_MISSING'
+      && /no provider registry a provider can be reached through/.test(error.message),
   )
 })
 

@@ -31,10 +31,11 @@ declaration is what the resolver reads.
 
 One more installed mechanism constrains the declaration. Before a profile imports a plugin, the Host
 evaluates the plugin's DSH requirement: an `engines.dsh` range decides alone and `peerDependencies` are
-then ignored, while without it **every** `@deepseek-ai/dsh` or `@deepseek-ai/dsh-*` peer range must
-satisfy the runtime version — and that version is the app-boot package's own release, not the version of
-the package the peer names. The two are separate numbers; a range written against one of them is not
-automatically a range against the other.
+then ignored by that gate, while without it **every** `@deepseek-ai/dsh` or `@deepseek-ai/dsh-*` peer range
+must satisfy the runtime version — and that version is the app-boot package's own release, not the version
+of the package the peer names. The two are separate numbers; a range written against one of them is not
+automatically a range against the other. This evaluation is the compatibility gate only; it is not the
+resolver that turns a bare specifier into a path.
 
 ## Decision
 
@@ -43,8 +44,12 @@ automatically a range against the other.
 2. `package.json` declares `"@deepseek-ai/dsh-web": ">=0.1.5-rc.1 <0.3.0-0"` as a peer: a range that
    covers the runtime version this was built and tested against, and the same shape the third-party
    provider in this ecosystem uses.
-3. `engines.dsh` is not declared, because declaring it would discard the peer field that the linked-root
-   resolver reads.
+3. `engines.dsh` is not declared. Not because declaring it would discard the peer field that makes the
+   import resolve — it would not: the linked-root resolver keeps reading `peerDependencies`
+   (`readPeerNames` and `routeLinked` in app-boot `lib/index.js:2133-2139` and `:2462-2475`) whether or
+   not `engines.dsh` exists. It is not declared because a range there would take over the
+   DSH-compatibility gate alone (`unmetRequirements`, app-boot `lib/index.js:1097-1116`), and the peer
+   range in point 2 is the compatibility statement this bundle means to make.
 4. `scripts/check.mjs` fails when the peer declaration is missing or when an `engines.dsh` range appears,
    so the two fields cannot drift apart silently.
 5. A failure that is not the provider's own stays untranslated: `index.js` converts only

@@ -85,9 +85,10 @@ The mutation scan is not decoration: it breaks each load-bearing line of `bing.j
 `index.js` in turn and requires the suite to fail. A survivor is a line no test stands behind; fix it with a
 test, never by deleting the mutation.
 
-`tests/entry.test.mjs` needs `@deepseek-ai/dsh-web` resolvable (`npm install` in the working tree, which
-is what CI does before the tests). Without it those tests skip — not fail — so never leave a working tree
-that skips them and call the entry verified.
+`tests/entry.test.mjs` needs `@deepseek-ai/dsh-web` resolvable. CI installs exactly that, as its own
+step, with `npm install --no-save --no-package-lock @deepseek-ai/dsh-web` (the bundle itself installs
+nothing at runtime). Without it those tests skip — not fail — so never leave a working tree that skips
+them and call the entry verified.
 
 `--test-isolation=none` is required here: the default runner spawns one process per test file and this
 machine's sandbox refuses that spawn. It also requires Node 24 — Node 22 spells the flag

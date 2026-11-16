@@ -18,7 +18,7 @@ and every search fail — and a fetched page costs the context its article rathe
 
 ## Status
 
-- Current version: v0.5.0.
+- Current version: v0.5.1.
 - **Verified here**: the parser over the saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
@@ -93,6 +93,11 @@ publication date when the page states one — lifted out of the snippet and norm
 carries it as its own field and the tool shows it as metadata. The seam caps the list at the caller's
 `maxResults`. Nothing is sent to an account, nothing is billed, and no model call is involved.
 
+A page Bing itself marks as holding no results returns an empty list, which the seam allows. That is
+deliberate: `web_search` aborts every query in one call on the first provider failure, so throwing on an
+unproductive query would lose the sources the other queries found. A page that yields nothing **without**
+that marker is still drift, and still fails loudly.
+
 The request never touches any other host. `www.bing.com` redirects to `cn.bing.com`, and this provider
 sets `redirect: "manual"`, so a redirect is never followed — it becomes an error naming its target
 instead. `scripts/check.mjs` asserts at the request layer that one search sends exactly one request, to
@@ -112,10 +117,13 @@ one field on this bundle's row:
 
 - `keyless` — Bing's result page: no account, no key, no balance. The default, and what every earlier
   version did.
-- `official` — the shipped provider serves the search, billed to the same account as the chat. If it is not
-  registered, or registered and unable to run, the search fails with the seam's own code
-  (`WEB_PROVIDER_CONFIGURED_MISSING` / `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`) and a message naming the
-  provider you asked for: a deliberate choice should not quietly become a different one.
+- `official` — the shipped provider serves the search, billed to the same account as the chat. If the
+  seam's registry does not contain it the search fails with `WEB_PROVIDER_CONFIGURED_MISSING`; if its own
+  synchronous `available()` says it cannot run, with `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`. **Neither code
+  inspects a credential or a balance — this bundle cannot see either.** A dead account therefore passes the
+  gate and fails at search time with the provider's own `HTTP 402`, and the message names the provider you
+  asked for: a deliberate choice should not quietly become a different one
+  (`docs/adr/0014-the-official-mode-can-only-detect-presence.md`).
 - `auto` — the shipped provider when it can run, keyless otherwise. A failing account is remembered for the
   rest of the process, so a zero balance costs one doomed request rather than one per search.
 
@@ -210,7 +218,9 @@ uninstalling it cannot silently change what something else does. That is a gate 
   `node scripts/probe-backends.mjs` re-asks the network whenever it may have changed.
 - **A markup change is a real risk.** The parser reads a page, not an API. A page that stops matching it
   fails with `no parseable result block` instead of quietly returning nothing, and the saved fixtures
-  under `tests/fixtures/` are how that shows up as a failing test rather than as a mystery.
+  under `tests/fixtures/` are how that shows up as a failing test rather than as a mystery. Bing's own
+  no-results page is the one empty answer the provider returns, and it is read from the page's own marker,
+  so it cannot be confused with markup that stopped parsing.
 - **One page, about ten results, and that is this endpoint's ceiling.** No paging, no retries — and not for
   lack of trying. Measured three ways: every offset and count returns page one's ten results
   (`count=20/30/50`, `first=11/21/31`, the page's own "next" link with its `FPIG` hash, the same with the
@@ -294,8 +304,8 @@ uninstalling it cannot silently change what something else does. That is a gate 
 
 ## When it stops working
 
-Bing will change its result page eventually. The provider fails loudly rather than answering with nothing,
-and its message names the failure, so the first step is to read it:
+Bing will change its result page eventually. When the page stops matching, the provider fails loudly rather
+than answering with nothing, and its message names the failure, so the first step is to read it:
 
 - `no parseable result block … shape may have changed` — the markup moved. Run
   `node scripts/fixture-refresh.mjs`: it re-fetches the pages the fixtures came from **through this
@@ -304,6 +314,8 @@ and its message names the failure, so the first step is to read it:
   `--write` saves it and re-dates the provenance table.
 - `challenge page instead of results` — Bing decided this client looked automated. Retry later, or open the
   same query in a browser once; the provider keeps no session and no cookie.
+- `No results found.` — this is not a failure. Bing's page carried its own no-results marker, so the query
+  answered with an empty list, and every other query in the same call kept its sources.
 - `HTTP 302 … redirects to https://www.bing.com/…` — the routing changed. That is a decision point, not a
   bug: ADR 0001 says a redirect is never followed, so supersede that ADR rather than flipping the flag.
 - `Bing search request failed:` — the request never completed. That one is the network, not the parser.
@@ -331,9 +343,9 @@ itself fixes the major version at Node 24, and the default runner spawns one pro
 which this machine's sandbox refuses. CI pins Node 24 and runs the same commands, so a local pass is the
 same statement as a green run.
 
-The mutation scan is what keeps the suite honest: for each load-bearing line of `bing.js` it applies one
-mutation and requires at least one test to fail. A survivor is a line nothing protects, and it fails the
-build with the mutation's name.
+The mutation scan is what keeps the suite honest: for each load-bearing line of `bing.js`, `article.js` and
+`index.js` it applies one mutation and requires at least one test to fail. A survivor is a line nothing
+protects, and it fails the build with the mutation's name.
 
 Nothing is published, so there is no release step either: the gate above is the whole delivery. A version
 number moves only when the bundle's own files change — the ones `files` lists — and `CONTRIBUTING.md` §5
@@ -376,6 +388,7 @@ session check needs the plugin enabled.
 | Where does this plugin keep my data? | `docs/adr/0011-no-data-directory.md` — it keeps none, and `node scripts/check.mjs` prints that |
 | Why does raising the search cap need the agent preset instead of the `tool-web` row? | `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` |
 | What does installing add, and what does removing take back? | `docs/adr/0013-installing-is-a-patch.md` |
+| What can `official` and `auto` actually detect about the account? | `docs/adr/0014-the-official-mode-can-only-detect-presence.md` |
 | What was verified, with what output | `PROGRESS.md` |
 | What is still unproven | `PLAN.md` |
 

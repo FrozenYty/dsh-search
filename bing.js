@@ -29,7 +29,8 @@
  * mojibake that the fixture-drift job cannot see, because the source count would not change.
  *
  * The result page is markup, not an API: every field is parsed from today's shape, and a page that
- * stops matching it fails loudly instead of returning an empty list (docs/architecture-en.md).
+ * stops matching it fails loudly instead of returning an empty list. The one empty answer this provider
+ * returns is Bing's own no-results page, which says so in its markup (docs/architecture-en.md).
  */
 
 /** Stable id this provider registers under; the profile pins it as `searchProvider` (ADR 0003). */
@@ -53,6 +54,13 @@ const ACCEPT_LANGUAGE = 'zh-CN,zh;q=0.9,en;q=0.8'
  * may grow (`b_algoBorder`), so the match is on the token, not on the whole attribute value.
  */
 const RESULT_BLOCK = /<li\b[^>]*\bclass\s*=\s*(?:"[^"]*\bb_algo\b[^"]*"|'[^']*\bb_algo\b[^']*')[^>]*>/gi
+
+/**
+ * The element Bing renders a page's "no results" statement in: `<li class="b_no">`, saved in
+ * `tests/fixtures/bing-no-results.html`. The class list may carry more tokens, so the match is on the
+ * token rather than on the whole attribute value, as it is for a result block.
+ */
+const NO_RESULTS_BLOCK = /<li\b[^>]*\bclass\s*=\s*(?:"[^"]*\bb_no\b[^"]*"|'[^']*\bb_no\b[^']*')[^>]*>/i
 
 /**
  * The title and the target URL: the heading anchor. It is the result's own link, so it is the only
@@ -317,16 +325,20 @@ function declaredCharset(response) {
  *
  * @param {Response} response - the answered response, body unread.
  * @param {number} [limit] - the most bytes to read; undefined reads all of it.
- * @returns {Promise<string>} the body as text.
+ * @returns {Promise<{text: string, capped: boolean}>} the body as text, and whether the bound stopped the
+ *   read before the body ended. `capped` is the reader's report, not something to re-derive from the
+ *   decoded string: a decoded body can never be longer than the bound it was read under.
  */
 export async function readBody(response, limit) {
-  const bytes = limit === undefined ? new Uint8Array(await response.arrayBuffer()) : await readCapped(response, limit)
+  const { bytes, capped } = limit === undefined
+    ? { bytes: new Uint8Array(await response.arrayBuffer()), capped: false }
+    : await readCapped(response, limit)
   const label = declaredCharset(response)
-  if (label === undefined) return new TextDecoder('utf-8').decode(bytes)
+  if (label === undefined) return { text: new TextDecoder('utf-8').decode(bytes), capped }
   try {
-    return new TextDecoder(label).decode(bytes)
+    return { text: new TextDecoder(label).decode(bytes), capped }
   } catch {
-    return new TextDecoder('utf-8').decode(bytes)
+    return { text: new TextDecoder('utf-8').decode(bytes), capped }
   }
 }
 
@@ -335,19 +347,25 @@ export async function readBody(response, limit) {
  *
  * @param {Response} response - the answered response.
  * @param {number} limit - the byte bound.
- * @returns {Promise<Uint8Array>} the bytes read, never more than `limit`.
+ * @returns {Promise<{bytes: Uint8Array, capped: boolean}>} the bytes read, never more than `limit`, and
+ *   whether the bound, rather than the end of the body, stopped the read.
  */
 async function readCapped(response, limit) {
   const reader = response.body?.getReader()
-  if (reader === undefined) return new Uint8Array(await response.arrayBuffer()).subarray(0, limit)
+  if (reader === undefined) {
+    const whole = new Uint8Array(await response.arrayBuffer())
+    return { bytes: whole.subarray(0, limit), capped: whole.length > limit }
+  }
   const chunks = []
   let total = 0
+  let capped = false
   for (;;) {
     const { done, value } = await reader.read()
     if (done === true) break
     chunks.push(value)
     total += value.length
     if (total >= limit) {
+      capped = true
       await reader.cancel()
       break
     }
@@ -360,7 +378,7 @@ async function readCapped(response, limit) {
     kept.set(chunk.subarray(0, take), at)
     at += take
   }
-  return kept
+  return { bytes: kept, capped }
 }
 
 /**
@@ -374,6 +392,20 @@ async function readCapped(response, limit) {
  */
 function looksBlocked(html) {
   return /captcha|verify you are human|are you a robot|unusual traffic/i.test(html.slice(0, 20000))
+}
+
+/**
+ * True when a page carrying no parsed results is Bing's own "no results" page rather than a changed shape.
+ *
+ * The page states it in `<li class="b_no">` ("没有与此相关的结果"), the marker saved in
+ * `tests/fixtures/bing-no-results.html`. It is consulted only when nothing parsed, so an ordinary result
+ * whose snippet happens to mention no results cannot turn a good page into an empty answer.
+ *
+ * @param {string} html - the response body.
+ * @returns {boolean} whether the page says the query has no results.
+ */
+function isNoResultsPage(html) {
+  return NO_RESULTS_BLOCK.test(html)
 }
 
 /**
@@ -469,7 +501,8 @@ export class BingSearchProvider {
    * @param {{query: string, maxResults?: number}} request - the seam's search request.
    * @param {AbortSignal} [signal] - the caller's cancellation signal.
    * @returns {Promise<{sources: Array<{url: string, title: string, snippet?: string, publishedAt?: string}>, truncated: boolean}>}
-   *   the page's sources; `truncated` is false because the seam owns the result bound.
+   *   the page's sources; `truncated` is false because the seam owns the result bound, and `sources` is
+   *   empty only when the page itself says the query has no results.
    * @throws {BingSearchError} `WEB_ABORTED` when cancelled, `WEB_PROVIDER_ERROR` otherwise.
    */
   async search(request, signal) {
@@ -507,18 +540,19 @@ export class BingSearchProvider {
 
     if (!response.ok) {
       const location = response.headers.get('location')
+      const isRedirect = response.status >= 300 && response.status < 400 && location !== null
       throw new BingSearchError(
         `Bing answered HTTP ${response.status} for ${url}`
-          + (location === null
-            ? '; this provider follows no redirect, so the response body was not parsed.'
-            : `; it redirects to ${location}, and this provider follows no redirect (ADR 0001).`),
+          + (isRedirect
+            ? `; it redirects to ${location}, and this provider follows no redirect (ADR 0001).`
+            : '; the answer was not ok, so the response body was not parsed.'),
         'WEB_PROVIDER_ERROR',
       )
     }
 
     let html
     try {
-      html = await readBody(response)
+      html = (await readBody(response)).text
     } catch (error) {
       if (signal?.aborted === true || isAbortError(error)) throw aborted(signal, error)
       throw new BingSearchError(
@@ -530,12 +564,17 @@ export class BingSearchProvider {
 
     const sources = parseBingHtml(html)
     if (sources.length === 0) {
-      throw new BingSearchError(
-        looksBlocked(html)
-          ? `Bing answered ${url} with a challenge page instead of results. Retry later, or search again from a browser session.`
-          : `Bing answered ${url} with no parseable result block. The result page's shape may have changed, or the query has no results; the request reached Bing, so this is not a network failure.`,
-        'WEB_PROVIDER_ERROR',
-      )
+      // Bing's own no-results page is a legal answer, and returning it is what keeps one unproductive query
+      // from taking a whole batch with it: the tool aborts every query in a call on the first provider
+      // failure, so throwing here would lose the sources the other queries found.
+      if (!isNoResultsPage(html)) {
+        throw new BingSearchError(
+          looksBlocked(html)
+            ? `Bing answered ${url} with a challenge page instead of results. Retry later, or search again from a browser session.`
+            : `Bing answered ${url} with no parseable result block. The result page's shape may have changed, or the query has no results; the request reached Bing, so this is not a network failure.`,
+          'WEB_PROVIDER_ERROR',
+        )
+      }
     }
     const result = { sources, truncated: false }
     this.#keep(query, result)

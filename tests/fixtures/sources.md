@@ -11,11 +11,21 @@ actually meet, and a page that is trimmed until it passes proves nothing.
 | `bing-deepseek-harness.html` | `deepseek harness` | 2026-11-13 | HTTP 200, 10 `b_algo` blocks |
 | `bing-node-fetch-redirect.html` | `node fetch redirect manual` | 2026-11-13 | HTTP 200, 10 `b_algo` blocks |
 | `bing-dated-snippets.html` | `DeepSeek Harness 插件` | 2026-11-13 | HTTP 200, 10 `b_algo` blocks, 8 of them stating a publication date |
+| `bing-no-results.html` | `asdkjhqweoiuzxcvbnm` (`&first=2000`) | 2026-11-16 | HTTP 200, 0 `b_algo` blocks: Bing's own `<li class="b_no">` no-results page |
 
-All three were requested with a desktop Chrome `User-Agent`, `accept-language: zh-CN,zh;q=0.9,en;q=0.8` and
-`redirect: "manual"` — the same request the provider builds, which is why the parser is tested against
-this markup. The third exists for one shape the other two happen not to carry enough of: a stated
-publication date in front of the snippet, which the parser lifts into `publishedAt`.
+The first three were requested with a desktop Chrome `User-Agent`,
+`accept-language: zh-CN,zh;q=0.9,en;q=0.8` and `redirect: "manual"` — the same request the provider
+builds, which is why the parser is tested against this markup. The third exists for one shape the other two
+happen not to carry enough of: a stated publication date in front of the snippet, which the parser lifts
+into `publishedAt`.
+
+The fourth is the shape a page with no result blocks can take. It keeps the same headers and redirect
+policy, and how it was reached is part of its provenance: this endpoint answers an ordinary nonsense query
+with ten loosely related `b_algo` blocks, so the page was captured by asking past the end of the result set
+(`&first=2000`). The provider itself sends no `first`; what the fixture records is Bing's no-results markup
+(`b_no`), which the parser has to tell apart from a result page whose blocks stopped matching. It is not in
+`scripts/fixture-refresh.mjs`'s capture list for the same reason: re-asking that query without `first`
+returns results.
 
 **Pages** are the fetch half's evidence: real pages whose chrome-to-prose ratio the extractor is tested
 against. They were captured with the bundle's own `User-Agent`
