@@ -498,6 +498,22 @@ for (const document of ['README.md', 'README-zh.md']) {
   }
 }
 
+// 12. This bundle never switches anything off.
+//
+// The owner's rule is that a plugin provides function when installed and leaves no trace when removed. A
+// `disabled:` key in this bundle's patch would break the second half twice: it would silently turn off a
+// plugin this bundle does not own, and removing the bundle would silently turn it back on. A patch may
+// override a row's config and insert its own row — both additive — but never disable anything, because
+// "restore what you found" is not something absence can do (ADR 0013).
+// `patchText` is already read above; one read serves both checks.
+if (patchText !== undefined) {
+  patchText.split(/\r?\n/).forEach((line, index) => {
+    if (/^\s*(?:-\s*)?disabled\s*:/.test(line)) {
+      fail(`cordis.patch.yml:${index + 1}: carries a "disabled" toggle; this bundle overrides config and inserts its own row, and never switches another plugin off (ADR 0013)`)
+    }
+  })
+}
+
 if (failures.length > 0) {
   console.error(`check failed: ${failures.length} problem(s)`)
   for (const failure of failures) console.error(`  - ${failure}`)

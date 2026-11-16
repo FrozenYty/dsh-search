@@ -156,6 +156,22 @@ User-Agent 是整 bundle 的一个决定，而且是诚实的那一个。在六�
 这就是全部足迹：一次行覆盖，一次行插入。它改的是安装它的那个 profile，且对该 profile 里所有会话生效，
 所以写在这里，而不是埋在 patch 里。
 
+### 装上去是打一个补丁，卸下来是这个补丁不存在
+
+它**不往 profile 自己的文件里写任何东西**。足迹就是本 bundle 的 `cordis.patch.yml` 里的那两条，而 patch
+文件只在 bundle 被安装时才被读：
+
+| 安装会加上 | 卸载会拿走 |
+| --- | --- |
+| 一条行覆盖——`web`，重述 `searchProvider` 与 `fetchProvider` | base bundle 自己的两个 pin 回来（`deepseek-official`、`http`） |
+| 一条行插入——`search`，本 bundle 的配置 | 那一行消失 |
+| profile 列表里的 bundle 条目，以及它链接过来的路径 | 两者都由卸载动作一并移除 |
+
+除此之外什么都不碰：没有数据目录（ADR 0011）、没有设置项、没有需要你手改的 profile 文件，而且 patch 里
+**没有一处 `disabled:`**——本 bundle 从不关掉不属于它的插件，所以卸载它也不会悄悄改变别的插件的行为。这是
+**门禁能证明的规则**，不是一句承诺：`cordis.patch.yml` 一旦出现 `disabled`，`scripts/check.mjs` 会点名到
+文件与行号（`docs/adr/0013-installing-is-a-patch.md`）。
+
 ## 局限与刻意不做的事
 
 - **一个引擎、一个端点，这是实测结论而不是图省事。** 在这台机器上，只有 Bing 的 HTML 结果页会返回可解析、
@@ -174,7 +190,7 @@ User-Agent 是整 bundle 的一个决定，而且是诚实的那一个。在六�
   解释的传输失败之后，五个主机共 50 次请求返回了 **0 次传输失败**——重试一个没人能复现的失败，就是没人保护
   的代码。同一次测量还发现：以 40 ms 间隔循环请求 `blog.csdn.net` 时，它十次里有九次回非 2xx——那是反爬在
   正常工作，也正是"非 2xx 当结果返回、而不是抛出"的理由。
-- **上限属于 agent preset，那才是要覆盖的行。** 一次 `web_search` 会把最多 `searchMaxQueries` 个查询（默认 4）
+- **上限是工具自己的默认值——你不需要改它，本 bundle 不依赖你改 profile 就能工作。** 一次 `web_search` 会把最多 `searchMaxQueries` 个查询（默认 4）
   合并成至多 `searchMaxResults` 条来源（默认 8）——这两个都是 `@deepseek-ai/dsh-tool-web` 的 schema 默认值。
   宿主里那条 `tool-web` 行**被 web 应用禁用了**，而会话真正跑的 `web_search` 是会话所属 agent preset 的一个
   子项，声明里只有 `fetch` 与 `searchTimeoutMs`、没有上限——所以在 profile 里写一行 `- id: tool-web`，合成出来
@@ -304,6 +320,7 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 | 为什么本 bundle 自己拥有 `web_fetch` 而不再复用随附 provider | `docs/adr/0010-the-other-half-of-the-result.md` |
 | 这个插件把我的数据放在哪里？ | `docs/adr/0011-no-data-directory.md`——它不存任何数据，`node scripts/check.mjs` 会把这句话打出来 |
 | 为什么抬高搜索上限要改 agent preset，而不是 `tool-web` 行？ | `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` |
+| 装上去加上了什么，卸下来又拿走了什么？ | `docs/adr/0013-installing-is-a-patch.md` |
 | 验证了什么，输出是什么 | `PROGRESS.md` |
 | 还有什么没被证明 | `PLAN.md` |
 

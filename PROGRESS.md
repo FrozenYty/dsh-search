@@ -173,6 +173,44 @@ $ node --test --test-isolation=none tests/*.test.mjs
 ℹ duration_ms 1873.4423
 ```
 
+## 2026-11-16 — installing is a patch, and uninstalling is its absence
+
+The owner stated the property as a design rule: **a plugin provides function when installed and leaves no
+trace when removed**, and it must not need a hand-edited profile to work. Audited against it, this bundle
+already complies — `cordis.patch.yml` holds one `web` row override and one insert of its own `search` row,
+writes nothing, stores nothing, and carries no `disabled` toggle. What was missing was the property being
+*stated* and *checkable*:
+
+- ADR 0013 records it as a decision with its consequences: a patch file is read only while the bundle is
+  installed, so removal restores the base bundle's pins and drops the inserted row; the bundle never writes
+  into the profile's own files; and a preference is not a function, which is why the source cap stays in the
+  app's preset (ADR 0012) instead of being copied here.
+- Both READMEs gained "Installing is a patch; uninstalling is its absence" — the footprint as a two-column
+  table, and the statement that nothing else is touched.
+- The cap paragraph now leads with "you do not need to change it": 8 is the tool's default with or without
+  this bundle, and the preset override is an app-level customisation whose cost is a copy of a config this
+  repository does not own.
+- `scripts/check.mjs` §12 refuses a `disabled:` key in this bundle's patch, with the reason in the failure
+  message itself, because that key is the one shape a patch cannot undo by being absent.
+
+Proven the way every rule here is:
+
+```
+$ node scripts/check.mjs                     → check passed
+$ (add `disabled: false` to cordis.patch.yml)
+$ node scripts/check.mjs                     → check failed: 1 problem(s)
+                                               cordis.patch.yml:39: carries a "disabled" toggle; this bundle
+                                               overrides config and inserts its own row, and never switches
+                                               another plugin off (ADR 0013)
+$ (restore, re-run)                          → check passed
+```
+
+One self-inflicted error on the way, recorded because the gate caught it rather than a reader: the first
+version of §12 redeclared `patchText`, which `node` refused outright with `SyntaxError: Identifier
+'patchText' has already been declared` — the check had to exist before it could be proud of itself.
+
+No version moved: no file a profile loads changed.
+
 ## 2026-11-16 — the README was the last stale document, and the plugin found it
 
 After the rule file caught up with 0.4.0, a **live check through this bundle's own fetch provider** — the
