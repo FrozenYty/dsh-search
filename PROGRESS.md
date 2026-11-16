@@ -21,7 +21,7 @@ The English half is now monolingual — no CJK character at all:
   characters.
 
 `README-zh.md` kept every section, number and claim. What changed is its prose: 17 prose lines that quoted
-with ASCII `"` now use `“”`, nine bullets lost the spaces around `——`, and the passages that read as
+with ASCII `"` now use `“”`, nine lines lost the spaces around `——`, and the passages that read as
 renderings were rewritten — `这是能力缝合法的答案` → `这是能力缝允许的答案`, `抓取一个页面花的上下文是它的文章`
 → `抓一个页面花掉的上下文是它的正文`, `只欠一次注定失败的请求` → `只会付一次注定失败的请求的代价`, `调参会话`
 → `调参`, `被 pin 的 id` → `被钉住的 id`, and the entry tests now use `手工搭的 ctx` rather than `手工 ctx`.
