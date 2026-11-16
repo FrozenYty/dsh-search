@@ -333,6 +333,14 @@ node scripts/mutation-scan.mjs
 node scripts/check.mjs
 ```
 
+Two more commands need the network, and neither runs in CI:
+
+- `npm run acceptance` sends one real search and prints what came back.
+- `npm run seam-range` asks the registry for every seam version the declared `peerDependencies` range
+  admits and reads each published typing, then fails if any of them declares a search-request field besides
+  `query` and `maxResults` — the claim this provider is written against, checked against the whole range
+  rather than the version that happens to be installed.
+
 `npm install` is for the entry tests alone: `index.js` imports the seam, which a linked bundle receives
 from the runtime as a declared peer, and those tests load the real class rather than a stand-in. Without
 it they skip — and a skip means the entry is unverified, which is why `scripts/check.mjs` fails when CI

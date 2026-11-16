@@ -4,6 +4,35 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the peer range, checked against every version instead of three
+
+The audit closed every claim it could reach except one: "the seam never passes more than `query` and
+`maxResults`" had been read off **three** published typings, while the declared range
+`>=0.1.5-rc.1 <0.3.0-0` admits many more. A claim about a range, checked against a sample, is not the claim.
+
+`scripts/seam-range.mjs` now asks the registry which versions the range admits, reads each version's
+published `types.d.ts`, extracts the `WebSearchRequest` field list, and fails when any version declares a
+field this provider does not read. It is an online check beside `npm run acceptance` and `npm run backends`,
+not a CI step: CI has no registry access, and a command a person runs when the range moves is the honest
+substitute.
+
+```
+$ node scripts/seam-range.mjs
+range declared in package.json: >=0.1.5-rc.1 <0.3.0-0  (lower 0.1.5-rc.1, upper 0.3.0-0)
+versions inside it: 28
+typings read: 28/28
+every version in the range declares exactly [maxResults? query]
+```
+
+28 versions, 28 typings, one shape. The same reading turned up the seam's own sentence about the bound — "a
+provider whose API supports a result-count control should apply it at the request layer as a cost/latency
+optimization; the seam enforces the bound regardless" — which is the documented shape of the choice this
+provider makes when it passes `maxResults` through untouched.
+
+Not wired into `drift.yml`: the weekly job re-fetches result pages and needs no registry, while this check
+would fail there for reasons that have nothing to do with the parser. It is listed in both READMEs under the
+two commands that need the network.
+
 ## 2026-11-16 — six findings from the audit, and the one that lost a user's other three queries
 
 A three-layer audit of this repository produced six findings. Five are code; one is what the documents

@@ -284,6 +284,13 @@ node scripts/mutation-scan.mjs
 node scripts/check.mjs
 ```
 
+另外有两条需要网络的命令，CI 都不跑：
+
+- `npm run acceptance` 发一次真实搜索并打印返回内容；
+- `npm run seam-range` 向 registry 问出 `peerDependencies` 范围**允许的每一个**能力缝版本，逐个读取它发布的
+  类型声明，只要其中任何一个在 `query` 与 `maxResults` 之外还声明了搜索请求字段就失败——本 provider 就是照着
+  这个假设写的，所以这条按**整个范围**核对，而不是只核对恰好装着的那一版。
+
 `npm install` 只为入口测试而装：`index.js` import 能力缝，而 link 进 profile 的 bundle 是从运行时按 peer
 拿到它的；那几个测试加载真实类而不是替身。不装它们会 skip——skip 就意味着入口没被验证，所以一旦 CI 不再
 安装它，`scripts/check.mjs` 会失败。套件里其余测试完全不需要安装任何东西。

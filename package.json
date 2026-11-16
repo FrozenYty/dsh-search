@@ -19,7 +19,8 @@
     "mutation": "node scripts/mutation-scan.mjs",
     "acceptance": "node scripts/acceptance.mjs",
     "refresh": "node scripts/fixture-refresh.mjs",
-    "backends": "node scripts/probe-backends.mjs"
+    "backends": "node scripts/probe-backends.mjs",
+    "seam-range": "node scripts/seam-range.mjs"
   },
   "exports": {
     ".": "./index.js",
