@@ -4,6 +4,75 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the write accepts what it captured, and nothing else
+
+The first version of this rule refused `--write` whenever any fixture was not "parsed enough", which merged
+two different failures into one condition. They are not the same failure. A fixture whose page was **never
+captured** — the `--via` rewrite redirected, the request or the parse threw, no body came back — has no page
+to accept, so re-dating it records a capture that did not happen. A captured page that **parses to fewer
+sources** is the one case the README sends a person to `--write` for ("read the page … `--write` saves it"),
+and refusing it made the tool unable to accept the page it exists to accept.
+
+`scripts/fixture-refresh.mjs` now keeps the two lists apart: `blockers` holds the uncaptured fixtures and
+refuses the whole write before anything is flushed; `problems` holds shortfalls, which are written and then
+reported by a non-zero exit code. Captured pages are still held in `refreshed` and flushed only together with
+`sources.md`, so no fixture is ever newer than the row describing it. The file's comment says which is which
+and why, so the two conditions are not merged again.
+
+The redirected leg — refused, and nothing on disk:
+
+```
+$ node scripts/fixture-refresh.mjs --via www.bing.com --write
+  bing-deepseek-harness.html
+    live: NOT CHECKED — the rewrite to www.bing.com was answered with HTTP 302 → https://cn.bing.com/search?q=deepseek+harness, and this provider follows no redirect by design (ADR 0001).
+  (… the other two fixtures, the same refusal with their own query …)
+refusing to write: a fixture whose page was never captured cannot be accepted
+  - bing-deepseek-harness.html: the rewrite to www.bing.com was answered with HTTP 302 → https://cn.bing.com/search?q=deepseek+harness, and this provider follows no redirect by design (ADR 0001)
+  (… each of the three, with its own reason …)
+Nothing was written; a partial write is worse than none. Re-run when every fixture can be read.
+[exit code: 1]
+
+$ git status --short
+ M scripts/fixture-refresh.mjs
+```
+
+The accepted shortfall: one synthetic `b_algo` block appended to the stored
+`tests/fixtures/bing-deepseek-harness.html` raised that fixture's stored count from 10 to 11, while the live
+page still parsed to 10 — the shortfall is the fixture's own new count against the live page, nothing else:
+
+```
+$ node scripts/fixture-refresh.mjs --write
+  bing-deepseek-harness.html
+    stored fixture: 11 sources | live page: 10 sources, 3 with a date
+  (… the other two fixtures unchanged at 10/10 …)
+  bing-deepseek-harness.html: written over the stored fixture
+  bing-node-fetch-redirect.html: written over the stored fixture
+  bing-dated-snippets.html: written over the stored fixture
+sources.md: capture dates set to 2026-11-16
+fixtures refreshed
+the pages above were written, but they parse under the counts they held:
+  - bing-deepseek-harness.html: the live page parses to 10 sources, the stored one to 11
+The new pages and their provenance are saved; the counts above are what changed.
+[exit code: 1]
+
+$ git status --short
+ M scripts/fixture-refresh.mjs
+ M tests/fixtures/bing-dated-snippets.html
+ M tests/fixtures/bing-deepseek-harness.html
+ M tests/fixtures/bing-node-fetch-redirect.html
+ M tests/fixtures/sources.md
+$ git checkout -- tests/fixtures   # the capture was a proof, not an accepted refresh
+```
+
+The rest of the gate, run in a worktree of this branch: `node scripts/check.mjs` → check passed;
+`node --test --test-isolation=none tests/*.test.mjs` → 69 pass, 0 fail, 0 skipped;
+`node scripts/mutation-scan.mjs` → 47 killed, 0 not.
+
+One thing an earlier attempt showed by accident, worth knowing when `--write` is used in anger: a query
+answered with Bing's own no-results page (live 0 sources where the stored fixture holds 10), which the
+provider returns as a legal empty answer rather than a throw. `--write` wrote it and exited 1. That is what
+the counts are printed for: a 0 where 10 stood is the line to read before trusting a refresh.
+
 ## 2026-11-16 — a redirected `--via` run is not a regression
 
 `--via` was added for a GitHub runner, which is answered `cn.bing.com → www.bing.com` (2026-11-14, below).
