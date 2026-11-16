@@ -344,6 +344,15 @@ Two more commands need the network, and neither runs in CI:
   `query` and `maxResults` — the claim this provider is written against, checked against the whole range
   rather than the version that happens to be installed.
 
+And one more that needs no network at all: `npm run seam-modes` builds the seam's own runtime, registers this
+bundle through it, and checks what the seam then does — that a pinned id is the provider it selects, that
+`provider: official` serves through the shipped provider without a keyless request, that `auto` falls back
+and remembers a failed account, and that `official` with nothing registered refuses by the seam's code. The
+unit tests cover the entry's logic against a hand-made context; this covers the selection path the Host
+actually runs. It is not part of the gate because it stands in for three Cordis context members
+(`effect`, `provide`, `reflect.provide`), and a test written against those stubs would fail for the wrong
+reason the day the seam needs another one.
+
 `npm install` is for the entry tests alone: `index.js` imports the seam, which a linked bundle receives
 from the runtime as a declared peer, and those tests load the real class rather than a stand-in. Without
 it they skip — and a skip means the entry is unverified, which is why `scripts/check.mjs` fails when CI

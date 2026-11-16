@@ -294,6 +294,13 @@ node scripts/check.mjs
   类型声明，只要其中任何一个在 `query` 与 `maxResults` 之外还声明了搜索请求字段就失败——本 provider 就是照着
   这个假设写的，所以这条按**整个范围**核对，而不是只核对恰好装着的那一版。
 
+还有一条完全不需要网络：`npm run seam-modes` 会构建能力缝自己的运行时，把本 bundle 通过它注册进去，然后核对
+能力缝随后的行为——被 pin 的 id 是否就是它选中的 provider；`provider: official` 是否走随附 provider 且**不发**
+免 key 请求；`auto` 在账户答不了时是否回退并**记住**这次失败；`official` 在没有随附 provider 时是否按能力缝
+自己的错误码拒绝。单元测试用手工 ctx 覆盖入口逻辑，这一条覆盖的是 Host 真正跑的选择路径。它不进 CI 门禁，因为
+它需要顶替三个 Cordis ctx 成员（`effect`、`provide`、`reflect.provide`）——哪天能力缝再要多一个，写死桩的测试
+会以错误的理由失败。
+
 `npm install` 只为入口测试而装：`index.js` import 能力缝，而 link 进 profile 的 bundle 是从运行时按 peer
 拿到它的；那几个测试加载真实类而不是替身。不装它们会 skip——skip 就意味着入口没被验证，所以一旦 CI 不再
 安装它，`scripts/check.mjs` 会失败。套件里其余测试完全不需要安装任何东西。

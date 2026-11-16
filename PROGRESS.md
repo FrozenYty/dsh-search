@@ -148,6 +148,36 @@ The direction asymmetry is written where a person reads before running the tool:
 and the bullet that names the command in both READMEs. No version moves: `scripts/`, the fixtures'
 provenance and the READMEs are not files a profile loads (`CONTRIBUTING.md` §5).
 
+## 2026-11-16 — the seam's own runtime, driven through every provider mode
+
+Every test in this repository called `apply()` with a hand-made context. That covers the entry's own logic and
+says nothing about the seam: not which provider a pin selects, not whether `official` really avoids the
+keyless request, not whether `auto` remembers a failed account. The audit answered those from the seam's
+source; nothing ran them.
+
+`scripts/seam-modes.mjs` builds the seam's real `WebRuntime`, registers this bundle through it, and asks it
+to search. It needed three Cordis context members to exist (`effect`, `provide`, `reflect.provide`) — and the
+first two attempts showed why: `WebRuntime` extends the seam's `Service`, and `registerProvider` inserts the
+provider **inside an effect generator**, so a stub `effect` that only returns a disposer leaves the map empty
+and the seam then reports `WEB_PROVIDER_CONFIGURED_MISSING` for a provider that was registered. Running the
+generator to its first yield is what a context does; that is what the script does.
+
+```
+$ node scripts/seam-modes.mjs
+ok    a pinned id is the provider the seam selects — 3 source(s), one request
+ok    the seam enforces the result bound
+ok    official serves through the shipped provider — first: shipped
+ok    official sends no keyless request — 0 request(s)
+ok    auto falls back to the keyless provider — 3 source(s)
+ok    auto remembers a failed account instead of paying twice — asked 1 time(s) over two searches
+ok    official with no shipped provider refuses by the seam's code — WEB_PROVIDER_CONFIGURED_MISSING
+seam modes: every expectation held
+```
+
+Offline: the keyless search reads a saved result page and the shipped provider is a stub. Not part of the
+gate, and the README says why — it stands in for those three context members, so a test written against the
+stubs would fail for the wrong reason the day the seam needs another one.
+
 ## 2026-11-16 — the peer range, checked against every version instead of three
 
 The audit closed every claim it could reach except one: "the seam never passes more than `query` and
