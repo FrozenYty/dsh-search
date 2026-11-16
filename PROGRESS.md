@@ -4,6 +4,49 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the README pair stops reading as two languages
+
+`README.md` carried four lines with Chinese in them, and `README-zh.md` carried ASCII punctuation and
+word-for-word renderings inside its Chinese prose. Nothing about the bundle, its numbers or its section
+structure changed; what changed is which language each half is written in.
+
+The English half is now monolingual — no CJK character at all:
+
+- `[中文](README-zh.md)` became `[Chinese](README-zh.md)`; `README-zh.md` already links back as
+  `[English](README.md)`, so each switcher names the other language in its own language;
+- the two places that printed the `搜索` UI title now describe it in English — **Search** in an English UI,
+  and the bundle's own two-character Chinese title in a Chinese one;
+- the captured example queries read `python tutorial` and a Chinese query, which keeps the measurement
+  (broad queries, so a small result set could not be mistaken for a paging failure) without printing the
+  characters.
+
+`README-zh.md` kept every section, number and claim. What changed is its prose: 17 prose lines that quoted
+with ASCII `"` now use `“”`, nine lines lost the spaces around `——`, and the passages that read as
+renderings were rewritten — `这是能力缝合法的答案` → `这是能力缝允许的答案`, `抓取一个页面花的上下文是它的文章`
+→ `抓一个页面花掉的上下文是它的正文`, `只欠一次注定失败的请求` → `只会付一次注定失败的请求的代价`, `调参会话`
+→ `调参`, `被 pin 的 id` → `被钉住的 id`, and the entry tests now use `手工搭的 ctx` rather than `手工 ctx`.
+The 41 lines carrying an ASCII comma, colon or semicolon, the 10 carrying an ASCII parenthesis and the one
+carrying an ASCII double quote outside the converted prose are all inside code spans, commands, URLs or
+markdown link targets, so they stayed — `redirect: "manual"` is code, not prose.
+
+The rule is enforced, not remembered: `scripts/check.mjs` §9b fails `README.md` by line and character when a
+CJK ideograph or full-width punctuation appears. Proved by planting one:
+
+```
+$ node scripts/check.mjs          # with 中文 planted at README.md line 9
+check failed: 1 problem(s)
+  - README.md:9: carries "中", which is not English; the English half of the pair stays monolingual — "> A real result page, not an account balance. 中文"
+[exit code: 1]
+
+$ node scripts/check.mjs
+check passed
+data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/search (docs/adr/0011-no-data-directory.md)
+[exit code: 0]
+```
+
+The suite in this worktree: `node --test --test-isolation=none tests/*.test.mjs` → 69 pass, 0 fail, 0
+skipped. No version moved: this changes documents and a script, and a profile loads neither.
+
 ## 2026-11-16 — the write accepts what it captured, and nothing else
 
 The first version of this rule refused `--write` whenever any fixture was not "parsed enough", which merged
