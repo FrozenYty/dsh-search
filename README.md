@@ -181,6 +181,23 @@ both lines have to be written out again or that half would lose its backend.
 That is the whole footprint: one row override and one inserted row. It changes the profile the bundle is
 installed into, for every session in it, which is why it is stated here rather than buried in the patch.
 
+### Installing is a patch; uninstalling is its absence
+
+Nothing is written into the profile's own files. The footprint is those two entries in this bundle's
+`cordis.patch.yml`, and a patch file is read only while the bundle is installed:
+
+| Installing adds | Removing takes back |
+| --- | --- |
+| one row override — `web`, restating `searchProvider` and `fetchProvider` | the base bundle's own pins return (`deepseek-official`, `http`) |
+| one inserted row — `search`, this bundle's config | that row is gone |
+| the bundle entry in the profile's list, and the path it links | both, by the uninstall that removes them |
+
+Nothing else is touched: no data directory (ADR 0011), no settings, no hand-edited profile file, and **no
+`disabled:` toggle anywhere in the patch** — this bundle never switches off a plugin it does not own, so
+uninstalling it cannot silently change what something else does. That is a gate rule, not a promise:
+`scripts/check.mjs` fails by file and line if a `disabled` key ever appears
+(`docs/adr/0013-installing-is-a-patch.md`).
+
 ## Limits and deliberate omissions
 
 - **One engine, one endpoint, and that is a measurement rather than a shortcut.** Bing's HTML result page is
@@ -203,7 +220,8 @@ installed into, for every session in it, which is why it is stated here rather t
   can reproduce would be code nothing protects. The same run did find that `blog.csdn.net` answers non-2xx
   9 times out of 10 when requested in a loop — an anti-bot behaving normally, and the reason a non-2xx
   answer comes back as a result instead of a throw.
-- **The cap belongs to the agent preset, and that is the row to override.** One `web_search` merges up to
+- **The cap is the tool's own default — you do not need to change it, and this bundle works with no edit to
+  your profile.** One `web_search` merges up to
   `searchMaxQueries` queries (default 4) into at most `searchMaxResults` sources (default 8) — the schema
   defaults of `@deepseek-ai/dsh-tool-web`. The host `tool-web` row is **disabled by the web app**, and the
   `web_search` a session runs is a child of that session's agent preset, declared with `fetch` and
@@ -355,6 +373,7 @@ session check needs the plugin enabled.
 | Why does the bundle own `web_fetch` instead of reusing the shipped provider? | `docs/adr/0010-the-other-half-of-the-result.md` |
 | Where does this plugin keep my data? | `docs/adr/0011-no-data-directory.md` — it keeps none, and `node scripts/check.mjs` prints that |
 | Why does raising the search cap need the agent preset instead of the `tool-web` row? | `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` |
+| What does installing add, and what does removing take back? | `docs/adr/0013-installing-is-a-patch.md` |
 | What was verified, with what output | `PROGRESS.md` |
 | What is still unproven | `PLAN.md` |
 
