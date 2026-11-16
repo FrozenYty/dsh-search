@@ -4,6 +4,21 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the description in four characters, twice
+
+The owner asked for the Chinese in a four-character couplet. Search (`Bing Search`) now reads
+`无需账户，直读网页。` — which also removes the one Latin word the previous wording carried, `Bing`, a name the
+title already says. The fetch half was already in that measure: `只交正文，不交标记。` English stays as short as
+it can without becoming a riddle: `No account, reads the page.` / `Prose, not markup.`
+
+```
+$ node scripts/check.mjs                            → check passed
+$ node --test --test-isolation=none tests/*.test.mjs → 70 pass, 0 fail, 0 skipped
+$ node scripts/seam-modes.mjs                        → every expectation held
+```
+
+Version 0.5.4, because `index.js` is a file a profile loads.
+
 ## 2026-11-16 — the descriptions, shorter
 
 The owner asked for the picker's descriptions in his own style, and that style is visible in this bundle's own

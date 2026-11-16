@@ -17,7 +17,7 @@
 
 ## 状态
 
-- 当前版本：v0.5.3。
+- 当前版本：v0.5.4。
 - **本仓库验证过的**：解析器在真实保存的结果页上的行为、打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败。`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs` 都实际跑过，输出记在 `PROGRESS.md`。实网搜索是手工跑的，直连
