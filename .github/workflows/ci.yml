@@ -19,9 +19,9 @@ jobs:
           node-version: "24"
 
       - name: Modules parse as ESM
-        run: |
-          node --check index.js
-          node --check bing.js
+        # One line naming every published module, because a second line is a line that can be forgotten:
+        # this step said `index.js` and `bing.js` for a version after `article.js` shipped.
+        run: node --check index.js bing.js article.js
 
       - name: Resolve the seam for the entry tests
         # index.js imports @deepseek-ai/dsh-web, which a linked bundle receives from the runtime as a

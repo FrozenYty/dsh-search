@@ -18,7 +18,7 @@
 ## 状态
 
 - 当前版本：v0.4.1。
-- **本仓库验证过的**：解析器在两个真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
+- **本仓库验证过的**：解析器在真实保存的结果页上的行为，打桩请求层上的请求形状，以及一个变异扫描——
   它逐条打断 `bing.js` 的承重行，要求必须有测试失败——`node --test`、`node scripts/mutation-scan.mjs`
   与 `node scripts/check.mjs`，输出都记在 `PROGRESS.md`。实网搜索是手工跑的，直连 `cn.bing.com` 并返回
   了真实结果；那次运行和输出同样在 `PROGRESS.md` 里。
@@ -235,7 +235,7 @@ User-Agent 是整 bundle 的一个决定，而且是诚实的那一个。在六�
 Bing 的结果页迟早会变。provider 会**大声失败**而不是回一个空结果，报错里会写明是哪一种，所以第一步是读它：
 
 - `no parseable result block … shape may have changed` —— 标记结构变了。跑 `node scripts/fixture-refresh.mjs`：
-  它会用**这个 provider 自己的请求**重新抓那三个页面，报告每个页面现在解析出多少条，并在某页比保存的
+  它会用**这个 provider 自己的请求**重新抓 fixtures 记录的那些页面，报告每个页面现在解析出多少条，并在某页比保存的
   fixture 少时以非零码退出。读过页面、确认解析器没错之后，用 `--write` 把它存下来并更新来源表的抓取日期。
 - `challenge page instead of results` —— Bing 认为这个客户端像自动化程序。过一会儿再试，或者用浏览器打开
   同一个查询一次；这个 provider 不保持任何会话和 cookie。
@@ -275,10 +275,12 @@ spawn。CI 固定 Node 24 并跑同样的命令，所以本地通过和 CI 全�
 
 | 路径 | 是什么 |
 |---|---|
+| `README.md`、`README-zh.md` | 本文件对：bundle 是什么，怎么安装、怎么验证 |
 | `index.js` | bundle 入口：构造 provider 并注册进 `ctx.web` |
 | `bing.js` | 查询、请求、解析、结果映射；不 import 任何东西 |
+| `article.js` | 抓取那一半：自己读页面并抽出正文；只 import `bing.js` |
 | `cordis.patch.yml` | 能力缝的指向，以及本 bundle 的行 |
-| `tests/` | 两个真实保存页面上的解析测试，以及打桩 `fetch` 上的请求层测试 |
+| `tests/` | 真实保存页面上的解析测试，以及打桩 `fetch` 上的请求层测试 |
 | `scripts/check.mjs` | 仓库闸门，含那两条请求层回归 |
 | `docs/` | 设计文档（双语）与 ADR |
 | `PLAN.md`、`PROGRESS.md`、`CHANGELOG.md` | 验收状态、只追加的记录、版本摘要 |

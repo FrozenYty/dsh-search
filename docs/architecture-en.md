@@ -178,7 +178,7 @@ which of the two it suspects — a challenge page, or markup that no longer pars
 
 ## 8. What the repository can and cannot prove
 
-`node --test --test-isolation=none tests/*.test.mjs` proves the parser over two saved responses and the
+`node --test --test-isolation=none tests/*.test.mjs` proves the parser over the saved responses and the
 request shape over a stubbed request layer; its entry tests load the **real** seam and prove what the Host
 does with this bundle — that `apply` registers one provider under `bing-html`, that the provider reports
 itself available and has no `ready()`, and that a provider failure arrives as the seam's `WebError`

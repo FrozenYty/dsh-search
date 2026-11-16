@@ -19,7 +19,7 @@ and every search fail — and a fetched page costs the context its article rathe
 ## Status
 
 - Current version: v0.4.1.
-- **Verified here**: the parser over two saved result pages, the request shape over a stubbed request
+- **Verified here**: the parser over the saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded
   with their output in `PROGRESS.md`. The live search was run by hand against `cn.bing.com` and answered
@@ -278,7 +278,7 @@ Bing will change its result page eventually. The provider fails loudly rather th
 and its message names the failure, so the first step is to read it:
 
 - `no parseable result block … shape may have changed` — the markup moved. Run
-  `node scripts/fixture-refresh.mjs`: it re-fetches the three pages the fixtures came from **through this
+  `node scripts/fixture-refresh.mjs`: it re-fetches the pages the fixtures came from **through this
   provider's own request**, reports what each one parses to now, and exits non-zero when a page yields
   fewer sources than its stored fixture. Once you have read the page and know the parser is right,
   `--write` saves it and re-dates the provenance table.
@@ -326,11 +326,12 @@ session check needs the plugin enabled.
 
 | Path | What |
 |---|---|
+| `README.md`, `README-zh.md` | This pair: what the bundle is, and how to install and verify it |
 | `index.js` | Bundle entry: builds the provider and registers it with `ctx.web` |
 | `bing.js` | The query, the request, the parse and the result mapping; imports nothing |
 | `article.js` | The fetch half: reads a page itself and extracts its prose; imports only `bing.js` |
 | `cordis.patch.yml` | The seam pin and this bundle's row |
-| `tests/` | Parsing tests over two saved result pages, and request-layer tests over a stubbed `fetch` |
+| `tests/` | Parsing tests over the saved result pages, and request-layer tests over a stubbed `fetch` |
 | `scripts/check.mjs` | The repository gate, including the two request-layer regressions |
 | `docs/` | The design document (bilingual) and the ADRs |
 | `PLAN.md`, `PROGRESS.md`, `CHANGELOG.md` | Acceptance state, the append-only record, release summaries |

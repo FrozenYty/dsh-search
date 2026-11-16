@@ -5,6 +5,10 @@
   a local keyless provider is the right shape here — stands)
 - **Related:** ADR 0001 (endpoint), ADR 0004 (one backend), ADR 0008 (the one upgrade adopted with code)
 
+> One consequence below has since been superseded, and the argument here is left as it was written: the
+> bundle registers a second provider now, so "one provider" in the Consequences is ADR 0010's subject
+> (`docs/adr/0010-the-other-half-of-the-result.md`). The survey and every refusal stand.
+
 ## Context
 
 Ask a plugin to "get better" and the honest first move is to find out what better looks like, because the

@@ -5,7 +5,7 @@
  * Dependency-free on purpose: the plugin has no install step and the request layer is exercised with a
  * stubbed `fetch`, so CI needs nothing but Node. What this proves:
  *
- *   1. the bundle manifest parses, every path it publishes exists, and the two modules are published;
+ *   1. the bundle manifest parses, every path it publishes exists, and the runtime modules are published;
  *   2. `bing.js` imports nothing, and the entry's only bare import is the seam it declares as a peer;
  *   3. locale/en.json and locale/zh.json carry the same keys, the agreed titles, and a two-character
  *      Chinese title;
@@ -13,7 +13,13 @@
  *   5. every document under docs/ is classified by the bilingual-pair rule, and no pair is half-written;
  *   6. every document reference resolves, and no shared document carries an absolute machine path;
  *   7. **acceptance item 3, at the request layer**: one search sends exactly one request, to
- *      `cn.bing.com`, and never to `www.bing.com` or `api.deepseek.com`.
+ *      `cn.bing.com`, and never to `www.bing.com` or `api.deepseek.com`;
+ *   8. every `node --check` line in the documents and the workflows names exactly the modules `files`
+ *      publishes;
+ *   9. each README's introduction — everything before its first section heading — names both provider ids,
+ *      read out of the modules themselves;
+ *  10. `package.json`'s version is the one both READMEs state and the one the newest changelog section names;
+ *  11. both README layout tables carry a row for every non-glob entry in `files`.
  *
  * What it cannot prove: that the plugin activates, that a profile resolves its peer import, or that
  * the live endpoint answers. The first two need an install, the third needs the network; both are
@@ -385,6 +391,108 @@ if (!existsSync(fixturePath)) {
       if (host === forbidden || host.endsWith(`.${forbidden}`)) {
         fail(`request layer: a request went to ${host}, and ${forbidden} is forbidden (acceptance item 3)`)
       }
+    }
+  }
+}
+
+// 8. Every parse line names every published module.
+//
+// The incident: 0.4.0 published `article.js`, and `node --check index.js bing.js` stayed in CI and in
+// `CONTRIBUTING.md` — a published module nothing parsed, because nothing compared the command with the
+// manifest. `files` is the inventory, so the modules it publishes are the set a parse line must name.
+const runtimeModules = (manifest?.files ?? []).filter((entry) => entry.endsWith('.js') && !entry.includes('*'))
+const workflowDir = join(root, '.github', 'workflows')
+const parseDocuments = [
+  'README.md', 'README-zh.md', 'AGENTS.md', 'CONTRIBUTING.md',
+  ...(existsSync(workflowDir)
+    ? readdirSync(workflowDir).filter((name) => /\.ya?ml$/.test(name)).map((name) => `.github/workflows/${name}`)
+    : []),
+]
+for (const document of parseDocuments) {
+  const text = read(document)
+  if (text === undefined) continue
+  for (const match of text.matchAll(/node\s+--check\s+([^\n`]+)/g)) {
+    const named = match[1].trim().split(/\s+/).filter((word) => word.endsWith('.js'))
+    const missing = runtimeModules.filter((module) => !named.includes(module))
+    const stray = named.filter((module) => !runtimeModules.includes(module))
+    if (missing.length > 0) {
+      fail(`${document}: a parse line names ${named.join(' ')}; ${missing.join(' ')} ${missing.length === 1 ? 'is' : 'are'} published and unchecked`)
+    }
+    if (stray.length > 0) {
+      fail(`${document}: a parse line names ${stray.join(' ')}, which package.json does not publish`)
+    }
+  }
+}
+
+// 9. Each README's introduction names both providers this bundle registers.
+//
+// The incident: once 0.4.0 registered a second provider the opening paragraph still said "one provider",
+// and both ids were already mentioned further down — a presence check over the whole file would have stayed
+// green while the sentence a reader believes was wrong. The ids are read out of the modules, never written
+// here, so a rename cannot leave this check testing a name the code no longer exports.
+const providerIds = ['bing.js', 'article.js'].map((module) => {
+  const source = read(module) ?? ''
+  const id = /export\s+const\s+PROVIDER_ID\s*=\s*'([^']+)'/.exec(source)?.[1]
+  if (id === undefined) fail(`${module}: no "export const PROVIDER_ID = '<id>'" for the README check to read`)
+  return { module, id }
+})
+for (const document of ['README.md', 'README-zh.md']) {
+  const text = read(document)
+  if (text === undefined) continue
+  const lines = text.split(/\r?\n/)
+  const firstSection = lines.findIndex((line) => /^## /.test(line))
+  const introduction = (firstSection === -1 ? lines : lines.slice(0, firstSection)).join('\n')
+  for (const { module, id } of providerIds) {
+    if (id !== undefined && !introduction.includes(id)) {
+      fail(`${document}: the introduction, everything before the first "## " heading, never names ${id} — the provider ${module} registers`)
+    }
+  }
+}
+
+// 10. One version, and the documents a reader checks first say the same number.
+//
+// Every file here is touched by a version bump anyway, and each is a place a reader looks to learn which
+// number is current. There is deliberately no `PROGRESS.md` leg: an entry written after a change that moves
+// no version says "no version moved" rather than naming one, so the newest entry states no version at all
+// and a leg that parsed a heading would be a convention this repository does not keep.
+const version = manifest?.version
+if (typeof version === 'string') {
+  for (const [document, line] of [
+    ['README.md', `- Current version: v${version}.`],
+    ['README-zh.md', `- 当前版本：v${version}。`],
+  ]) {
+    if (!(read(document) ?? '').includes(line)) fail(`${document}: must carry the line "${line}"`)
+  }
+  const section = (read('CHANGELOG.md') ?? '').split(/\r?\n/).find((line) => /^## \[/.test(line)) ?? ''
+  const named = /^## \[([^\]]+)\]/.exec(section)?.[1]
+  if (named !== version) {
+    fail(`CHANGELOG.md: the newest section is ${named === undefined ? 'missing' : `[${named}]`}, but package.json says ${version}`)
+  }
+}
+
+// 11. The layout tables are the inventory.
+//
+// `files` says what a profile receives, and both READMEs carry a table saying what each path is. The
+// incident: `article.js` was published in 0.4.0 and the Chinese table kept its pre-0.4.0 rows, so the one
+// inventory a reader had did not list a module the bundle ships.
+const inventory = (manifest?.files ?? []).filter((entry) => !entry.includes('*'))
+for (const document of ['README.md', 'README-zh.md']) {
+  const text = read(document)
+  if (text === undefined) continue
+  const lines = text.split(/\r?\n/)
+  const heading = lines.findIndex((line) => /^## (?:Repository layout|仓库结构)$/.test(line))
+  if (heading === -1) {
+    fail(`${document}: no layout section to compare package.json.files with`)
+    continue
+  }
+  const rest = lines.slice(heading + 1)
+  const next = rest.findIndex((line) => /^## /.test(line))
+  const firstColumn = (next === -1 ? rest : rest.slice(0, next))
+    .filter((line) => line.startsWith('|'))
+    .map((line) => line.split('|')[1] ?? '')
+  for (const entry of inventory) {
+    if (!firstColumn.some((cell) => cell.includes(entry))) {
+      fail(`${document}: the layout table has no row for ${entry}`)
     }
   }
 }

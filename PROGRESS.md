@@ -4,6 +4,108 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the gates the drift could walk past
+
+Two rounds were lost to one class of failure: a README that kept saying "one provider" after 0.4.0 registered
+the second, and a `node --check` line naming two of the three published modules. Both are statements a reader
+trusts, both were wrong, and `scripts/check.mjs` said nothing about either — it verifies structure, and a
+version number, a command's completeness and whether an introduction still describes the code are not
+structure. Four checks close that, and the drift each one exposes is fixed in the same pull request, because
+a check added without its drift fixed blocks every later one.
+
+- **8 — the parse line is the module set.** The modules are read from `package.json.files`, and every
+  `node --check <files>` line in `README.md`, `README-zh.md`, `AGENTS.md`, `CONTRIBUTING.md` and
+  `.github/workflows/*.yml` must name exactly that set. Red in two places: CI's "Modules parse as ESM" step
+  ran two one-file commands, and `CONTRIBUTING.md` §4's table carried the pre-0.4.0 spelling. Fixed as one
+  line naming all three modules in both, because a second command is a command that can be forgotten.
+- **9 — each README's introduction names both provider ids.** The ids come from the
+  `export const PROVIDER_ID` lines in `bing.js` and `article.js`, never from a list written into the check,
+  and must appear before the first `## ` heading. This is the exact shape of the first failure: both ids were
+  already mentioned far down both files, so a whole-file presence check would have stayed green while the
+  opening paragraph lied.
+- **10 — one version in the places a reader looks.** `package.json`'s version, both READMEs' status lines,
+  and the newest `CHANGELOG.md` section. There is deliberately no `PROGRESS.md` leg: the newest entry
+  carries no version reference — an entry written after a change that moves no version says so instead of
+  naming one — so a leg that parsed a heading would enforce a convention this repository does not keep.
+- **11 — the layout tables are the inventory.** Every non-glob entry in `files` must appear in the first
+  column of both layout tables. Red: the Chinese table had no `article.js` row, and neither table listed the
+  README pair.
+
+The before-fix run, with 8, 9, 10 and 11 in place and none of the drift touched yet:
+
+```
+$ node scripts/check.mjs
+check failed: 8 problem(s)
+  - CONTRIBUTING.md: a parse line names index.js bing.js; article.js is published and unchecked
+  - .github/workflows/ci.yml: a parse line names index.js; bing.js article.js are published and unchecked
+  - .github/workflows/ci.yml: a parse line names bing.js; index.js article.js are published and unchecked
+  - README.md: the layout table has no row for README.md
+  - README.md: the layout table has no row for README-zh.md
+  - README-zh.md: the layout table has no row for article.js
+  - README-zh.md: the layout table has no row for README.md
+  - README-zh.md: the layout table has no row for README-zh.md
+```
+
+Four of those eight are a miss in the brief this change was written from: it named the missing `article.js`
+row as the whole of the red, and both tables were also missing the README pair. Fixed by adding the rows, not
+by narrowing the check to the entries the brief happened to name.
+
+9 was already green on this tree, so it was proved by deleting `article` from `README-zh.md`'s introduction —
+where the id still appears three sections further down, which is why the whole-file version of this check
+would not have noticed — and then restoring it:
+
+```
+$ node scripts/check.mjs
+check failed: 1 problem(s)
+  - README-zh.md: the introduction, everything before the first "## " heading, never names article — the provider article.js registers
+```
+
+10 was proved the same way, against a README status line one version out of date:
+
+```
+$ node scripts/check.mjs
+check failed: 1 problem(s)
+  - README.md: must carry the line "- Current version: v0.4.1."
+```
+
+Deleted by hand in the same pull request:
+
+- **The fixture count, wherever it was restated.** Six places called the fixtures "two saved result pages"
+  while three exist and `tests/parse.test.mjs` and `scripts/fixture-refresh.mjs` both use three, and
+  `README.md` said "the three pages the fixtures came from" in another paragraph. The number is gone from
+  both README pairs' four places, from `docs/architecture-en.md` and `docs/architecture-zh.md`, and the two
+  "three pages" phrasings went with it — the fixtures are the source of truth, and a count restated in eight
+  places is drift with a schedule.
+- `scripts/check.mjs`'s header said "the two modules are published" in a repository that publishes three; it
+  says the runtime modules now.
+- `docs/adr/0009-the-survey-and-its-refusals.md` keeps its argument and gains the pointer ADR 0004 already
+  carries: its Consequences open with "The bundle is one provider", which 0.4.0 made false, and ADR 0010 owns
+  that half now.
+- `CONTRIBUTING.md` §4 lists what the gate verifies, so the four checks are in that list: a description of the
+  gate that is a version behind is the same drift this pull request exists for.
+
+No runtime file changed and no version moved — nothing a profile loads behaves differently. Verified:
+
+```
+$ node scripts/check.mjs
+check passed
+data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/search (docs/adr/0011-no-data-directory.md)
+
+$ node --test --test-isolation=none tests/*.test.mjs
+ℹ tests 51
+ℹ suites 0
+ℹ pass 51
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 142.6746
+
+$ node scripts/mutation-scan.mjs
+36 mutation(s): 36 killed, 0 not
+mutation scan passed
+```
+
 ## 2026-11-16 — the cap lives in the agent preset, and the READMEs said otherwise
 
 Both READMEs told a reader to raise `searchMaxResults` by overriding the base bundle's `tool-web` row, and the

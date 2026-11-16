@@ -154,7 +154,7 @@ https://cn.bing.com/search?q=<query>
 
 ## 8. 本仓库能证明什么、不能证明什么
 
-`node --test --test-isolation=none tests/*.test.mjs` 证明解析器在两个真实保存的响应上的行为，以及打桩
+`node --test --test-isolation=none tests/*.test.mjs` 证明解析器在真实保存的响应上的行为，以及打桩
 请求层上的请求形状；其中的入口测试加载**真实**的能力缝，证明 Host 拿这个 bundle 做了什么——`apply` 在
 `bing-html` 下只注册一个 provider、该 provider 自报可用且没有 `ready()`、provider 的失败以能力缝的
 `WebError` 带着自己的错误码抵达。`node scripts/mutation-scan.mjs` 证明这些测试能失败：它逐条打断
