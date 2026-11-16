@@ -4,6 +4,27 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the descriptions, shorter
+
+The owner asked for the picker's descriptions in his own style, and that style is visible in this bundle's own
+locale line: `只搜网页，不花额度。` A description under a provider entry is read while choosing between entries,
+so it has to carry the difference and nothing else.
+
+- search (`Bing Search`): `No account: Bing's result page.` / `免账户，直读 Bing 结果页。`
+- fetch (`Readable Page`): `Prose, not markup.` / `只交正文，不交标记。`
+
+Both are `LocalizedText`, so each UI reads its own language; the test pins both titles exactly and both
+descriptions as non-empty in both locales, which is why shortening them is a wording decision rather than a
+contract change.
+
+```
+$ node scripts/check.mjs                            → check passed
+$ node --test --test-isolation=none tests/*.test.mjs → 70 pass, 0 fail, 0 skipped
+$ node scripts/seam-modes.mjs                        → every expectation held
+```
+
+No behaviour moved, and the version goes to 0.5.3 because `index.js` is a file a profile loads.
+
 ## 2026-11-16 — the picker shows a name, not the bare id
 
 The provider dropdown rendered `bing-html` and `article` as ids while the shipped providers rendered as names
