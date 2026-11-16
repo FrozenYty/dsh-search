@@ -4,6 +4,26 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the README was the last stale document, and the plugin found it
+
+After the rule file caught up with 0.4.0, a **live check through this bundle's own fetch provider** — the
+real test of "is it still working", asked by the owner — returned the repository's README as extracted prose.
+That is how the last stale document was found: reading our own README through our own extractor showed it
+still claiming things the code stopped doing in 0.4.0.
+
+Four spots in each language, none of them a rule:
+
+- the opening paragraph said "It registers **one** provider with the web seam and points the seam's search
+  half at it"; it registers both halves, and the sentence now says so.
+- the verification bullet said a fetch "still works, because this bundle **leaves the fetch half of the seam
+  alone**" — the opposite of what 0.4.0 did. It now says what a fetch returns: the page's prose.
+- the development section's parse line and the repository-layout table were both one file short
+  (`article.js`).
+
+Verified: `node scripts/check.mjs` passes (it checks the bilingual pairs and the ADR reachability, not the
+claims), and the same live check that found the drift is what a person repeats after a change: one search,
+one fetch, read what comes back. No version moved — no file a profile loads changed.
+
 ## 2026-11-16 — the data directory this bundle does not have
 
 The workspace settled one rule for plugin data: `~/.agents/<plugin>`, resolved config → `DSH_<PLUGIN>_DATA_DIR`

@@ -9,9 +9,10 @@
 > A real result page, not an account balance.
 
 A DeepSeek Harness profile bundle that gives the `web_search` tool a search backend which needs no API
-key, no account balance and no model call. It registers one provider with the web seam and points the
-seam's search half at it, so search keeps working when the account behind the shipped provider has run
-out — the failure that makes chat work and every search fail.
+key, no account balance and no model call. It registers both halves of the web seam: `bing-html` searches
+Bing's public result page, and `article` hands `web_fetch` a page's prose instead of its markup. Search
+keeps working when the account behind the shipped provider has run out — the failure that makes chat work
+and every search fail — and a fetched page costs the context its article rather than its navigation.
 
 [github.com/FrozenYty/dsh-search](https://github.com/FrozenYty/dsh-search)
 
@@ -71,8 +72,8 @@ Verification afterwards is live calls, not check output:
   account balance is still zero. `web_search` should return sources with absolute URLs, where it used to
   fail with an HTTP 402 from `api.deepseek.com`;
 - the failure that proves it was this provider, not the shipped one: a search no longer mentions
-  `api.deepseek.com`, and fetching one of the returned URLs with `web_fetch` still works, because this
-  bundle leaves the fetch half of the seam alone.
+  `api.deepseek.com`, and fetching one of the returned URLs with `web_fetch` returns the page's prose —
+  what this bundle's `article` provider extracts — instead of its navigation.
 
 To stop using it, override the same row in the profile's own `cordis.patch.yml` — that layer is applied
 after this bundle's, so it wins:
@@ -275,7 +276,7 @@ that message outside a session. It needs the network and nothing else.
 
 ```sh
 npm install                       # the seam the entry tests load; the bundle installs nothing itself
-node --check index.js bing.js
+node --check index.js bing.js article.js
 node --test --test-isolation=none tests/*.test.mjs
 node scripts/mutation-scan.mjs
 node scripts/check.mjs
@@ -308,6 +309,7 @@ session check needs the plugin enabled.
 |---|---|
 | `index.js` | Bundle entry: builds the provider and registers it with `ctx.web` |
 | `bing.js` | The query, the request, the parse and the result mapping; imports nothing |
+| `article.js` | The fetch half: reads a page itself and extracts its prose; imports only `bing.js` |
 | `cordis.patch.yml` | The seam pin and this bundle's row |
 | `tests/` | Parsing tests over two saved result pages, and request-layer tests over a stubbed `fetch` |
 | `scripts/check.mjs` | The repository gate, including the two request-layer regressions |
