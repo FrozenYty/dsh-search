@@ -72,6 +72,24 @@ test('the entry registers one usable provider per half, under the frozen id', sk
   assert.equal(typeof fetches[0].fetch, 'function')
 })
 
+test('both registered providers carry the picker title and a bilingual description', skip, () => {
+  const registered = register()
+  const search = registered.find((provider) => provider.id === 'bing-html')
+  const fetch = registered.find((provider) => provider.id === 'article')
+  // The picker renders `title` and falls back to the bare id, which is what put `bing-html` and
+  // `article` in the dropdown; the two strings are pinned so the wording cannot drift on its own.
+  assert.equal(search.title, 'Bing Search', 'the search provider carries the title its picker shows')
+  assert.equal(fetch.title, 'Readable Page', 'the fetch provider carries the title its picker shows')
+  for (const [half, provider] of [['search', search], ['fetch', fetch]]) {
+    // A Chinese UI reads `zh`, so an English-only description would leave that half blank there.
+    for (const locale of ['en', 'zh']) {
+      const text = provider.description?.[locale]
+      assert.equal(typeof text, 'string', `the ${half} provider's description.${locale} is a string`)
+      assert.ok(text.length > 0, `the ${half} provider's description.${locale} is not empty`)
+    }
+  }
+})
+
 test('the registered provider searches through the request layer', skip, async () => {
   const [provider] = register().filter((candidate) => candidate.id === 'bing-html').filter((candidate) => candidate.id === 'bing-html')
   const requested = []

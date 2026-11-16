@@ -42,6 +42,8 @@ dsh-search 是给 `ctx.web` 能力缝用的一个搜索 provider：不需要 key
 | `search(request, signal)` | 一次 GET，然后解析 | 全部操作；返回 `{ sources, truncated }` |
 | `ready(llmProvider)` | 不提供 | 不提供 `ready()` 就等于"永远就绪"，这让凭据型 provider 无法鉴权的路由上，`web_search` 仍然可用 |
 
+选择器显示 provider 的 `title`，本 bundle 的两半因此各带一个；`description` 是 `LocalizedText`，两种界面各读自己语言的文本。
+
 `sources[]` 的每一项带 `url` 和 `title`；块里有摘要时再带 `snippet`；页面在摘要前写明了发布日期时，再带
 `publishedAt`。能力缝把后两者定义为可选，而工具会把 `publishedAt` 渲染成摘要之后的元数据、而不是摘要的开头，
 所以写明了的日期会被从文本里取出来并归一成 `YYYY-MM-DD`；**相对时间**（`7 小时之前 · `）留在摘要里——它说的

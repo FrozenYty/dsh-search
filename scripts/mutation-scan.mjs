@@ -171,6 +171,13 @@ const MUTATIONS = [
     to: "    id: 'bing-search',",
   },
   {
+    name: 'search-title-dropped',
+    file: 'index.js',
+    claim: 'the search provider carries a title, so the picker shows a name rather than the bare id',
+    from: "    title: 'Bing Search',\n",
+    to: '',
+  },
+  {
     name: 'provider-failure-untranslated',
     file: 'index.js',
     claim: 'a provider failure reaches the seam as the seam\'s own error type',

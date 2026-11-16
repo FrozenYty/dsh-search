@@ -18,7 +18,7 @@ and every search fail — and a fetched page costs the context its article rathe
 
 ## Status
 
-- Current version: v0.5.1.
+- Current version: v0.5.2.
 - **Verified here**: the parser over the saved result pages, the request shape over a stubbed request
   layer, and a mutation scan that breaks each load-bearing line of `bing.js` and requires a test to
   notice — `node --test`, `node scripts/mutation-scan.mjs` and `node scripts/check.mjs`, all recorded

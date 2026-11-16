@@ -4,6 +4,75 @@ Append-only, newest first: what was built, what was run, and what it printed. A 
 in the same pull request that delivers it, and an older entry is never rewritten. `PLAN.md` owns the
 acceptance state; this file owns the evidence behind it.
 
+## 2026-11-16 — the picker shows a name, not the bare id
+
+The provider dropdown rendered `bing-html` and `article` as ids while the shipped providers rendered as names
+(`DeepSeek Search API`, `DeepSeek（旧版）`). The decision is the seam's, not the picker's: `WebSearchProvider`
+and `WebFetchProvider` declare `title?: string` and `description?: LocalizedText`, the picker falls back to
+`id` when `title` is absent, and this bundle declared neither — the absence was the bug.
+
+Both registered objects now carry a `title` — `Bing Search` for `bing-html`, `Readable Page` for `article`,
+the two parallel in form — and a `description` with an `en` and a `zh` entry, because the picker shows the
+language the UI is in. The owner dropped a `(keyless)` qualifier from the search title; the English
+description keeps that point ("no account, no API key, no model call").
+
+`tests/entry.test.mjs` asserts the objects `apply()` hands the seam, not the source: each half's exact
+`title`, and a non-empty `description.en` and `description.zh`, so deleting either field fails a test. The
+mutation scan drops the search provider's `title`, and that assertion is what kills it:
+
+```
+$ node scripts/mutation-scan.mjs 'search-title-dropped'
+killed    search-title-dropped                  both registered providers carry the picker title and a bilingual description (0.
+          claim: the search provider carries a title, so the picker shows a name rather than the bare id
+
+1 mutation(s): 1 killed, 0 not
+mutation scan passed
+[exit code: 0]
+```
+
+`docs/architecture-en.md` and `docs/architecture-zh.md` say, beside the provider table, that the picker shows
+`title` and that `description` is a `LocalizedText`. Version 0.5.2: the entry is a file a profile loads, so
+the label moves, `CHANGELOG.md` carries the section, and both READMEs state the number. The five gates, run in
+this worktree:
+
+```
+$ node --check index.js bing.js article.js
+[exit code: 0]
+
+$ node --test --test-isolation=none tests/*.test.mjs
+ℹ tests 70
+ℹ pass 70
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+[exit code: 0]
+
+$ node scripts/mutation-scan.mjs
+48 mutation(s): 48 killed, 0 not
+mutation scan passed
+[exit code: 0]
+
+$ node scripts/check.mjs
+check passed
+data directory: none — this bundle persists nothing. If that ever changes it is ~/.agents/search (docs/adr/0011-no-data-directory.md)
+[exit code: 0]
+
+$ node scripts/seam-modes.mjs
+ok    a pinned id is the provider the seam selects — 3 source(s), one request
+ok    the seam enforces the result bound
+ok    official serves through the shipped provider — first: shipped
+ok    official sends no keyless request — 0 request(s)
+ok    auto falls back to the keyless provider — 3 source(s)
+ok    auto remembers a failed account instead of paying twice — asked 1 time(s) over two searches
+ok    official with no shipped provider refuses by the seam's code — WEB_PROVIDER_CONFIGURED_MISSING: this profile asked for the shipped search provider "deepseek
+seam modes: every expectation held
+[exit code: 0]
+```
+
+`seam-modes.mjs` prints nothing about a title: it drives the local seam's `WebRuntime`, which stores the
+provider and exposes no listing at 0.1.5-rc.3, and its expectations are selection and fallback.
+
 ## 2026-11-16 — the README pair stops reading as two languages
 
 `README.md` carried four lines with Chinese in them, and `README-zh.md` carried ASCII punctuation and
