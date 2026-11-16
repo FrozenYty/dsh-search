@@ -157,8 +157,8 @@ export function apply(ctx, config) {
     id: provider.id,
     title: 'Bing Search',
     description: {
-      en: 'One GET to Bing’s public result page: no account, no API key, no model call.',
-      zh: '一次 GET 取 Bing 公开结果页：不看账户、不要 API key、不发模型调用。',
+      en: 'No account: Bing’s result page.',
+      zh: '免账户，直读 Bing 结果页。',
     },
     available: () => provider.available(),
     search,
@@ -171,8 +171,8 @@ export function apply(ctx, config) {
     id: article.id,
     title: 'Readable Page',
     description: {
-      en: 'Reads the page itself and hands back its prose, not its markup.',
-      zh: '自己读取页面，交回正文而不是标记。',
+      en: 'Prose, not markup.',
+      zh: '只交正文，不交标记。',
     },
     available: () => article.available(),
     async fetch(request, signal) {

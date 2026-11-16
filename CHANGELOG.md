@@ -7,6 +7,16 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.5.3] - 2026-11-16
+
+- **The two provider descriptions say the same thing in fewer words.** The picker shows a description under
+  the selected entry, and what a person choosing between providers needs there is the difference, not a
+  sentence: the search half now reads `No account: Bing's result page.` / `免账户，直读 Bing 结果页。` and the
+  fetch half `Prose, not markup.` / `只交正文，不交标记。`
+- Nothing else moved: the titles, the ids, the behaviour and the tests are unchanged. The test pins both
+  titles exactly and both descriptions as non-empty strings in both locales, so a shorter wording is a
+  wording decision rather than a contract change.
+
 ## [0.5.2] - 2026-11-16
 
 - **Both registered providers now carry a `title`, which is what the picker renders instead of the bare
