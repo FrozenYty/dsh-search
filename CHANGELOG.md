@@ -7,6 +7,22 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.5.2] - 2026-11-16
+
+- **Both registered providers now carry a `title`, which is what the picker renders instead of the bare
+  id.** The seam declares `title` and `description` as optional on a provider and the picker falls back to
+  `id`, which is why the dropdown showed `bing-html` and `article` as ids while the shipped providers showed
+  names. The search half is titled `Bing Search` and the fetch half `Readable Page`.
+- **The descriptions are bilingual, because the picker reads the language it is in.** `description` is a
+  `LocalizedText` — a required `en` entry plus per-locale translations — so each half states the keyless
+  point in both languages: for search, one GET to Bing's public result page with no account, no API key and
+  no model call; for fetch, the page's prose rather than its markup.
+- **A test and a mutation pin both fields.** `tests/entry.test.mjs` asserts that each registered object
+  carries its exact title and a non-empty `description.en` and `description.zh`, and a new mutation drops
+  the search provider's `title` to prove the assertion fails without it.
+- **`docs/architecture-en.md` and `docs/architecture-zh.md`** say, beside the provider table, that the
+  picker shows `title` and that `description` is a `LocalizedText`.
+
 ## [0.5.1] - 2026-11-16
 
 - **A query with no results no longer takes the whole call with it.** `web_search` aborts every query in one

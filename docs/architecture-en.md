@@ -46,6 +46,8 @@ The seam's registry keys a provider by its `id` and calls four things at most:
 | `search(request, signal)` | one GET, then parse | the whole operation; returns `{ sources, truncated }` |
 | `ready(llmProvider)` | absent | an absent `ready()` counts as ready, which keeps `web_search` offered on a route whose credential-backed provider cannot authenticate |
 
+The picker shows a provider's `title`, so each half of this bundle carries one; `description` is a `LocalizedText`, so each UI reads its own language.
+
 `sources[]` entries carry `url` and `title`, plus `snippet` when the block has one, plus `publishedAt`
 when the page stated a publication date in front of that snippet. The seam's vocabulary makes those two
 optional and the tool renders `publishedAt` as metadata after the excerpt rather than as its first words,

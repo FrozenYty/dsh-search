@@ -150,8 +150,16 @@ export function apply(ctx, config) {
     return keyless(request, signal)
   }
 
+  // The picker shows a provider's `title` and falls back to its bare id when there is none, so both
+  // halves of this bundle carry one; `description` is a `LocalizedText`, so each UI reads its own
+  // language rather than a string this bundle picked for it.
   ctx.web.registerSearchProvider({
     id: provider.id,
+    title: 'Bing Search',
+    description: {
+      en: 'One GET to Bing’s public result page: no account, no API key, no model call.',
+      zh: '一次 GET 取 Bing 公开结果页：不看账户、不要 API key、不发模型调用。',
+    },
     available: () => provider.available(),
     search,
   })
@@ -161,6 +169,11 @@ export function apply(ctx, config) {
   const article = new ArticleFetchProvider()
   ctx.web.registerFetchProvider({
     id: article.id,
+    title: 'Readable Page',
+    description: {
+      en: 'Reads the page itself and hands back its prose, not its markup.',
+      zh: '自己读取页面，交回正文而不是标记。',
+    },
     available: () => article.available(),
     async fetch(request, signal) {
       try {
