@@ -232,6 +232,13 @@ uninstalling it cannot silently change what something else does. That is a gate 
   can reproduce would be code nothing protects. The same run did find that `blog.csdn.net` answers non-2xx
   9 times out of 10 when requested in a loop — an anti-bot behaving normally, and the reason a non-2xx
   answer comes back as a result instead of a throw.
+- **One failing query fails the whole `web_search` call, and that is the tool's behaviour, not this
+  bundle's.** `dsh-tool-web` aborts every query in a call on the first provider rejection, so a batch where
+  one query is challenged or loses its connection returns that error and no sources from the queries that
+  succeeded. The one case this half can turn into a legal answer is a page that *says* the query has no
+  results: that is an answer, not a failure, so it is returned as an empty source list and the other queries
+  survive. Making a *failure* survive the same way would need the tool to collect per-query outcomes, which
+  is upstream of this bundle.
 - **The cap is the tool's own default — you do not need to change it, and this bundle works with no edit to
   your profile.** One `web_search` merges up to
   `searchMaxQueries` queries (default 4) into at most `searchMaxResults` sources (default 8) — the schema
