@@ -11,7 +11,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
-import { ArticleFetchError, ArticleFetchProvider, MAX_CHARS, extractArticle } from '../article.js'
+import { ArticleFetchError, ArticleFetchProvider, MAX_BYTES, MAX_CHARS, extractArticle } from '../article.js'
 import { readBody } from '../bing.js'
 
 const fixture = (name) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8')
@@ -226,8 +226,29 @@ test('the byte bound stops the read instead of the page deciding how much to spe
   // leaves the other branch waiting for data that never arrives.
   const bounded = new Response('x'.repeat(5000), { status: 200, headers: { 'content-type': 'text/plain' } })
   const whole = new Response('x'.repeat(5000), { status: 200, headers: { 'content-type': 'text/plain' } })
-  assert.equal(await readBody(bounded, 10), 'x'.repeat(10))
-  assert.equal((await readBody(whole, undefined)).length, 5000, 'without a bound the whole body is read')
+  const cut = await readBody(bounded, 10)
+  assert.equal(cut.text, 'x'.repeat(10))
+  assert.equal(cut.capped, true, 'the bound stopped the read, and the reader reports it')
+  const read = await readBody(whole, undefined)
+  assert.equal(read.text.length, 5000, 'without a bound the whole body is read')
+  assert.equal(read.capped, false, 'reading to the end caps nothing')
+})
+
+test('a page the 5 MB bound cut is reported as truncated, even when its prose is short', async () => {
+  // The regression this pins: `truncated` used to be re-derived from `html.length > MAX_BYTES`, and a
+  // body decoded from at most MAX_BYTES bytes can never be longer than that — so a page cut at 5 MB said
+  // `truncated: false`. The prose here is short on purpose: the character cap cannot be what reports the
+  // cut, only the reader's own report can.
+  const body = `<p>Small page.</p><script>${'x'.repeat(1000)}</script>${' '.repeat(MAX_BYTES)}`
+  assert.ok(body.length > MAX_BYTES, 'the response is longer than the read bound')
+  const { stub } = queuedFetch([
+    () => new Response(body, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }),
+  ])
+  await withFetch(stub, async () => {
+    const result = await new ArticleFetchProvider().fetch({ url: 'https://example.com/huge' })
+    assert.equal(result.truncated, true, 'a bound dropped the tail, and the caller is told')
+    assert.equal(result.body.content, 'Small page.', 'what the read reached is handed over as prose')
+  })
 })
 
 test('a same-origin redirect is followed, and the final URL is what comes back', async () => {
@@ -263,6 +284,27 @@ test('a redirect to another origin is reported, not followed', async () => {
       },
     )
     assert.equal(calls.length, 1, 'the second host was never requested')
+  })
+})
+
+test('a redirect whose Location is not a URL is reported, not thrown as a bare TypeError', async () => {
+  // `new URL('http://', base)` rejects with a TypeError carrying no code. Unwrapped, it escaped as a
+  // TypeError instead of the seam's WebError, which is the one contract a provider failure has to keep.
+  const { calls, stub } = queuedFetch([
+    () => new Response('', { status: 302, headers: { location: 'http://' } }),
+  ])
+  await withFetch(stub, async () => {
+    await assert.rejects(
+      () => new ArticleFetchProvider().fetch({ url: 'https://example.com/page' }),
+      (error) => {
+        assert.ok(error instanceof ArticleFetchError, 'the provider failure type, not a bare TypeError')
+        assert.equal(error.code, 'WEB_PROVIDER_ERROR')
+        assert.ok(error.cause instanceof TypeError, 'the URL parse failure is kept as the cause')
+        assert.match(error.message, /"http:\/\/"/, 'the malformed target is named')
+        return true
+      },
+    )
+    assert.equal(calls.length, 1, 'a Location it cannot read follows no hop')
   })
 })
 

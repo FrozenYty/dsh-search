@@ -84,9 +84,13 @@ Two more measured properties of that page, both of which decide behaviour here:
   `sb_count` line is the one honest signal available, and it is not part of the seam's source shape — which
   is why the tool's output does not carry it.
 
-An empty `sources[]` is a legal answer, and the tool renders it as `No results found.` — which is exactly
-why this provider throws instead. A page whose blocks stopped matching is a **broken parser**, and telling
-a model "no results" there would send it off to reformulate a query that was never the problem.
+An empty `sources[]` is a legal answer, and the tool renders it as `No results found.` This provider returns
+one only when the page itself says the query has no results — Bing's own `<li class="b_no">` marker, saved
+in `tests/fixtures/bing-no-results.html`. That is a fact about the query, and returning it is what keeps one
+unproductive query from taking a whole `web_search` call with it: the tool aborts every query in the call on
+the first provider failure. A page whose blocks stopped matching is a **broken parser**, and it still
+throws, because telling a model "no results" there would send it off to reformulate a query that was never
+the problem.
 
 ## 3. Selection: which provider runs
 
@@ -145,9 +149,12 @@ a regular enough document for a handful of anchored patterns.
 | order and duplicates | page order, deduplicated by URL |
 
 A block without a heading anchor, a usable URL or heading text is skipped. A page that yields **no**
-source at all is a failure, not an empty result: the page's shape changing is the likeliest reason this
-plugin would silently stop working, and an empty list would report it as "no results". The failure says
-which of the two it suspects — a challenge page, or markup that no longer parses.
+source at all is a failure, not an empty result — unless the page carries Bing's own no-results marker
+(`b_no`). That one shape is a legal empty answer, and it is what keeps an unproductive query from aborting
+the other queries in the same `web_search` call. Without the marker, the page's shape changing is the
+likeliest reason this plugin would silently stop working, and an empty list would report it as "no
+results". The failure says which of the two it suspects — a challenge page, or markup that no longer
+parses.
 
 ## 6. What it deliberately does not do
 
@@ -167,7 +174,8 @@ which of the two it suspects — a challenge page, or markup that no longer pars
 
 | Risk | Symptom | Where it is handled |
 |---|---|---|
-| Bing changes its result markup | `WEB_PROVIDER_ERROR: … no parseable result block` | the parser's zero-result failure; the fixtures and the parse tests are the alarm |
+| Bing changes its result markup | `WEB_PROVIDER_ERROR: … no parseable result block` | the parser's zero-result failure, which the `b_no` marker keeps off a page of genuinely no results; the fixtures and the parse tests are the alarm |
+| the query has no results | `No results found.` — an empty list, not an error | `isNoResultsPage`, consulted only when nothing parsed, so the other queries in the call still answer |
 | Bing serves a bot gate | `WEB_PROVIDER_ERROR: … a challenge page instead of results` | `looksBlocked`, consulted only when nothing parsed |
 | `cn.bing.com` unreachable | `WEB_PROVIDER_ERROR: … request failed` naming the URL | the fetch failure branch |
 | a redirect appears | `WEB_PROVIDER_ERROR: … redirects to <target>, and this provider follows no redirect` | `redirect: "manual"` |
@@ -183,9 +191,9 @@ request shape over a stubbed request layer; its entry tests load the **real** se
 does with this bundle — that `apply` registers one provider under `bing-html`, that the provider reports
 itself available and has no `ready()`, and that a provider failure arrives as the seam's `WebError`
 carrying its code. `node scripts/mutation-scan.mjs` proves those tests can fail: it breaks each
-load-bearing line of `bing.js` and `index.js` in turn and requires the suite to notice, so a line nothing
-protects is reported by name instead of passing quietly. `node scripts/check.mjs` proves the manifest, the
-import rules, the locale pair, the patch rows, the documents, and the two request-layer regressions of
-acceptance item 3. The live search and a real session are manual: the first needs the network, the
-second needs the plugin enabled, and enabling it is the owner's decision every time. `PROGRESS.md`
-records the runs that were actually made, with their output.
+load-bearing line of `bing.js`, `article.js` and `index.js` in turn and requires the suite to notice, so a
+line nothing protects is reported by name instead of passing quietly. `node scripts/check.mjs` proves the
+manifest, the import rules, the locale pair, the patch rows, the documents, and the two request-layer
+regressions of acceptance item 3. The live search and a real session are manual: the first needs the
+network, the second needs the plugin enabled, and enabling it is the owner's decision every time.
+`PROGRESS.md` records the runs that were actually made, with their output.

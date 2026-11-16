@@ -14,6 +14,7 @@ import { test } from 'node:test'
 import { BingSearchError, BingSearchProvider, SEARCH_ENDPOINT } from '../bing.js'
 
 const FIXTURE = readFileSync(new URL('./fixtures/bing-deepseek-harness.html', import.meta.url), 'utf8')
+const NO_RESULTS_PAGE = readFileSync(new URL('./fixtures/bing-no-results.html', import.meta.url), 'utf8')
 
 /**
  * Run one body with `globalThis.fetch` replaced, restoring it afterwards.
@@ -99,12 +100,68 @@ test('a non-2xx answer is a provider error naming the status', async () => {
   })
 })
 
-test('a 200 page with no result block fails loudly instead of answering with nothing', async () => {
+test('a status that is not ok is explained as one, without blaming the redirect policy', async () => {
+  // The message used to say "this provider follows no redirect, so the response body was not parsed" for
+  // every non-2xx, which is false for a 429 or a 500. Only a 3xx carrying a Location is a redirect story.
+  for (const [status, location] of [[429, undefined], [503, 'https://elsewhere.example/']]) {
+    const stub = async () => new Response('not ok', {
+      status,
+      ...(location === undefined ? {} : { headers: { location } }),
+    })
+    await withFetch(stub, async () => {
+      await assert.rejects(
+        () => new BingSearchProvider().search({ query: 'deepseek harness' }),
+        (error) => {
+          assert.ok(error instanceof BingSearchError)
+          assert.equal(error.code, 'WEB_PROVIDER_ERROR')
+          assert.match(error.message, new RegExp(`HTTP ${status}`), 'the status is stated')
+          assert.match(error.message, /not ok/, 'the answer is named as not ok')
+          assert.doesNotMatch(error.message, /redirect/i, `HTTP ${status} is not a redirect problem`)
+          return true
+        },
+      )
+    })
+  }
+})
+
+test('a 3xx without a Location is a not-ok answer, not a redirect to name', async () => {
+  const stub = async () => new Response('', { status: 302 })
+  await withFetch(stub, async () => {
+    await assert.rejects(
+      () => new BingSearchProvider().search({ query: 'deepseek harness' }),
+      (error) => error instanceof BingSearchError
+        && /HTTP 302/.test(error.message)
+        && /not ok/.test(error.message)
+        && !/redirect/i.test(error.message),
+    )
+  })
+})
+
+test("Bing's own no-results page is a legal empty answer, not a failure", async () => {
+  // Why this matters beyond the message: the tool aborts every query in one call on the first provider
+  // failure, so a throwing empty page would lose the sources the other three queries in the batch found.
+  // The page states its own emptiness in `<li class="b_no">`; the fixture is that page, captured real.
+  const stub = async () => new Response(NO_RESULTS_PAGE, {
+    status: 200,
+    headers: { 'content-type': 'text/html; charset=utf-8' },
+  })
+  await withFetch(stub, async () => {
+    const result = await new BingSearchProvider().search({ query: 'asdkjhqweoiuzxcvbnm' })
+    assert.deepEqual(result, { sources: [], truncated: false }, 'empty is a result when the page says so')
+  })
+})
+
+test('a page that only looks like results still fails loudly instead of answering with nothing', async () => {
+  // The other arm: a page with no b_algo and no b_no is drift, and silence there would report a broken
+  // parser as "this query has no results".
   const stub = async () => new Response('<html><body><p>nothing here</p></body></html>', { status: 200 })
   await withFetch(stub, async () => {
     await assert.rejects(
       () => new BingSearchProvider().search({ query: 'deepseek harness' }),
-      (error) => error instanceof BingSearchError && /no parseable result block/.test(error.message),
+      (error) => error instanceof BingSearchError
+        && error.code === 'WEB_PROVIDER_ERROR'
+        && /no parseable result block/.test(error.message)
+        && /shape may have changed/.test(error.message),
     )
   })
 })

@@ -96,10 +96,11 @@ if (manifest !== undefined) {
   if (typeof peerRange !== 'string' || peerRange.trim() === '') {
     fail('package.json: peerDependencies must declare @deepseek-ai/dsh-web; a linked bundle cannot resolve it otherwise')
   }
-  // An engines.dsh range would decide compatibility alone and discard the peer declaration, which is
-  // exactly the field the resolver reads. The two must not be mixed by accident.
+  // An engines.dsh range would take over the DSH-compatibility gate alone (app-boot lib/index.js:1097-1116)
+  // and stop the peer range below from being the statement evaluated there; it does not change module
+  // resolution, which reads peerDependencies either way. The two must not be mixed by accident.
   if (manifest.engines?.dsh !== undefined) {
-    fail('package.json: engines.dsh must not be declared; it would suppress the peerDependencies check (ADR 0002)')
+    fail('package.json: engines.dsh must not be declared; it would take over the DSH-compatibility gate and leave the peer range unevaluated (ADR 0002)')
   }
 }
 
@@ -473,8 +474,11 @@ if (typeof version === 'string') {
 
 // 11. The layout tables are the inventory.
 //
-// `files` says what a profile receives, and both READMEs carry a table saying what each path is. The
-// incident: `article.js` was published in 0.4.0 and the Chinese table kept its pre-0.4.0 rows, so the one
+// `files` is the inventory of what this repository publishes; it is not a filter on what a profile
+// receives. A bundle is linked (or installed from a folder) as a whole checkout, so the README pair and
+// everything else in the tree are already there — `files` only says what an archive would carry. Both
+// READMEs carry a table saying what each path is, and the incident it prevents is the same either way:
+// `article.js` was published in 0.4.0 and the Chinese table kept its pre-0.4.0 rows, so the one
 // inventory a reader had did not list a module the bundle ships.
 const inventory = (manifest?.files ?? []).filter((entry) => !entry.includes('*'))
 for (const document of ['README.md', 'README-zh.md']) {

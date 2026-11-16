@@ -7,6 +7,48 @@ dates, and a later release adds a section above an older one instead of rewritin
 `PROGRESS.md` remains the append-only engineering narrative — what was measured, what was rejected, the
 commands that were run. This file is the release-level summary of that narrative and defers to it.
 
+## [0.5.1] - 2026-11-16
+
+- **A query with no results no longer takes the whole call with it.** `web_search` aborts every query in one
+  call on the first provider failure, so the provider throwing on a page with no result blocks lost the
+  sources the other queries had found. Bing's own no-results page carries its own marker (`<li
+  class="b_no">`, saved as `tests/fixtures/bing-no-results.html` and captured from a real page); that shape
+  now returns `{ sources: [], truncated: false }`, a legal answer the tool renders as `No results found.`
+  A page that yields nothing **without** that marker still fails with the existing "shape may have changed"
+  message, because that is the drift signal. Two tests (an empty answer and the drift arm) and two mutations
+  cover the marker and the return-empty branch.
+- **The entry no longer reads a field the seam's typings mark private without a fallback.** Registration of
+  `deepseek-official` is read from the seam's public listing (`ctx.web.listProviders()`) where the seam
+  exposes it, and from the registry map otherwise. The failure messages now distinguish a seam that exposes
+  no registry from an id that is not registered, and a third case is named rather than guessed at: the
+  listing returns `{ id, title, description }` entries, so a seam that also removes the runtime map has no
+  object to call. Four routing tests and one `index.js` mutation cover the branches.
+- **A malformed redirect `Location` is the provider's failure, not a bare `TypeError`.** `new URL('http://',
+  base)` used to escape `readPage` unwrapped, reaching the seam as a `TypeError` with no `code` — against the
+  contract that a provider failure is a `WebError` with a code. It is now a `WEB_PROVIDER_ERROR` naming the
+  malformed target and keeping the parse failure as its `cause`.
+- **The 5 MB read bound reaches `truncated`.** The flag was re-derived from `html.length > MAX_BYTES`, and a
+  body decoded from at most `MAX_BYTES` bytes can never be longer than that, so a page cut at 5 MB reported
+  `truncated: false`. The body reader now returns whether the bound stopped the read, and the fetch result
+  carries that fact.
+- **A non-2xx answer is explained as one.** Every non-ok status used to be described as "this provider
+  follows no redirect, so the response body was not parsed", which is false for a 429 or a 500. A 3xx with a
+  `Location` still names its target; any other non-2xx says the answer was not ok, with the status.
+- **Documentation corrected where the audit contradicted it.** `engines.dsh` does not discard the peer
+  field for module resolution — it only takes over the DSH-compatibility gate — so ADR 0002's reason and the
+  check message that repeated it are fixed. ADR 0003 no longer claims a longer title "would break the row";
+  it is a family convention. `CONTRIBUTING.md` §5 lists `article.js` among the files whose change moves the
+  version, `AGENTS.md` §5 states what CI installs (`npm install --no-save --no-package-lock
+  @deepseek-ai/dsh-web`), and `scripts/check.mjs` says `files` is the inventory rather than what a linked
+  profile receives.
+- **`docs/adr/0014-the-official-mode-can-only-detect-presence.md` records what `official` and `auto` can
+  actually detect**: presence and a synchronous self-report, never a credential or a balance. The shipped
+  provider's `available()` reads its own configuration, so a dead account passes the gate and fails at
+  search time with the provider's own `HTTP 402`; `index.js`'s message no longer claims "no credential, or
+  an account that cannot pay" as the causes of `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`.
+- The mutation scan grows to 47, all killed: the marker, the empty-answer branch, the provider-listing
+  branch, the wrapped redirect target, the capped read, and the not-ok message.
+
 ## [0.5.0] - 2026-11-16
 
 - **The extraction reads the page's own markup first, and stops reading what a page says is not content.**

@@ -41,7 +41,8 @@ targets, and a `web_search` in a live session returns sources rather than an HTT
 
 Done when: `node scripts/mutation-scan.mjs` reports 0 survivors. It applies one mutation per claim —
 the endpoint, the redirect policy, the block token, the heading anchor, the snippet shape, deduplication,
-the scheme filter, entity decoding, tag stripping, the non-2xx branch, the empty-page failure and
+the scheme filter, entity decoding, tag stripping, the not-ok branch, the empty-page failure, the no-results
+marker and its empty answer, the seam's provider listing, the malformed redirect target, the capped read and
 cancellation — and names the test that caught each. A survivor means no test stands behind that line.
 
 - [x] Delivered and recorded in `PROGRESS.md`.

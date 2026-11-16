@@ -18,8 +18,10 @@ endpoint is an implementation detail that ADR 0001 keeps replaceable in principl
 
 The display title is a pair: `Search` in `locale/en.json` and `搜索` in `locale/zh.json`. The two
 sibling plugins in this workspace carry `Team`/`团队` and `Memory`/`记忆`: the Chinese titles are two
-characters, deliberately, as a family convention. A longer title would break the row it sits in and the
-convention at the same time.
+characters, deliberately, as a family convention. That is all it is — a convention, not a layout
+constraint. The loader requires only a non-empty title and the title row wraps, so a longer title would
+break neither the row nor anything else; it would just be a second spelling of the same idea in this
+family, and `meta.description` is where the longer name already lives.
 
 Two identifiers are override targets rather than labels:
 

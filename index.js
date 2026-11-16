@@ -69,18 +69,49 @@ export function apply(ctx, config) {
   // property of the account, and re-asking it on each call would add a doomed request to every answer.
   let officialFailed = false
 
+  /**
+   * Whether the seam says the shipped provider is registered.
+   *
+   * 0.2.2-rc.3 answers this through `listProviders()`, a public listing, and keeps `searchProviders`
+   * private in its published typings; a release with neither is one whose registry this bundle cannot
+   * read at all. The two are told apart so the failure names the right thing: an id that is missing from
+   * a registry this bundle can read is not the same answer as a seam that exposes no registry.
+   *
+   * @returns {boolean | undefined} true or false, or undefined when the seam exposes no registry.
+   */
+  function officialRegistered() {
+    const web = ctx.web
+    if (typeof web.listProviders === 'function') {
+      return (web.listProviders()?.search ?? []).some((entry) => entry.id === OFFICIAL_PROVIDER_ID)
+    }
+    return web.searchProviders?.has(OFFICIAL_PROVIDER_ID)
+  }
+
   /** The shipped provider, when it is registered and says it can run. */
   function officialProvider() {
+    const registered = officialRegistered()
+    if (registered !== true) {
+      throw new WebError(
+        registered === false
+          ? `this profile asked for the shipped search provider "${OFFICIAL_PROVIDER_ID}", which is not registered; set provider: keyless on this bundle's row to search without an account`
+          : `this seam exposes no provider registry, so the shipped search provider "${OFFICIAL_PROVIDER_ID}" cannot be looked up; set provider: keyless on this bundle's row to search without an account`,
+        'WEB_PROVIDER_CONFIGURED_MISSING',
+      )
+    }
+    // `listProviders()` answers registration with `{ id, title, description }` entries, not with the
+    // provider: `available()` and `search()` are still reached through the runtime map, which the typings
+    // mark private but 0.2.2-rc.3 keeps. A seam that lists a provider and hands over no object to call
+    // cannot serve this mode, and says so rather than pretending the provider is absent.
     const candidate = ctx.web.searchProviders?.get(OFFICIAL_PROVIDER_ID)
     if (candidate === undefined) {
       throw new WebError(
-        `this profile asked for the shipped search provider "${OFFICIAL_PROVIDER_ID}", which is not registered; set provider: keyless on this bundle's row to search without an account`,
+        `this seam exposes no provider registry a provider can be reached through: it lists "${OFFICIAL_PROVIDER_ID}" but hands over no object to call; set provider: keyless on this bundle's row to search without an account`,
         'WEB_PROVIDER_CONFIGURED_MISSING',
       )
     }
     if (!candidate.available()) {
       throw new WebError(
-        `the shipped search provider "${OFFICIAL_PROVIDER_ID}" is registered but unavailable — no credential, or an account that cannot pay`,
+        `the shipped search provider "${OFFICIAL_PROVIDER_ID}" is registered but reports itself unavailable; that synchronous self-report is all this bundle can see, so a dead credential or an empty balance surfaces later, from the provider's own failure`,
         'WEB_PROVIDER_CONFIGURED_UNAVAILABLE',
       )
     }

@@ -133,6 +133,24 @@ const MUTATIONS = [
     to: '    if (false) {',
   },
   {
+    name: 'no-results-marker-ignored',
+    claim: "Bing's own no-results page (the b_no marker) is told apart from a result page that stopped matching",
+    from: '  return NO_RESULTS_BLOCK.test(html)',
+    to: '  return false',
+  },
+  {
+    name: 'no-results-page-throws',
+    claim: "a page the query has no results for returns an empty list instead of failing the whole batch",
+    from: '      if (!isNoResultsPage(html)) {',
+    to: '      if (true) {',
+  },
+  {
+    name: 'not-ok-blames-the-redirect-policy',
+    claim: 'a non-2xx answer that is not a redirect is explained as one, not as a not-ok answer',
+    from: "            : '; the answer was not ok, so the response body was not parsed.'),",
+    to: "            : '; this provider follows no redirect, so the response body was not parsed.'),",
+  },
+  {
     name: 'cancellation-is-a-transport-failure',
     claim: 'a cancelled request is reported as WEB_ABORTED',
     from: '      if (signal?.aborted === true || isAbortError(error)) throw aborted(signal, error)',
@@ -188,6 +206,13 @@ const MUTATIONS = [
     to: '    if (false) {',
   },
   {
+    name: 'provider-listing-ignored',
+    file: 'index.js',
+    claim: 'the seam\'s own listing answers whether the shipped provider is registered, before any map',
+    from: "    if (typeof web.listProviders === 'function') {",
+    to: '    if (false) {',
+  },
+  {
     name: 'auto-retries-a-failed-account',
     file: 'index.js',
     claim: 'auto pays for a failed account once, not on every search',
@@ -233,8 +258,8 @@ const MUTATIONS = [
     name: 'unusable-charset-loses-the-page',
     file: 'bing.js',
     claim: 'an unusable charset label falls back to UTF-8 instead of failing the search',
-    from: '  } catch {\n    return new TextDecoder(\'utf-8\').decode(bytes)\n  }',
-    to: "  } catch {\n    return ''\n  }",
+    from: "  } catch {\n    return { text: new TextDecoder('utf-8').decode(bytes), capped }\n  }",
+    to: "  } catch {\n    return { text: '', capped }\n  }",
   },
   {
     name: 'fetch-follows-another-origin',
@@ -312,6 +337,20 @@ const MUTATIONS = [
     claim: 'a transport failure tells the reader the layer that failed and that a re-issue may succeed',
     from: "          + 'before the page answered, so re-issuing the call may succeed.',",
     to: "          + '',",
+  },
+  {
+    name: 'malformed-location-escapes-as-a-typeerror',
+    file: 'article.js',
+    claim: 'a redirect whose Location is not a URL is reported as the provider failure type, naming the target',
+    from: '      } catch (error) {\n        await response.body?.cancel()\n        throw new ArticleFetchError(',
+    to: '      } catch (error) {\n        throw error\n        await response.body?.cancel()\n        throw new ArticleFetchError(',
+  },
+  {
+    name: 'read-cap-not-reported',
+    file: 'article.js',
+    claim: 'a body the 5 MB read bound cut reaches the caller as truncated',
+    from: '      truncated: readWasCapped || capped,',
+    to: '      truncated: capped,',
   },
 ]
 

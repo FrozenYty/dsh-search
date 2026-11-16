@@ -60,7 +60,8 @@ always a test; a mutation is removed only when the line it breaks is gone.
 
 - `package.json` parses, `dsh.bundle.patch` points at the patch, every path in `files` exists, and no
   install lifecycle script is declared;
-- the peer declaration for `@deepseek-ai/dsh-web` is present and no `engines.dsh` range suppresses it;
+- the peer declaration for `@deepseek-ai/dsh-web` is present, and no `engines.dsh` range takes the
+  compatibility gate over from it;
 - `bing.js` imports nothing, and `index.js`'s only bare import is the seam;
 - `locale/en.json` and `locale/zh.json` carry the same keys, the titles `Search` and `搜索`, and a
   two-character Chinese title;
@@ -101,9 +102,9 @@ story lives, and neither needs a tag to be readable.
 Two things stay worth keeping straight:
 
 - **`package.json`'s version** moves when a file **a profile loads** changes — `index.js`, `bing.js`,
-  `cordis.patch.yml`, `locale/*.json`, `icon.svg`. A README, a test, a script, a workflow or a fixture does
-  not move it, because no profile behaves differently; `files` still lists the READMEs, because they belong
-  in anything that gets handed over, but they are packaging rather than behaviour.
+  `article.js`, `cordis.patch.yml`, `locale/*.json`, `icon.svg`. A README, a test, a script, a workflow or
+  a fixture does not move it, because no profile behaves differently; `files` still lists the READMEs,
+  because they belong in anything that gets handed over, but they are packaging rather than behaviour.
 - **`CHANGELOG.md`** is a log of what changed and when, grouped by the version the manifest carried at the
   time. It is a record, not a release contract, and its section belongs in the pull request that makes the
   change: a six-month-old "why" is otherwise gone. A change that moves no version writes no section there —

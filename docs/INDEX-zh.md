@@ -40,6 +40,7 @@ README.md  ->  PLAN.md  ->  PROGRESS.md  ->  docs/architecture-en.md  ->  与你
 | 这个插件把我的数据放在哪里？将来的磁盘缓存会放在哪里？ | `docs/adr/0011-no-data-directory.md` | 英文 |
 | 为什么在 profile 里改 `tool-web` 行抬不动搜索上限？ | `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` | 英文 |
 | 装上去加上了什么，卸下来又拿走了什么？ | `docs/adr/0013-installing-is-a-patch.md` | 英文 |
+| `official` 与 `auto` 到底能探知账户的什么？ | `docs/adr/0014-the-official-mode-can-only-detect-presence.md` | 英文 |
 | 分支、提交、合并怎么做？ | `CONTRIBUTING.md` | 英文 |
 | 助手在这里要守什么规矩？ | `AGENTS.md` | 英文 |
 

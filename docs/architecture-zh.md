@@ -71,8 +71,11 @@ dsh-search 是给 `ctx.web` 能力缝用的一个搜索 provider：不需要 key
   所以"十条来源"并不等于"这个查询匹配得好"；需要判断的调用方应该读标题，而不是数条数。`sb_count` 是
   唯一诚实的信号，而它不在能力缝的来源结构里——这也是工具输出里没有它的原因。
 
-空的 `sources[]` 是合法答案，工具会把它渲染成 `No results found.`——这正是本 provider 选择抛错的原因：
-块不再匹配意味着**解析器坏了**，此时告诉模型"没有结果"，会让它去改写一个本来没问题的查询。
+空的 `sources[]` 是合法答案，工具会把它渲染成 `No results found.`。本 provider 只在页面自己说"这个查询没有
+结果"时才返回它——也就是 Bing 自己的 `<li class="b_no">` 标记，保存在
+`tests/fixtures/bing-no-results.html`。这是关于查询本身的事实，返回它才能让一个没结果的查询不把整次
+`web_search` 调用拖下水：工具会在第一个 provider 失败时丢掉同一次调用里的全部查询。块不再匹配则意味着
+**解析器坏了**，仍然抛出——此时告诉模型"没有结果"，会让它去改写一个本来没问题的查询。
 
 ## 3. 选中：跑的是哪一个 provider
 
@@ -122,9 +125,10 @@ https://cn.bing.com/search?q=<query>
 | 文本 | 先解数字实体和 Bing 实际发出的命名实体，再剥标签，再压空白 |
 | 顺序与去重 | 按页面顺序，按 URL 去重 |
 
-没有标题锚点、没有可用 URL、或标题为空的块直接跳过。整页**一条都解析不出来**是失败，不是空结果：
-这个插件最可能的静默失效方式就是页面形状变了，而空列表会把它报告成"没有结果"。失败信息会说它怀疑
-哪一种——反爬页，还是不再匹配的标记。
+没有标题锚点、没有可用 URL、或标题为空的块直接跳过。整页**一条都解析不出来**是失败，不是空结果——除非
+页面带着 Bing 自己的无结果标记（`b_no`）。那一种形状是合法的空答案，也正是它让一个没结果的查询不会把同一次
+`web_search` 调用里的其他查询一起丢掉。没有这个标记时，这个插件最可能的静默失效方式就是页面形状变了，而空
+列表会把它报告成"没有结果"。失败信息会说它怀疑哪一种——反爬页，还是不再匹配的标记。
 
 ## 6. 刻意不做的事
 
@@ -143,7 +147,8 @@ https://cn.bing.com/search?q=<query>
 
 | 风险 | 症状 | 在哪里被处理 |
 |---|---|---|
-| Bing 改了结果页标记 | `WEB_PROVIDER_ERROR: … no parseable result block` | 解析器的零结果失败；fixture 与解析测试就是警报 |
+| Bing 改了结果页标记 | `WEB_PROVIDER_ERROR: … no parseable result block` | 解析器的零结果失败；`b_no` 标记让它不会落在真正没有结果的页面上；fixture 与解析测试就是警报 |
+| 查询本身没有结果 | `No results found.`——空列表，不是错误 | `isNoResultsPage`，只在什么都没解析出来时被问到，所以同一次调用里的其他查询照常作答 |
 | Bing 返回反爬页 | `WEB_PROVIDER_ERROR: … a challenge page instead of results` | `looksBlocked`，只在什么都没解析出来时才会被问到 |
 | `cn.bing.com` 不可达 | `WEB_PROVIDER_ERROR: … request failed`，并点名 URL | fetch 失败分支 |
 | 出现重定向 | `WEB_PROVIDER_ERROR: … redirects to <target>, and this provider follows no redirect` | `redirect: "manual"` |
@@ -158,7 +163,8 @@ https://cn.bing.com/search?q=<query>
 请求层上的请求形状；其中的入口测试加载**真实**的能力缝，证明 Host 拿这个 bundle 做了什么——`apply` 在
 `bing-html` 下只注册一个 provider、该 provider 自报可用且没有 `ready()`、provider 的失败以能力缝的
 `WebError` 带着自己的错误码抵达。`node scripts/mutation-scan.mjs` 证明这些测试能失败：它逐条打断
-`bing.js` 与 `index.js` 的承重行，要求测试注意到——于是没人护着的代码行会被点名，而不是悄悄通过。
+`bing.js`、`article.js` 与 `index.js` 的承重行，要求测试注意到——于是没人护着的代码行会被点名，而不是
+悄悄通过。
 `node scripts/check.mjs` 证明清单、import 规则、locale 对、patch 行、文档，以及验收第 3 条那两条请求层
 回归。实网搜索和真实会话是手工步骤：前者要网络，后者要插件被启用，而启用始终是 owner 的决定。真正跑过的
 验收，连同输出，记在 `PROGRESS.md`。

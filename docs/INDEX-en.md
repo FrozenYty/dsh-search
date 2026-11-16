@@ -41,6 +41,7 @@ README.md  ->  PLAN.md  ->  PROGRESS.md  ->  docs/architecture-en.md  ->  the AD
 | Where does this plugin keep my data, and where would a future cache go? | `docs/adr/0011-no-data-directory.md` | English |
 | Why can't a profile raise the search cap on the `tool-web` row? | `docs/adr/0012-the-cap-lives-in-the-agent-preset.md` | English |
 | What does installing add, and what does removing take back? | `docs/adr/0013-installing-is-a-patch.md` | English |
+| What can `official` and `auto` actually detect about the account? | `docs/adr/0014-the-official-mode-can-only-detect-presence.md` | English |
 | How do we branch, commit and merge? | `CONTRIBUTING.md` | English |
 | What are an assistant's rules here? | `AGENTS.md` | English |
 
